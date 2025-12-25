@@ -10,6 +10,8 @@ struct TimeApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
+        // 关键设置：使 Home Indicator 在无操作时自动隐藏
+        .persistentSystemOverlays(.hidden)
         .onReceive(openSettingsNotification) { _ in
           // 发送信号给 ContentView 告知需要打开设置
           NotificationCenter.default.post(name: NSNotification.Name("ShowSettingsUI"), object: nil)
