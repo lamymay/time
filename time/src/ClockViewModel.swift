@@ -31,8 +31,6 @@ class ClockViewModel: ObservableObject {
     }
 
     let currentPos = position ?? CGPoint(x: effectiveWidth / 2, y: effectiveHeight / 2)
-
-    // 边界碰撞检查：考虑时钟自身的尺寸（totalSize）
     let minX = totalSize.width / 2
     let maxX = effectiveWidth - (totalSize.width / 2)
     let minY = totalSize.height / 2
@@ -40,21 +38,35 @@ class ClockViewModel: ObservableObject {
 
     var newX = currentPos.x + velocity.dx
     var newY = currentPos.y + velocity.dy
+    var didCollide = false  // 标记是否发生碰撞
 
     if newX <= minX {
       newX = minX
       velocity.dx = abs(velocity.dx)
+      didCollide = true
     } else if newX >= maxX {
       newX = maxX
       velocity.dx = -abs(velocity.dx)
+      didCollide = true
     }
 
     if newY <= minY {
       newY = minY
       velocity.dy = abs(velocity.dy)
+      didCollide = true
     } else if newY >= maxY {
       newY = maxY
       velocity.dy = -abs(velocity.dy)
+      didCollide = true
+    }
+
+    // 碰撞后随机变色
+    if didCollide {
+      clockColor = Color(
+        red: .random(in: 0.4...1),
+        green: .random(in: 0.4...1),
+        blue: .random(in: 0.4...1)
+      )
     }
 
     position = CGPoint(x: newX, y: newY)

@@ -1,4 +1,4 @@
-import Combine  // 确保导入以支持 autoconnect()
+import Combine
 import SwiftUI
 
 struct ContentView: View {
@@ -25,12 +25,11 @@ struct ContentView: View {
   // 定时器：30FPS 刷新
   let timer = Timer.publish(every: 0.033, on: .main, in: .common).autoconnect()
 
-  // 核心逻辑：24小时模式下强制不显示 AMPM，但保留用户原始 showAMPM 设定
+  // 逻辑判定：24小时模式下隐藏 AMPM
   private var effectiveShowAMPM: Bool { is24Hour ? false : showAMPM }
 
   var body: some View {
     GeometryReader { screenGeo in
-      // 定义侧边栏宽度，供碰撞检测使用
       let pickerWidth: CGFloat = 300
 
       ZStack(alignment: .topLeading) {
@@ -46,39 +45,40 @@ struct ContentView: View {
           .onLongPressGesture(minimumDuration: 0.5) {
             toggleSettings()
           }
-          .contextMenu {
-            Button("个性化设置") { toggleSettings() }
-            #if os(macOS)
+          #if os(macOS)
+            // 仅在 macOS 保留 ContextMenu，iOS 使用长按手势避免快照黑屏
+            .contextMenu {
+              Button("个性化设置") { toggleSettings() }
               Divider()
               Button("退出程序") { NSApplication.shared.terminate(nil) }
-            #endif
-          }
+            }
+          #endif
 
-        // --- 1. 时钟主体渲染 ---
+        // --- 1. 时钟主体 ---
         VStack(alignment: .center, spacing: 10) {
           HStack(alignment: .lastTextBaseline, spacing: fontSize * 0.06) {
             let ampm = TimeProvider.getAMPMString(
               from: vm.currentTime, is24Hour: is24Hour, timeZoneIdentifier: selectedTimeZone)
 
-            // 前置 AM/PM
             if ampmSide == "Leading" && effectiveShowAMPM && !ampm.isEmpty {
               Text(ampm).font(getCustomFont(size: fontSize * ampmScale))
             }
 
-            // 主时间数字
             Text(
               TimeProvider.getTimeString(
                 from: vm.currentTime, is24Hour: is24Hour, padZero: padZero,
                 timeZoneIdentifier: selectedTimeZone)
             )
             .font(getCustomFont(size: fontSize))
-            .id("\(is24Hour)-\(padZero)")  // 强制重绘以适配字体变化
+            // 使用 id 确保字体切换时视图能够正确响应
+            .id("\(selectedFontName)-\(is24Hour)-\(padZero)")
 
-            // 后置 AM/PM
             if ampmSide == "Trailing" && effectiveShowAMPM && !ampm.isEmpty {
               Text(ampm).font(getCustomFont(size: fontSize * ampmScale))
             }
           }
+          // 性能优化：将复杂的文本渲染离屏缓存到 GPU，减少切换字体时的闪烁和卡顿
+          .drawingGroup()
 
           if showTimeZoneText {
             Text(TimeProvider.getTimeZoneString(for: selectedTimeZone, date: vm.currentTime))
@@ -95,30 +95,12 @@ struct ContentView: View {
         )
         .position(vm.position ?? CGPoint(x: screenGeo.size.width / 2, y: screenGeo.size.height / 2))
 
-        // --- 2. 高精度 Debug 面板 ---
+        // --- 2. Debug 面板 ---
         if showDebugInfo {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("[SYSTEM] \(TimeProvider.getFullSystemTime(from: vm.currentTime))")
-            Text(
-              "[LOGIC] is24H:\(String(is24Hour)) | RawAMPM:\(String(showAMPM)) | Effective:\(effectiveShowAMPM ? "ON" : "OFF")"
-            )
-            Text(
-              "[LAYOUT] Size:\(String(describing: vm.totalSize)) | Pos:\(String(describing: vm.position ?? .zero))"
-            )
-            Text(
-              "[OUTPUT] \"\(TimeProvider.getTimeString(from: vm.currentTime, is24Hour: is24Hour, padZero: padZero, timeZoneIdentifier: selectedTimeZone))\""
-            )
-          }
-          .font(.system(size: 10, design: .monospaced))
-          .foregroundColor(.green.opacity(0.9))
-          .padding(10)
-          .background(Color.black.opacity(0.4))
-          .padding(10)
-          .textSelection(.enabled)
-          .zIndex(50)
+          debugOverlayView
         }
 
-        // --- 3. 设置面板 (居中弹窗) ---
+        // --- 3. 设置面板 ---
         if showSettings && !showFontPicker {
           SettingsPanelView(
             moveSpeed: $moveSpeed, fontSize: $fontSize, padZero: $padZero, is24Hour: $is24Hour,
@@ -132,7 +114,7 @@ struct ContentView: View {
           .transition(.scale.combined(with: .opacity))
         }
 
-        // --- 4. 字体选择侧边栏 (右侧滑入) ---
+        // --- 4. 字体选择侧边栏 ---
         if showFontPicker {
           HStack(spacing: 0) {
             Spacer()
@@ -147,16 +129,13 @@ struct ContentView: View {
           .zIndex(200)
         }
 
-        // --- 5. 快捷键隐形按钮 ---
-        Button(action: toggleSettings) {
-          Color.clear.frame(width: 1, height: 1)
-        }
-        .keyboardShortcut(",", modifiers: .command)
-        .buttonStyle(.plain)
+        // 快捷键支持 (macOS)
+        Button(action: toggleSettings) { Color.clear.frame(width: 1, height: 1) }
+          .keyboardShortcut(",", modifiers: .command)
+          .buttonStyle(.plain)
       }
       .onReceive(timer) { input in
         vm.currentTime = input
-        // 碰撞检测逻辑：传入是否开启了字体栏及其宽度
         vm.updatePosition(
           in: screenGeo.size,
           isPickerOpen: showFontPicker,
@@ -168,7 +147,29 @@ struct ContentView: View {
     }
   }
 
-  // 切换设置面板
+  // --- 辅助视图与逻辑 ---
+
+  private var debugOverlayView: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text("[SYSTEM] \(TimeProvider.getFullSystemTime(from: vm.currentTime))")
+      Text(
+        "[LOGIC] is24H:\(String(is24Hour)) | RawAMPM:\(String(showAMPM)) | Effective:\(effectiveShowAMPM ? "ON" : "OFF")"
+      )
+      Text(
+        "[LAYOUT] Size:\(String(describing: vm.totalSize)) | Pos:\(String(describing: vm.position ?? .zero))"
+      )
+      Text(
+        "[OUTPUT] \"\(TimeProvider.getTimeString(from: vm.currentTime, is24Hour: is24Hour, padZero: padZero, timeZoneIdentifier: selectedTimeZone))\""
+      )
+    }
+    .font(.system(size: 10, design: .monospaced))
+    .foregroundColor(.green.opacity(0.9))
+    .padding(10)
+    .background(Color.black.opacity(0.4))
+    .padding(10)
+    .zIndex(50)
+  }
+
   private func toggleSettings() {
     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
       showSettings.toggle()
@@ -176,18 +177,29 @@ struct ContentView: View {
     }
   }
 
-  // 初始化 App
   private func setupApp() {
-    var fonts = ["System Default", "System Monospaced", "System Rounded", "System Serif"]
-    #if os(macOS)
-      let systemFonts = NSFontManager.shared.availableFontFamilies.sorted()
-      fonts.append(contentsOf: systemFonts)
-    #endif
-    self.allFonts = fonts
+    // 1. 初始化预设字体
+    self.allFonts = ["System Default", "System Monospaced", "System Rounded", "System Serif"]
+
+    // 2. 异步加载全量系统字体，防止阻塞 UI
+    DispatchQueue.global(qos: .userInitiated).async {
+      var loadedFonts: [String] = []
+
+      #if os(iOS)
+        loadedFonts = UIFont.familyNames.sorted()
+      #elseif os(macOS)
+        loadedFonts = NSFontManager.shared.availableFontFamilies.sorted()
+      #endif
+
+      DispatchQueue.main.async {
+        let combined = (self.allFonts + loadedFonts)
+        // 使用 NSOrderedSet 去重并保持顺序
+        self.allFonts = Array(NSOrderedSet(array: combined)) as? [String] ?? combined
+      }
+    }
     vm.updateVelocity(speed: moveSpeed)
   }
 
-  // 字体获取逻辑
   private func getCustomFont(size: CGFloat) -> Font {
     switch selectedFontName {
     case "System Default": return .system(size: size, weight: .bold)
