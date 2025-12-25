@@ -19,7 +19,6 @@ struct ContentView: View {
   @State private var currentTime = Date()
   @State private var totalSize: CGSize = .zero
 
-  // 设置面板位置：解决抖动
   @State private var settingsOffset: CGSize = .zero
   @State private var dragOffset: CGSize = .zero
 
@@ -30,7 +29,6 @@ struct ContentView: View {
       let centerPoint = CGPoint(x: screenGeo.size.width / 2, y: screenGeo.size.height / 2)
 
       ZStack {
-        // 背景层
         Color.black.ignoresSafeArea()
           .contentShape(Rectangle())
           .onTapGesture {
@@ -46,9 +44,14 @@ struct ContentView: View {
 
         // --- 时钟主体 ---
         HStack(alignment: .lastTextBaseline, spacing: fontSize * 0.05) {
+          // 【修复】增加 !is24Hour 判断，确保 24 小时模式不显示 AM/PM
           if !is24Hour && showAMPM && ampmSide == "Leading" { ampmTextComponent }
-          Text(mainTimeStrings(currentTime)).font(
-            .system(size: fontSize, weight: .bold, design: .monospaced))
+
+          Text(mainTimeStrings(currentTime))
+            .font(.system(size: fontSize, weight: .bold, design: .monospaced))
+            .id(is24Hour ? "24" : "12")  // 强制刷新文本视图
+
+          // 【修复】增加 !is24Hour 判断
           if !is24Hour && showAMPM && ampmSide == "Trailing" { ampmTextComponent }
         }
         .foregroundColor(clockColor)
@@ -56,13 +59,11 @@ struct ContentView: View {
           GeometryReader { geo in
             Color.clear
               .onAppear { self.totalSize = geo.size }
-              .onChange(of: geo.size) { _, _ in self.totalSize = geo.size }
+              .onChange(of: geo.size) { _, newSize in self.totalSize = newSize }
           }
         )
-        // 修复：当空间不足时锁定在屏幕中心，防止碰撞逻辑死循环闪烁
         .position(isSpaceEnough(for: screenGeo.size) ? (position ?? centerPoint) : centerPoint)
 
-        // --- 设置面板 ---
         if showSettings {
           settingsPanelView
             .offset(
@@ -76,7 +77,6 @@ struct ContentView: View {
             .zIndex(10)
         }
       }
-      // 绑定 Command + , 快捷键
       .background(
         Button("") { triggerSettings() }
           .keyboardShortcut(",", modifiers: .command)
@@ -84,7 +84,6 @@ struct ContentView: View {
       )
       .onReceive(timer) { input in
         self.currentTime = input
-        // 只有空间足够才更新物理位置
         if isSpaceEnough(for: screenGeo.size) {
           updatePosition(in: screenGeo.size)
         }
@@ -93,8 +92,6 @@ struct ContentView: View {
     }
   }
 
-  // --- 3. UI 组件 ---
-
   private var ampmTextComponent: some View {
     Text(getAMPMString(currentTime))
       .font(.system(size: fontSize * ampmScale, weight: .bold, design: .monospaced))
@@ -102,7 +99,6 @@ struct ContentView: View {
 
   private var settingsPanelView: some View {
     VStack(spacing: 0) {
-      // 鼠标拖拽区
       ZStack {
         Rectangle().fill(Color.white.opacity(0.0001))
         Capsule().fill(Color.gray.opacity(0.4)).frame(width: 40, height: 5)
@@ -166,9 +162,6 @@ struct ContentView: View {
     .onTapGesture {}
   }
 
-  // --- 4. 逻辑处理 ---
-
-  // 检查是否有足够的空间（缓冲区设为 20 像素）
   private func isSpaceEnough(for screenSize: CGSize) -> Bool {
     return screenSize.width > (totalSize.width + 20) && screenSize.height > (totalSize.height + 20)
   }
@@ -190,13 +183,10 @@ struct ContentView: View {
     let margin: CGFloat = 5
     let w = totalSize.width + margin
     let h = totalSize.height + margin
-
-    // 初始位置设定在中心
     let currentPos = position ?? CGPoint(x: screenSize.width / 2, y: screenSize.height / 2)
     var newX = currentPos.x + velocity.dx
     var newY = currentPos.y + velocity.dy
 
-    // 碰撞边界检查
     if newX <= w / 2 {
       direction.dx = 1
       updateVelocity()
@@ -208,7 +198,6 @@ struct ContentView: View {
       clockColor = randomColor()
       newX = screenSize.width - w / 2 - 1
     }
-
     if newY <= h / 2 {
       direction.dy = 1
       updateVelocity()
@@ -220,7 +209,6 @@ struct ContentView: View {
       clockColor = randomColor()
       newY = screenSize.height - h / 2 - 1
     }
-
     position = CGPoint(x: newX, y: newY)
   }
 
@@ -241,6 +229,8 @@ struct ContentView: View {
 
   private func mainTimeStrings(_ date: Date) -> String {
     let f = DateFormatter()
+    // 【关键修复】使用 Locale 锁定格式，不受系统 12/24h 设置影响
+    f.locale = Locale(identifier: "en_US_POSIX")
     f.dateFormat = is24Hour ? "HH:mm" : "hh:mm"
     return f.string(from: date)
   }
