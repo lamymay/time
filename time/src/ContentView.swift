@@ -9,6 +9,8 @@ struct ContentView: View {
   @AppStorage("showAMPM") private var showAMPM: Bool = true
   @AppStorage("ampmScale") private var ampmScale: Double = 0.25
   @AppStorage("ampmSide") private var ampmSide: String = "Leading"
+  // 新增：时区设置，默认为系统当前时区
+  @AppStorage("selectedTimeZone") private var selectedTimeZone: String = TimeZone.current.identifier
 
   // --- 2. 内部状态 ---
   @State private var showSettings = false
@@ -23,6 +25,9 @@ struct ContentView: View {
   @State private var dragOffset: CGSize = .zero
 
   let timer = Timer.publish(every: 0.02, on: .main, in: .common).autoconnect()
+
+  // 获取所有可用时区 ID 并排序
+  let allTimeZones = TimeZone.knownTimeZoneIdentifiers.sorted()
 
   var body: some View {
     GeometryReader { screenGeo in
@@ -43,16 +48,21 @@ struct ContentView: View {
           }
 
         // --- 时钟主体 ---
-        HStack(alignment: .lastTextBaseline, spacing: fontSize * 0.05) {
-          // 【修复】增加 !is24Hour 判断，确保 24 小时模式不显示 AM/PM
-          if !is24Hour && showAMPM && ampmSide == "Leading" { ampmTextComponent }
+        VStack(alignment: .center, spacing: 5) {
+          HStack(alignment: .lastTextBaseline, spacing: fontSize * 0.05) {
+            if !is24Hour && showAMPM && ampmSide == "Leading" { ampmTextComponent }
 
-          Text(mainTimeStrings(currentTime))
-            .font(.system(size: fontSize, weight: .bold, design: .monospaced))
-            .id(is24Hour ? "24" : "12")  // 强制刷新文本视图
+            Text(mainTimeStrings(currentTime))
+              .font(.system(size: fontSize, weight: .bold, design: .monospaced))
+              .id("\(is24Hour)-\(selectedTimeZone)")  // 时区改变时强制刷新
 
-          // 【修复】增加 !is24Hour 判断
-          if !is24Hour && showAMPM && ampmSide == "Trailing" { ampmTextComponent }
+            if !is24Hour && showAMPM && ampmSide == "Trailing" { ampmTextComponent }
+          }
+
+          // 新增：时区显示（显示城市名和时区缩写）
+          Text(timeZoneDisplayString)
+            .font(.system(size: fontSize * 0.2, weight: .medium, design: .monospaced))
+            .opacity(0.8)
         }
         .foregroundColor(clockColor)
         .background(
@@ -92,6 +102,8 @@ struct ContentView: View {
     }
   }
 
+  // --- 3. UI 组件 ---
+
   private var ampmTextComponent: some View {
     Text(getAMPMString(currentTime))
       .font(.system(size: fontSize * ampmScale, weight: .bold, design: .monospaced))
@@ -118,7 +130,21 @@ struct ContentView: View {
       ScrollView {
         VStack(spacing: 20) {
           Text("个性化设置").font(.headline).foregroundColor(.white)
+
           VStack(spacing: 15) {
+            // 新增：时区选择器
+            VStack(alignment: .leading, spacing: 5) {
+              Text("时区选择").font(.caption2).foregroundColor(.gray)
+              Picker("时区", selection: $selectedTimeZone) {
+                ForEach(allTimeZones, id: \.self) { tz in
+                  Text(tz.replacingOccurrences(of: "_", with: " ")).tag(tz)
+                }
+              }
+              .pickerStyle(.menu)
+              .labelsHidden()
+            }
+            .padding(.horizontal)
+
             Toggle("24小时制", isOn: $is24Hour)
             if !is24Hour {
               Toggle("显示 AM/PM", isOn: $showAMPM)
@@ -136,7 +162,9 @@ struct ContentView: View {
             }
           }
           .foregroundColor(.white).padding(.horizontal)
+
           Divider().background(Color.gray.opacity(0.3))
+
           VStack(alignment: .leading, spacing: 12) {
             Text("移动速度: \(Int(moveSpeed * 100))%").font(.caption).foregroundColor(.gray)
             Slider(value: $moveSpeed, in: 0...1).onChange(of: moveSpeed) { _, _ in updateVelocity()
@@ -145,13 +173,14 @@ struct ContentView: View {
             Slider(value: $fontSize, in: 30...350)
           }
           .padding(.horizontal)
+
           Button("完成") { withAnimation(.spring()) { showSettings = false } }
             .buttonStyle(.borderedProminent).padding(.top, 10)
         }
         .padding(.bottom, 25)
       }
     }
-    .frame(width: 300, height: 460)
+    .frame(width: 300, height: 480)  // 略微增加高度以容纳时区选择器
     .background(
       RoundedRectangle(cornerRadius: 24)
         .fill(Color(white: 0.12).opacity(0.95))
@@ -160,6 +189,17 @@ struct ContentView: View {
     .clipShape(RoundedRectangle(cornerRadius: 24))
     .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.gray.opacity(0.2), lineWidth: 1))
     .onTapGesture {}
+  }
+
+  // --- 4. 逻辑处理 ---
+
+  private var timeZoneDisplayString: String {
+    let city =
+      selectedTimeZone.split(separator: "/").last?.replacingOccurrences(of: "_", with: " ")
+      ?? selectedTimeZone
+    let tz = TimeZone(identifier: selectedTimeZone)
+    let abbreviation = tz?.abbreviation(for: currentTime) ?? ""
+    return "\(city) (\(abbreviation))"
   }
 
   private func isSpaceEnough(for screenSize: CGSize) -> Bool {
@@ -229,14 +269,15 @@ struct ContentView: View {
 
   private func mainTimeStrings(_ date: Date) -> String {
     let f = DateFormatter()
-    // 【关键修复】使用 Locale 锁定格式，不受系统 12/24h 设置影响
     f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone(identifier: selectedTimeZone)
     f.dateFormat = is24Hour ? "HH:mm" : "hh:mm"
     return f.string(from: date)
   }
 
   private func getAMPMString(_ date: Date) -> String {
     let f = DateFormatter()
+    f.timeZone = TimeZone(identifier: selectedTimeZone)
     f.dateFormat = "a"
     return f.string(from: date)
   }
