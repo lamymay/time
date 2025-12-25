@@ -1,18 +1,20 @@
 import Combine
 import SwiftUI
 
+// --- 优化 1: 静态缓存 Formatter，这是降低内存和电池消耗的核心 ---
+struct AppTimeCache {
+  static let formatter = DateFormatter()
+}
+
 struct ContentView: View {
-  // --- 1. 持久化设置 ---
   @AppStorage("moveSpeed") private var moveSpeed: Double = 0.5
   @AppStorage("fontSize") private var fontSize: Double = 80
   @AppStorage("is24Hour") private var is24Hour: Bool = false
   @AppStorage("showAMPM") private var showAMPM: Bool = true
   @AppStorage("ampmScale") private var ampmScale: Double = 0.25
   @AppStorage("ampmSide") private var ampmSide: String = "Leading"
-  // 新增：时区设置，默认为系统当前时区
   @AppStorage("selectedTimeZone") private var selectedTimeZone: String = TimeZone.current.identifier
 
-  // --- 2. 内部状态 ---
   @State private var showSettings = false
   @State private var position: CGPoint? = nil
   @State private var velocity: CGVector = .zero
@@ -24,9 +26,11 @@ struct ContentView: View {
   @State private var settingsOffset: CGSize = .zero
   @State private var dragOffset: CGSize = .zero
 
-  let timer = Timer.publish(every: 0.02, on: .main, in: .common).autoconnect()
+  // --- 优化 2: 刷新率调整 ---
+  // 0.02s (50fps) 对时钟移动来说有点奢侈。
+  // 改为 0.033s (约 30fps) 可以减少约 40% 的计算量，且视觉上依然非常流畅。
+  let timer = Timer.publish(every: 0.033, on: .main, in: .common).autoconnect()
 
-  // 获取所有可用时区 ID 并排序
   let allTimeZones = TimeZone.knownTimeZoneIdentifiers.sorted()
 
   var body: some View {
@@ -47,19 +51,18 @@ struct ContentView: View {
             triggerSettings()
           }
 
-        // --- 时钟主体 ---
         VStack(alignment: .center, spacing: 5) {
           HStack(alignment: .lastTextBaseline, spacing: fontSize * 0.05) {
             if !is24Hour && showAMPM && ampmSide == "Leading" { ampmTextComponent }
 
+            // 这里使用优化后的函数
             Text(mainTimeStrings(currentTime))
               .font(.system(size: fontSize, weight: .bold, design: .monospaced))
-              .id("\(is24Hour)-\(selectedTimeZone)")  // 时区改变时强制刷新
+              .id("\(is24Hour)-\(selectedTimeZone)")
 
             if !is24Hour && showAMPM && ampmSide == "Trailing" { ampmTextComponent }
           }
 
-          // 新增：时区显示（显示城市名和时区缩写）
           Text(timeZoneDisplayString)
             .font(.system(size: fontSize * 0.2, weight: .medium, design: .monospaced))
             .opacity(0.8)
@@ -102,8 +105,6 @@ struct ContentView: View {
     }
   }
 
-  // --- 3. UI 组件 ---
-
   private var ampmTextComponent: some View {
     Text(getAMPMString(currentTime))
       .font(.system(size: fontSize * ampmScale, weight: .bold, design: .monospaced))
@@ -132,7 +133,6 @@ struct ContentView: View {
           Text("个性化设置").font(.headline).foregroundColor(.white)
 
           VStack(spacing: 15) {
-            // 新增：时区选择器
             VStack(alignment: .leading, spacing: 5) {
               Text("时区选择").font(.caption2).foregroundColor(.gray)
               Picker("时区", selection: $selectedTimeZone) {
@@ -180,7 +180,7 @@ struct ContentView: View {
         .padding(.bottom, 25)
       }
     }
-    .frame(width: 300, height: 480)  // 略微增加高度以容纳时区选择器
+    .frame(width: 300, height: 480)
     .background(
       RoundedRectangle(cornerRadius: 24)
         .fill(Color(white: 0.12).opacity(0.95))
@@ -190,8 +190,6 @@ struct ContentView: View {
     .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.gray.opacity(0.2), lineWidth: 1))
     .onTapGesture {}
   }
-
-  // --- 4. 逻辑处理 ---
 
   private var timeZoneDisplayString: String {
     let city =
@@ -238,6 +236,7 @@ struct ContentView: View {
       clockColor = randomColor()
       newX = screenSize.width - w / 2 - 1
     }
+
     if newY <= h / 2 {
       direction.dy = 1
       updateVelocity()
@@ -249,6 +248,7 @@ struct ContentView: View {
       clockColor = randomColor()
       newY = screenSize.height - h / 2 - 1
     }
+
     position = CGPoint(x: newX, y: newY)
   }
 
@@ -267,8 +267,9 @@ struct ContentView: View {
     }
   }
 
+  // --- 优化 3: 使用缓存的静态 Formatter ---
   private func mainTimeStrings(_ date: Date) -> String {
-    let f = DateFormatter()
+    let f = AppTimeCache.formatter
     f.locale = Locale(identifier: "en_US_POSIX")
     f.timeZone = TimeZone(identifier: selectedTimeZone)
     f.dateFormat = is24Hour ? "HH:mm" : "hh:mm"
@@ -276,7 +277,7 @@ struct ContentView: View {
   }
 
   private func getAMPMString(_ date: Date) -> String {
-    let f = DateFormatter()
+    let f = AppTimeCache.formatter
     f.timeZone = TimeZone(identifier: selectedTimeZone)
     f.dateFormat = "a"
     return f.string(from: date)
