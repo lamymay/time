@@ -8,7 +8,25 @@ struct SideFontPickerView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      // ... 顶部和搜索框保持不变 ...
+      // 顶部栏
+      HStack {
+        Text("字体样式").font(.headline)
+        Spacer()
+        Button(action: { withAnimation { isPresented = false } }) {
+          Image(systemName: "xmark.circle.fill")
+            .font(.title2)
+            .foregroundColor(.gray)
+        }
+      }
+      .padding()
+      .background(Color.white.opacity(0.05))
+
+      // 搜索框
+      TextField("搜索字体...", text: $searchText)
+        .padding(8)
+        .background(Color.white.opacity(0.1))
+        .cornerRadius(8)
+        .padding()
 
       ScrollView {
         LazyVStack(spacing: 0) {
@@ -18,8 +36,7 @@ struct SideFontPickerView: View {
 
           ForEach(filtered, id: \.self) { fontName in
             Button(action: {
-              // 优化点：使用 Task 异步更新，防止主线程因字体加载瞬间锁死
-              Task {
+              Task { @MainActor in
                 selectedFontName = fontName
               }
             }) {
@@ -37,24 +54,21 @@ struct SideFontPickerView: View {
               .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .background(selectedFontName == fontName ? Color.blue.opacity(0.25) : Color.clear)
+            .background(selectedFontName == fontName ? Color.blue.opacity(0.2) : Color.clear)
 
             Divider().background(Color.white.opacity(0.1))
           }
         }
       }
     }
+    .frame(maxHeight: .infinity)  // 确保撑满屏幕高度
     .background(.ultraThinMaterial)
     .environment(\.colorScheme, .dark)
   }
 
   private func previewFont(_ name: String) -> Font {
-    // 预设字体的快速路径
     if name == "System Default" { return .system(size: 16) }
     if name == "System Monospaced" { return .system(size: 16, design: .monospaced) }
-
-    // 这里的 custom 实例化在 iOS 上如果字体文件很大可能会卡
-    // 保持 size 统一且较小有助于性能
     return .custom(name, size: 16)
   }
 }

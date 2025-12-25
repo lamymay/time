@@ -18,11 +18,11 @@ class ClockViewModel: ObservableObject {
       dy: currentDY * 10 * CGFloat(speed)
     )
   }
-
   func updatePosition(
     in screenSize: CGSize, isPickerOpen: Bool, pickerWidth: CGFloat, speed: Double
   ) {
-    let effectiveWidth = isPickerOpen ? screenSize.width - pickerWidth : screenSize.width
+    // 此时 isPickerOpen 和 pickerWidth 会被忽略
+    let effectiveWidth = screenSize.width
     let effectiveHeight = screenSize.height
 
     guard totalSize.width > 0 else {
@@ -31,6 +31,8 @@ class ClockViewModel: ObservableObject {
     }
 
     let currentPos = position ?? CGPoint(x: effectiveWidth / 2, y: effectiveHeight / 2)
+
+    // 边界永远是整个屏幕
     let minX = totalSize.width / 2
     let maxX = effectiveWidth - (totalSize.width / 2)
     let minY = totalSize.height / 2
@@ -38,7 +40,7 @@ class ClockViewModel: ObservableObject {
 
     var newX = currentPos.x + velocity.dx
     var newY = currentPos.y + velocity.dy
-    var didCollide = false  // 标记是否发生碰撞
+    var didCollide = false
 
     if newX <= minX {
       newX = minX
@@ -60,13 +62,9 @@ class ClockViewModel: ObservableObject {
       didCollide = true
     }
 
-    // 碰撞后随机变色
     if didCollide {
       clockColor = Color(
-        red: .random(in: 0.4...1),
-        green: .random(in: 0.4...1),
-        blue: .random(in: 0.4...1)
-      )
+        red: .random(in: 0.4...1), green: .random(in: 0.4...1), blue: .random(in: 0.4...1))
     }
 
     position = CGPoint(x: newX, y: newY)
