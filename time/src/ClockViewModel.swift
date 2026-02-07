@@ -14,8 +14,8 @@ class ClockViewModel: ObservableObject {
     let currentDX = velocity.dx > 0 ? 1.0 : -1.0
     let currentDY = velocity.dy > 0 ? 1.0 : -1.0
     velocity = CGVector(
-      dx: currentDX * 10 * CGFloat(speed),
-      dy: currentDY * 10 * CGFloat(speed)
+      dx: currentDX * 100 * CGFloat(speed),
+      dy: currentDY * 100 * CGFloat(speed)
     )
   }
   func updatePosition(

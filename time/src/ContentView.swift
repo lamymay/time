@@ -20,7 +20,7 @@ struct ContentView: View {
   @State private var permanentOffset: CGSize = .zero
   @State private var allFonts: [String] = []
 
-  let timer = Timer.publish(every: 59, on: .main, in: .common).autoconnect()
+  let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
   private var effectiveShowAMPM: Bool { is24Hour ? false : showAMPM }
 
   var body: some View {
