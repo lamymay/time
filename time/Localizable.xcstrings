@@ -1319,6 +1319,62 @@
         }
       }
     },
+    "settings.oled_pixel_shift" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduce pixel aging"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピクセル老化を抑える"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "优化像素老化"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "優化像素老化"
+          }
+        }
+      }
+    },
+    "settings.oled_pixel_shift_hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shift the clock ~1 px per minute along screen edges (DVD / flip)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎分約1px、画面端に沿ってゆっくり移動（DVD・フリップ共通）"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每分钟约 1 像素沿边缓慢漂移，翻页与弹跳共用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每分鐘約 1 像素沿邊緩慢漂移，翻頁與彈跳共用"
+          }
+        }
+      }
+    },
     "settings.keep_awake" : {
       "localizations" : {
         "en" : {

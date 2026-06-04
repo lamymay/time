@@ -61,6 +61,7 @@ struct ContentView: View {
   @AppStorage("timeDisplayPrecision") private var timeDisplayPrecisionRaw: String =
     TimeDisplayPrecision.minute.rawValue
   @AppStorage("keepDisplayAwake") private var keepDisplayAwake = true
+  @AppStorage("oledPixelShiftEnabled") private var oledPixelShiftEnabled = true
   @AppStorage("clockDisplayStyle") private var clockDisplayStyleRaw: String =
     ClockDisplayStyle.flip.rawValue
   @AppStorage("clockColorHex") private var clockColorHex: String = ClockColorPreset.mint.rawValue
@@ -100,6 +101,7 @@ struct ContentView: View {
         flipCompactDetachedSeconds: $flipCompactDetachedSeconds,
         clockColorHex: $clockColorHex,
         keepDisplayAwake: $keepDisplayAwake,
+        oledPixelShiftEnabled: $oledPixelShiftEnabled,
         settingsPanelOffset: $settingsPanelOffset,
         fontCatalog: $fontCatalog,
         flipLaunchPresentationApplied: $flipLaunchPresentationApplied,

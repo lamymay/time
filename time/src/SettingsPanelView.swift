@@ -27,6 +27,7 @@ struct SettingsPanelView: View {
   @Binding var flipCompactDetachedSeconds: Bool
   @Binding var clockColorHex: String
   @Binding var keepDisplayAwake: Bool
+  @Binding var oledPixelShiftEnabled: Bool
 
   let layout: SettingsPanelLayout
   @Binding var panelOffset: CGSize
@@ -327,6 +328,11 @@ struct SettingsPanelView: View {
         title: L10n.text("settings.keep_awake"),
         subtitle: L10n.text("settings.keep_awake_hint"),
         isOn: $keepDisplayAwake
+      )
+      SettingsToggleRow(
+        title: L10n.text("settings.oled_pixel_shift"),
+        subtitle: L10n.text("settings.oled_pixel_shift_hint"),
+        isOn: $oledPixelShiftEnabled
       )
     }
   }

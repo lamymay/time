@@ -24,12 +24,15 @@ struct ContentRootScreen: View {
   @Binding var flipCompactDetachedSeconds: Bool
   @Binding var clockColorHex: String
   @Binding var keepDisplayAwake: Bool
+  @Binding var oledPixelShiftEnabled: Bool
   @Binding var settingsPanelOffset: CGSize
   @Binding var fontCatalog: [String]?
   @Binding var flipLaunchPresentationApplied: Bool
 
   var timeScheduler: ClockTimeScheduler
   var scenePhase: ScenePhase
+
+  @State private var oledPixelShift = OledPixelShiftEngine()
 
   private var timeDisplayPrecision: TimeDisplayPrecision {
     TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
@@ -60,7 +63,13 @@ struct ContentRootScreen: View {
   private var isWideLayout: Bool { screenSize.width > 600 }
   private var sidePanelWidth: CGFloat { screenSize.width > 600 ? 300 : screenSize.width * 0.7 }
   private var clockPaused: Bool { showSettings || showFontPicker }
-  private var oledGuardEnabled: Bool { scenePhase == .active && !showSettings && !showFontPicker }
+  private var oledShiftActive: Bool {
+    scenePhase == .active && !showSettings && !showFontPicker
+  }
+
+  private var oledShiftEnabledForClock: Bool {
+    oledPixelShiftEnabled && !AppUITestConfig.isEnabled
+  }
 
   var body: some View {
     panelClampLayer
@@ -151,7 +160,12 @@ struct ContentRootScreen: View {
     clockScene(screenSize: layoutSize, isPaused: clockPaused)
       .accessibilityIdentifier(TimeAccessibilityID.clockScene)
       .accessibilityElement(children: .contain)
-      .oledBurnInGuard(isEnabled: oledGuardEnabled)
+      .oledPixelShift(
+        engine: oledPixelShift,
+        isEnabled: oledShiftEnabledForClock,
+        isActive: oledShiftActive,
+        screenSize: screenSize
+      )
   }
 
   @ViewBuilder
@@ -292,6 +306,7 @@ struct ContentRootScreen: View {
         flipCompactDetachedSeconds: $flipCompactDetachedSeconds,
         clockColorHex: $clockColorHex,
         keepDisplayAwake: $keepDisplayAwake,
+        oledPixelShiftEnabled: $oledPixelShiftEnabled,
         layout: isWide ? .sidePanel : .bottomSheet,
         panelOffset: $settingsPanelOffset,
         onSpeedChange: {}
