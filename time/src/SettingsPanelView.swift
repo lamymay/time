@@ -49,6 +49,7 @@ struct SettingsPanelView: View {
           }
           timeFormatSection
           displaySection
+          supportSection
           advancedSection
         }
         .padding(.horizontal, 18)
@@ -244,6 +245,29 @@ struct SettingsPanelView: View {
         subtitle: L10n.text("settings.keep_awake_hint"),
         isOn: $keepDisplayAwake
       )
+    }
+  }
+
+  private var supportSection: some View {
+    SettingsSection(title: L10n.text("settings.support"), systemImage: "envelope") {
+      Button {
+        _ = FeedbackMail.openFeedbackMail()
+      } label: {
+        HStack {
+          VStack(alignment: .leading, spacing: 2) {
+            Text(L10n.text("settings.feedback"))
+            Text(FeedbackMail.developerEmail)
+              .font(.caption)
+              .foregroundStyle(SettingsTheme.secondaryText)
+          }
+          Spacer()
+          Image(systemName: "chevron.right")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(SettingsTheme.secondaryText)
+        }
+        .padding(.vertical, 4)
+      }
+      .buttonStyle(.plain)
     }
   }
 

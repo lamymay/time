@@ -1540,6 +1540,118 @@
           }
         }
       }
+    },
+    "settings.support": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Support"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サポート"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援"
+          }
+        }
+      }
+    },
+    "settings.feedback": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邮件反馈"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email feedback"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールでフィードバック"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "郵件回饋"
+          }
+        }
+      }
+    },
+    "feedback.mail_subject": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OLED屏幕保护时钟 反馈"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OLED Screensaver Clock Feedback"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OLEDスクリーンセーバー時計 フィードバック"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OLED螢幕保護時鐘 回饋"
+          }
+        }
+      }
+    },
+    "feedback.mail_body": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在此描述问题或建议：\n\n——\n应用版本：%@\n系统：%@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please describe your issue or suggestion:\n\n——\nApp version: %@\nSystem: %@\n"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "問題やご要望をご記入ください：\n\n——\nアプリ版本：%@\nシステム：%@\n"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請在此描述問題或建議：\n\n——\n應用版本：%@\n系統：%@\n"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
