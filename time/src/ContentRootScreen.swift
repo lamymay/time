@@ -262,7 +262,6 @@ struct ContentRootScreen: View {
         precision: timeDisplayPrecision,
         timeZoneTopGap: -style.timeZoneSize * 0.12,
         showTimeZoneText: showTimeZoneText,
-        screenSize: screenSize,
         moveSpeed: moveSpeed,
         isActive: scenePhase == .active,
         isPaused: isPaused,

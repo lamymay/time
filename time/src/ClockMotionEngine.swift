@@ -54,12 +54,29 @@ final class ClockMotionEngine {
   }
 
   func setScreenSize(_ size: CGSize) {
+    guard size.width > 1, size.height > 1 else { return }
+    let changed =
+      abs(screenSize.width - size.width) > 0.5 || abs(screenSize.height - size.height) > 0.5
     screenSize = size
     screenCenter = CGPoint(x: size.width / 2, y: size.height / 2)
     if position == nil {
       position = screenCenter
+    } else if changed {
+      position = clampedPosition(position ?? screenCenter)
     }
     pushOffsetToRenderer()
+  }
+
+  private func clampedPosition(_ point: CGPoint) -> CGPoint {
+    guard totalSize.width > 0, totalSize.height > 0 else { return screenCenter }
+    let minX = totalSize.width / 2
+    let maxX = screenSize.width - totalSize.width / 2
+    let minY = totalSize.height / 2
+    let maxY = screenSize.height - totalSize.height / 2
+    return CGPoint(
+      x: min(max(point.x, minX), maxX),
+      y: min(max(point.y, minY), maxY)
+    )
   }
 
   /// 原生时钟完成测量后，确保定时器与位移已就绪

@@ -8,7 +8,6 @@ struct MotionClockScene: View {
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
   let showTimeZoneText: Bool
-  let screenSize: CGSize
   let moveSpeed: Double
   let isActive: Bool
   let isPaused: Bool
@@ -23,7 +22,6 @@ struct MotionClockScene: View {
       precision: precision,
       timeZoneTopGap: timeZoneTopGap,
       showTimeZoneText: showTimeZoneText,
-      screenSize: screenSize,
       moveSpeed: moveSpeed,
       isActive: isActive,
       isPaused: isPaused,
@@ -40,7 +38,6 @@ struct MotionClockContent: View {
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
   let showTimeZoneText: Bool
-  let screenSize: CGSize
   let moveSpeed: Double
   let isActive: Bool
   let isPaused: Bool
@@ -68,7 +65,6 @@ struct MotionClockContent: View {
     )
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onAppear {
-      motion.setScreenSize(screenSize)
       motion.setMoveSpeed(moveSpeed)
       motion.setPaused(isPaused)
       motion.setMotionActive(isActive)
@@ -85,9 +81,6 @@ struct MotionClockContent: View {
       }
       .onChange(of: fontColorHex) { _, hex in
         motion.applyUserClockColor(hex: hex)
-      }
-      .onChange(of: screenSize) { _, newSize in
-        motion.setScreenSize(newSize)
       }
       .onChange(of: moveSpeed) { _, newSpeed in
         motion.setMoveSpeed(newSpeed)
