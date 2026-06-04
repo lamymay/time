@@ -271,7 +271,7 @@ private struct FlipCompactPanelsRow: View {
   let tickEpoch: Int
 
   var body: some View {
-    HStack(alignment: .bottom, spacing: digitSize * FlipClockLayoutMetrics.compactPanelGapRatio) {
+    HStack(alignment: .center, spacing: digitSize * FlipClockLayoutMetrics.compactPanelGapRatio) {
       ZStack(alignment: layout.hourAMPMAlignment) {
         FlipPanelView(
           slotID: "hour",
