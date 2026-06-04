@@ -1,0 +1,15 @@
+---
+description: 本仓库改代码后自动 git 提交，便于回滚
+alwaysApply: true
+---
+
+# 改完即提交
+
+在完成一轮**有意义的代码修改**后（功能、修复、测试、配置），在告知用户之前先提交：
+
+1. `git status` / `git diff` 确认只包含相关文件（不要提交 `xcuserstate`、无关图标草稿除非用户要求）。
+2. 用简短中文或英文写清 **why** 的 commit message（完整句子）。
+3. `git add` 相关路径后 `git commit`（HEREDOC 传 message）。
+4. 除非用户明确要求，不要 `git push`。
+
+未改代码、仅回答问题或只读排查时不必提交。

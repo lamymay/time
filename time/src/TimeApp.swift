@@ -2,6 +2,10 @@ import SwiftUI
 
 @main
 struct TimeApp: App {
+  #if os(macOS)
+    @NSApplicationDelegateAdaptor(TimeAppDelegate.self) private var appDelegate
+  #endif
+
   let openSettingsNotification = NotificationCenter.default.publisher(
     for: NSNotification.Name("OpenSettings"))
 

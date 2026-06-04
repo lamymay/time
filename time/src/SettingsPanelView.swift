@@ -6,6 +6,7 @@ enum SettingsPanelLayout {
 }
 
 struct SettingsPanelView: View {
+  let screenSize: CGSize
   @Binding var moveSpeed: Double
   @Binding var fontSize: Double
   @Binding var padZero: Bool
@@ -22,6 +23,9 @@ struct SettingsPanelView: View {
   @Binding var backgroundColorHex: String
   @Binding var timeDisplayPrecisionRaw: String
   @Binding var clockDisplayStyleRaw: String
+  @Binding var flipClockFormatRaw: String
+  @Binding var flipCompactDetachedSeconds: Bool
+  @Binding var clockColorHex: String
   @Binding var keepDisplayAwake: Bool
 
   let layout: SettingsPanelLayout
@@ -37,6 +41,40 @@ struct SettingsPanelView: View {
 
   private var displayStyle: ClockDisplayStyle {
     ClockDisplayStyle(rawValue: clockDisplayStyleRaw) ?? .classic
+  }
+
+  private var panelClockConfig: ClockDisplayConfig {
+    ClockDisplayConfig(
+      fontSize: fontSize,
+      padZero: padZero,
+      is24Hour: is24Hour,
+      showAMPM: showAMPM,
+      ampmScale: ampmScale,
+      ampmSide: ampmSide,
+      selectedTimeZone: selectedTimeZone,
+      showTimeZoneText: showTimeZoneText,
+      selectedFontName: selectedFontName,
+      displayPrecision: precision,
+      flipFormat: FlipClockFormat.resolved(fromRaw: flipClockFormatRaw),
+      flipCompactDetachedSeconds: flipCompactDetachedSeconds
+    )
+  }
+
+  private var fontSizeRange: ClosedRange<Double> {
+    ClockFontSizeLimits.sliderRange(
+      style: displayStyle,
+      screen: screenSize,
+      config: panelClockConfig
+    )
+  }
+
+  private func syncFontSizeToLimits() {
+    ClockFontSizeLimits.clampStoredFontSize(
+      &fontSize,
+      style: displayStyle,
+      screen: screenSize,
+      config: panelClockConfig
+    )
   }
 
   var body: some View {
@@ -63,6 +101,12 @@ struct SettingsPanelView: View {
         }
       #endif
     }
+    .onAppear { syncFontSizeToLimits() }
+    .onChange(of: screenSize) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: clockDisplayStyleRaw) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: flipClockFormatRaw) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: flipCompactDetachedSeconds) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: panelClockConfig) { _, _ in syncFontSizeToLimits() }
     .foregroundStyle(.white)
     .background(panelBackground)
     .clipShape(RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous))
@@ -78,6 +122,7 @@ struct SettingsPanelView: View {
     #if os(macOS)
       .frame(minWidth: 360, idealWidth: 380)
     #endif
+    .accessibilityIdentifier(TimeAccessibilityID.settingsPanel)
     .alert(L10n.text("feedback.copy_title"), isPresented: $showEmailCopiedAlert) {
       Button(L10n.text("settings.done"), role: .cancel) {}
     } message: {
@@ -102,6 +147,7 @@ struct SettingsPanelView: View {
             .foregroundStyle(.secondary)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(TimeAccessibilityID.settingsCloseButton)
         #if os(macOS)
           .keyboardShortcut(.escape, modifiers: [])
           .help(L10n.text("settings.close_help"))
@@ -161,13 +207,44 @@ struct SettingsPanelView: View {
       settingSlider(
         title: L10n.text("settings.font_size"),
         value: $fontSize,
-        range: 30...350,
+        range: fontSizeRange,
         label: "\(Int(fontSize))"
       )
-      backgroundColorPicker
-      if displayStyle == .classic {
-        fontPickerRow
+      ColorPlanePicker(
+        title: L10n.text("settings.background_color"),
+        colorHex: $backgroundColorHex
+      )
+      if displayStyle == .flip {
+        labeledPickerRow(title: L10n.text("settings.flip_format")) {
+          Picker(L10n.text("settings.flip_format"), selection: $flipClockFormatRaw) {
+            ForEach(FlipClockFormat.allCases) { format in
+              Text(format.label).tag(format.rawValue)
+            }
+          }
+          .pickerStyle(.segmented)
+          .labelsHidden()
+        }
+        Text(FlipClockFormat.resolved(fromRaw: flipClockFormatRaw).subtitle)
+          .font(.caption)
+          .foregroundStyle(SettingsTheme.secondaryText)
+
+        if FlipClockFormat.resolved(fromRaw: flipClockFormatRaw) == .compactPanels,
+          precision.includesSeconds
+        {
+          SettingsToggleRow(
+            title: L10n.text("settings.flip_compact_detached_seconds"),
+            subtitle: L10n.text("settings.flip_compact_detached_seconds_hint"),
+            isOn: $flipCompactDetachedSeconds
+          )
+        }
+
+        ColorPlanePicker(
+          title: L10n.text("settings.clock_color"),
+          colorHex: $clockColorHex,
+          saturation: 0.82
+        )
       }
+      fontPickerRow
     }
   }
 
@@ -313,54 +390,6 @@ struct SettingsPanelView: View {
 
   // MARK: - Components
 
-  private var backgroundColorPicker: some View {
-    VStack(alignment: .leading, spacing: 14) {
-      backgroundPresetRow(title: L10n.text("color.theme_dark"), presets: BackgroundColorPreset.darkPresets)
-      backgroundPresetRow(title: L10n.text("color.theme_light"), presets: BackgroundColorPreset.lightPresets)
-    }
-  }
-
-  private func backgroundPresetRow(title: String, presets: [BackgroundColorPreset]) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text(title)
-        .font(.subheadline)
-        .foregroundStyle(SettingsTheme.secondaryText)
-      HStack(spacing: 12) {
-        ForEach(presets) { preset in
-          backgroundSwatch(preset: preset)
-        }
-        Spacer(minLength: 0)
-      }
-    }
-  }
-
-  private func backgroundSwatch(preset: BackgroundColorPreset) -> some View {
-    let isSelected = backgroundColorHex == preset.rawValue
-    return Button {
-      backgroundColorHex = preset.rawValue
-    } label: {
-      VStack(spacing: 6) {
-        Circle()
-          .fill(preset.color)
-          .frame(width: 40, height: 40)
-          .overlay {
-            Circle()
-              .strokeBorder(
-                isSelected
-                  ? SettingsTheme.accent
-                  : (preset.isLight ? Color.black.opacity(0.15) : Color.white.opacity(0.2)),
-                lineWidth: isSelected ? 3 : 1
-              )
-          }
-          .shadow(color: .black.opacity(preset.isLight ? 0.12 : 0.35), radius: 2, y: 1)
-        Text(preset.label)
-          .font(.caption2)
-          .foregroundStyle(isSelected ? .white : SettingsTheme.secondaryText)
-      }
-    }
-    .buttonStyle(.plain)
-  }
-
   private var fontPickerRow: some View {
     Button {
       withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
@@ -393,6 +422,7 @@ struct SettingsPanelView: View {
           .padding(.vertical, 14)
       }
       .buttonStyle(.borderedProminent)
+      .accessibilityIdentifier(TimeAccessibilityID.settingsDoneButton)
       .padding(.horizontal, 18)
       .padding(.bottom, 16)
       .padding(.top, 8)
