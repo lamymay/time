@@ -128,10 +128,31 @@ struct ContentRootScreen: View {
     ZStack(alignment: .topLeading) {
       backgroundLayer
       clockLayer
+      #if os(iOS)
+        iosScreenGestureLayer
+      #endif
       overlayStack
       settingsShortcutButton
     }
   }
+
+  #if os(iOS)
+    /// 盖在时钟之上、菜单之下，避免翻页/弹跳视图挡住长按
+    private var iosScreenGestureLayer: some View {
+      Color.clear
+        .ignoresSafeArea()
+        .contentShape(Rectangle())
+        .onTapGesture {
+          withAnimation {
+            showSettings = false
+            showFontPicker = false
+          }
+        }
+        .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 32) {
+          toggleSettings()
+        }
+    }
+  #endif
 
   private var fontSizeShortcutButtons: some View {
     Group {
@@ -191,18 +212,14 @@ struct ContentRootScreen: View {
     Color(hex: backgroundColorHex)
       .ignoresSafeArea()
       .contentShape(Rectangle())
-      .onTapGesture {
-        withAnimation {
-          showSettings = false
-          showFontPicker = false
-        }
-      }
-      .onLongPressGesture(minimumDuration: 0.5) {
-        #if os(iOS)
-          toggleSettings()
-        #endif
-      }
       #if os(macOS)
+        .contentShape(Rectangle())
+        .onTapGesture {
+          withAnimation {
+            showSettings = false
+            showFontPicker = false
+          }
+        }
         .contextMenu {
           Button(L10n.text("menu.settings")) { toggleSettings() }
           Divider()
