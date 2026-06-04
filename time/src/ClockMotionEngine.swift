@@ -1,9 +1,7 @@
 import Foundation
-import Observation
 import SwiftUI
 
-/// 屏保级弹跳物理：位移走 ClockMotionRenderer，仅碰撞变色触发 SwiftUI
-@Observable
+/// 屏保级弹跳物理：位移走 ClockMotionRenderer，不暴露为 @Observable，避免每帧触发 SwiftUI 重绘
 final class ClockMotionEngine {
   var position: CGPoint?
   var clockColor: Color = BackgroundColorPreset.black.defaultClockColor
@@ -22,7 +20,7 @@ final class ClockMotionEngine {
   private var userClockColorHex: String?
 
   private weak var renderer: ClockMotionRenderer?
-  private var lastRenderedOffset: CGSize?
+  private var lastRenderedCenter: CGPoint?
   private var lastCollisionColorDate: Date?
   private static let minPlaySpan: CGFloat = 12
   private static let collisionColorCooldown: TimeInterval = 0.15
@@ -30,7 +28,7 @@ final class ClockMotionEngine {
   func setRenderer(_ renderer: ClockMotionRenderer?) {
     self.renderer = renderer
     if renderer != nil {
-      pushOffsetToRenderer()
+      pushPositionToRenderer()
       renderer?.setClockDisplayColor(clockColor)
     }
   }
@@ -69,7 +67,7 @@ final class ClockMotionEngine {
     } else if changed {
       position = clampedPosition(position ?? screenCenter)
     }
-    pushOffsetToRenderer()
+    pushPositionToRenderer()
   }
 
   private func clampedPosition(_ point: CGPoint) -> CGPoint {
@@ -89,7 +87,7 @@ final class ClockMotionEngine {
     if position == nil {
       position = screenCenter
     }
-    pushOffsetToRenderer()
+    pushPositionToRenderer()
     restartMotionTimerIfNeeded()
   }
 
@@ -164,7 +162,7 @@ final class ClockMotionEngine {
       let center = screenCenter
       if position != center {
         position = center
-        pushOffsetToRenderer()
+        pushPositionToRenderer()
       }
       return
     }
@@ -182,7 +180,7 @@ final class ClockMotionEngine {
       stopMotionTimer()
       if position != screenCenter {
         position = screenCenter
-        pushOffsetToRenderer()
+        pushPositionToRenderer()
       }
       return
     }
@@ -219,7 +217,7 @@ final class ClockMotionEngine {
 
     if position != newPosition {
       position = newPosition
-      pushOffsetToRenderer()
+      pushPositionToRenderer()
     }
   }
 
@@ -235,26 +233,11 @@ final class ClockMotionEngine {
     renderer?.setClockDisplayColor(clockColor)
   }
 
-  private func pushOffsetToRenderer() {
-    guard let position else {
-      applyRendererOffset(.zero)
-      return
-    }
-    let offset = CGSize(
-      width: position.x - screenCenter.x,
-      height: position.y - screenCenter.y
-    )
-    applyRendererOffset(offset)
-  }
-
-  private func applyRendererOffset(_ offset: CGSize) {
-    let quantized = CGSize(
-      width: offset.width.rounded(.toNearestOrAwayFromZero),
-      height: offset.height.rounded(.toNearestOrAwayFromZero)
-    )
-    guard quantized != lastRenderedOffset else { return }
-    lastRenderedOffset = quantized
-    renderer?.setTranslation(quantized)
+  private func pushPositionToRenderer() {
+    let center = position ?? screenCenter
+    guard center != lastRenderedCenter else { return }
+    lastRenderedCenter = center
+    renderer?.setClockCenter(center)
   }
 
   func clearTrail() {

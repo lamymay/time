@@ -5,7 +5,7 @@ struct BouncingClockHost: View {
   let scheduler: ClockTimeScheduler
   let motion: ClockMotionEngine
   let styleStamp: ClockStyleStamp
-  /// SwiftUI 分配的全屏区域（横屏时应与窗口一致）
+  /// 用于撑开 SwiftUI 布局；物理边界以 UIKit 容器 bounds 为准
   let playfieldSize: CGSize
   let moveSpeed: Double
   let isActive: Bool
@@ -17,7 +17,6 @@ struct BouncingClockHost: View {
         scheduler: scheduler,
         motion: motion,
         styleStamp: styleStamp,
-        playfieldSize: playfieldSize,
         moveSpeed: moveSpeed,
         isActive: isActive,
         isPaused: isPaused
@@ -36,20 +35,12 @@ struct BouncingClockHost: View {
   }
 }
 
-/// 仅使用根视图 GeometryReader 的 screenSize，避免 UIKit 容器 bounds 误报为小时钟框
-private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEngine?) {
-  let field = ClockScreenBounds.bouncePlayfield(swiftUISize: playfieldSize)
-  guard field.width > 1, field.height > 1 else { return }
-  motion?.setScreenSize(field)
-}
-
 #if os(macOS)
 
   private struct MacBouncingClockHost: NSViewRepresentable {
     let scheduler: ClockTimeScheduler
     let motion: ClockMotionEngine
     let styleStamp: ClockStyleStamp
-    let playfieldSize: CGSize
     let moveSpeed: Double
     let isActive: Bool
     let isPaused: Bool
@@ -69,6 +60,9 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
       context.coordinator.clock = clock
       context.coordinator.styleStamp = styleStamp
       clock.sizeDelegate = context.coordinator
+      container.onPlayfieldSizeChange = { [weak motion] size in
+        motion?.setScreenSize(size)
+      }
       motion.setRenderer(context.coordinator)
       scheduler.setTickTarget(clock)
       return container
@@ -85,7 +79,6 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
     }
 
     private func syncMotionRuntime(context: Context) {
-      applyPlayfieldSize(playfieldSize: playfieldSize, to: context.coordinator.motion)
       context.coordinator.motion?.setMoveSpeed(moveSpeed)
       context.coordinator.motion?.setMotionActive(isActive)
       context.coordinator.motion?.setPaused(isPaused)
@@ -103,8 +96,8 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
       weak var clock: NativeClockNSView?
       var styleStamp: ClockStyleStamp?
 
-      func setTranslation(_ offset: CGSize) {
-        container?.setTranslation(offset)
+      func setClockCenter(_ center: CGPoint) {
+        container?.setClockCenter(center)
       }
 
       func setClockDisplayColor(_ color: Color) {
@@ -121,7 +114,9 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
 
   private final class BounceContainerNSView: NSView {
     private weak var clock: NativeClockNSView?
-    private var translation: CGSize = .zero
+    private var clockCenter: CGPoint?
+    private var lastReportedBounds: CGSize = .zero
+    var onPlayfieldSizeChange: ((CGSize) -> Void)?
 
     override var intrinsicContentSize: NSSize {
       NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
@@ -133,29 +128,32 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
       addSubview(clock)
     }
 
-    func setTranslation(_ offset: CGSize) {
-      translation = offset
-      applyTranslation()
+    func setClockCenter(_ center: CGPoint) {
+      guard clockCenter != center else { return }
+      clockCenter = center
+      needsLayout = true
     }
 
     override func layout() {
       super.layout()
+      reportPlayfieldIfNeeded()
       guard let clock else { return }
       let size = clock.fittingSize()
+      let center = clockCenter ?? CGPoint(x: bounds.midX, y: bounds.midY)
       clock.frame = CGRect(
-        x: (bounds.width - size.width) / 2,
-        y: (bounds.height - size.height) / 2,
+        x: center.x - size.width / 2,
+        y: center.y - size.height / 2,
         width: max(size.width, 1),
         height: max(size.height, 1)
       )
-      applyTranslation()
+      clock.layer?.transform = CATransform3DIdentity
     }
 
-    private func applyTranslation() {
-      guard let clock else { return }
-      var transform = CATransform3DIdentity
-      transform = CATransform3DTranslate(transform, translation.width, translation.height, 0)
-      clock.layer?.transform = transform
+    private func reportPlayfieldIfNeeded() {
+      let size = bounds.size
+      guard size.width > 1, size.height > 1, size != lastReportedBounds else { return }
+      lastReportedBounds = size
+      onPlayfieldSizeChange?(size)
     }
   }
 
@@ -186,6 +184,9 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
       context.coordinator.clock = clock
       context.coordinator.styleStamp = styleStamp
       clock.sizeDelegate = context.coordinator
+      container.onPlayfieldSizeChange = { [weak motion] size in
+        motion?.setScreenSize(size)
+      }
       motion.setRenderer(context.coordinator)
       scheduler.setTickTarget(clock)
       return container
@@ -213,7 +214,6 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
     }
 
     private func syncMotionRuntime(context: Context) {
-      applyPlayfieldSize(playfieldSize: playfieldSize, to: context.coordinator.motion)
       context.coordinator.motion?.setMoveSpeed(moveSpeed)
       context.coordinator.motion?.setMotionActive(isActive)
       context.coordinator.motion?.setPaused(isPaused)
@@ -231,8 +231,8 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
       weak var clock: NativeClockUIView?
       var styleStamp: ClockStyleStamp?
 
-      func setTranslation(_ offset: CGSize) {
-        container?.setTranslation(offset)
+      func setClockCenter(_ center: CGPoint) {
+        container?.setClockCenter(center)
       }
 
       func setClockDisplayColor(_ color: Color) {
@@ -244,13 +244,14 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
         motion.totalSize = size
         motion.ensureBounceReady()
       }
-
     }
   }
 
   private final class BounceContainerUIView: UIView {
     private weak var clock: NativeClockUIView?
-    private var translation: CGSize = .zero
+    private var clockCenter: CGPoint?
+    private var lastReportedBounds: CGSize = .zero
+    var onPlayfieldSizeChange: ((CGSize) -> Void)?
 
     override var intrinsicContentSize: CGSize {
       CGSize(width: UIView.noIntrinsicMetric, height: UIView.noIntrinsicMetric)
@@ -260,33 +261,34 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
       self.clock = clock
       clock.translatesAutoresizingMaskIntoConstraints = true
       addSubview(clock)
-      setContentHuggingPriority(.defaultLow, for: .horizontal)
-      setContentHuggingPriority(.defaultLow, for: .vertical)
-      setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-      setContentCompressionResistancePriority(.defaultLow, for: .vertical)
     }
 
-    func setTranslation(_ offset: CGSize) {
-      translation = offset
-      applyTranslation()
+    func setClockCenter(_ center: CGPoint) {
+      guard clockCenter != center else { return }
+      clockCenter = center
+      setNeedsLayout()
     }
 
     override func layoutSubviews() {
       super.layoutSubviews()
+      reportPlayfieldIfNeeded()
       guard let clock else { return }
       let size = clock.fittingSize()
+      let center = clockCenter ?? CGPoint(x: bounds.midX, y: bounds.midY)
       clock.frame = CGRect(
-        x: (bounds.width - size.width) / 2,
-        y: (bounds.height - size.height) / 2,
+        x: center.x - size.width / 2,
+        y: center.y - size.height / 2,
         width: max(size.width, 1),
         height: max(size.height, 1)
       )
-      applyTranslation()
+      clock.transform = .identity
     }
 
-    private func applyTranslation() {
-      guard let clock else { return }
-      clock.transform = CGAffineTransform(translationX: translation.width, y: translation.height)
+    private func reportPlayfieldIfNeeded() {
+      let size = bounds.size
+      guard size.width > 1, size.height > 1, size != lastReportedBounds else { return }
+      lastReportedBounds = size
+      onPlayfieldSizeChange?(size)
     }
   }
 

@@ -18,7 +18,7 @@ struct MotionClockScene: View {
   var body: some View {
     MotionClockContent(
       scheduler: scheduler,
-      motion: $motion,
+      motion: motion,
       style: style,
       precision: precision,
       timeZoneTopGap: timeZoneTopGap,
@@ -35,7 +35,8 @@ struct MotionClockScene: View {
 
 struct MotionClockContent: View {
   let scheduler: ClockTimeScheduler
-  @Binding var motion: ClockMotionEngine
+  /// 勿用 @Binding：引擎每帧更新 position 会拖垮 SwiftUI（主线程 9000ms+ 卡顿）
+  let motion: ClockMotionEngine
   let style: NativeClockStyle
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
@@ -46,6 +47,10 @@ struct MotionClockContent: View {
   let isPaused: Bool
   let backgroundColorHex: String
   let fontColorHex: String
+
+  private var layoutField: CGSize {
+    ClockScreenBounds.bouncePlayfield(swiftUISize: playfieldSize)
+  }
 
   private var styleStamp: ClockStyleStamp {
     ClockStyleStamp(
@@ -62,14 +67,14 @@ struct MotionClockContent: View {
       scheduler: scheduler,
       motion: motion,
       styleStamp: styleStamp,
-      playfieldSize: playfieldSize,
+      playfieldSize: layoutField,
       moveSpeed: moveSpeed,
       isActive: isActive,
       isPaused: isPaused
     )
+    .frame(width: layoutField.width, height: layoutField.height)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onAppear {
-      applyPlayfieldToMotion()
       motion.setMoveSpeed(moveSpeed)
       motion.setPaused(isPaused)
       motion.setMotionActive(isActive)
@@ -77,44 +82,35 @@ struct MotionClockContent: View {
       motion.applyUserClockColor(hex: fontColorHex)
       motion.clearTrail()
     }
-    .onChange(of: playfieldSize) { _, _ in
-      applyPlayfieldToMotion()
-    }
     .onChange(of: scheduler.segments) { _, _ in
       motion.clearTrail()
     }
-      .onChange(of: backgroundColorHex) { _, hex in
-        motion.applyBackground(hex: hex)
-        motion.applyUserClockColor(hex: fontColorHex)
+    .onChange(of: backgroundColorHex) { _, hex in
+      motion.applyBackground(hex: hex)
+      motion.applyUserClockColor(hex: fontColorHex)
+    }
+    .onChange(of: fontColorHex) { _, hex in
+      motion.applyUserClockColor(hex: hex)
+    }
+    .onChange(of: moveSpeed) { _, newSpeed in
+      motion.setMoveSpeed(newSpeed)
+      if newSpeed > 0, !isPaused, isActive {
+        motion.ensureBounceReady()
       }
-      .onChange(of: fontColorHex) { _, hex in
-        motion.applyUserClockColor(hex: hex)
-      }
-      .onChange(of: moveSpeed) { _, newSpeed in
-        motion.setMoveSpeed(newSpeed)
-        if newSpeed > 0, !isPaused, isActive {
+    }
+    .onChange(of: isActive) { _, active in
+      motion.setMotionActive(active)
+    }
+    .onChange(of: isPaused) { _, paused in
+      motion.setPaused(paused)
+      if paused {
+        motion.clearTrail()
+      } else {
+        motion.setMoveSpeed(moveSpeed)
+        if isActive, moveSpeed > 0 {
           motion.ensureBounceReady()
         }
       }
-      .onChange(of: isActive) { _, active in
-        motion.setMotionActive(active)
-      }
-      .onChange(of: isPaused) { _, paused in
-        motion.setPaused(paused)
-        if paused {
-          motion.clearTrail()
-        } else {
-          motion.setMoveSpeed(moveSpeed)
-          if isActive, moveSpeed > 0 {
-            motion.ensureBounceReady()
-          }
-        }
-      }
-  }
-
-  private func applyPlayfieldToMotion() {
-    let field = ClockScreenBounds.bouncePlayfield(swiftUISize: playfieldSize)
-    guard field.width > 1, field.height > 1 else { return }
-    motion.setScreenSize(field)
+    }
   }
 }
