@@ -30,7 +30,7 @@ struct SettingsPanelView: View {
   @GestureState private var dragOffset: CGSize = .zero
 
   private var precision: TimeDisplayPrecision {
-    TimeDisplayPrecision(rawValue: timeDisplayPrecisionRaw) ?? .minute
+    TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
   }
 
   var body: some View {

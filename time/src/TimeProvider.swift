@@ -8,7 +8,6 @@ struct TimeSegments: Equatable {
   var minuteOnes: String = ""
   var secondTens: String = ""
   var secondOnes: String = ""
-  var millis: String = ""
   var trailingAMPM: String = ""
   var timeZoneLabel: String = ""
 }
@@ -21,7 +20,6 @@ enum TimeSegmentField: String, CaseIterable {
   case minuteOnes
   case secondTens
   case secondOnes
-  case millis
   case trailingAMPM
   case timeZoneLabel
 }
@@ -75,15 +73,10 @@ struct TimeProvider {
 
     var secondTens = ""
     var secondOnes = ""
-    var millis = ""
     if format.displayPrecision.includesSeconds {
       let secondText = String(format: "%02d", calendar.component(.second, from: date))
       secondTens = String(secondText.prefix(1))
       secondOnes = String(secondText.suffix(1))
-    }
-    if format.displayPrecision.includesMilliseconds {
-      let ms = calendar.component(.nanosecond, from: date) / 1_000_000
-      millis = String(format: "%03d", ms)
     }
 
     var result = TimeSegments(
@@ -94,7 +87,6 @@ struct TimeProvider {
       minuteOnes: String(minuteText.suffix(1)),
       secondTens: secondTens,
       secondOnes: secondOnes,
-      millis: millis,
       trailingAMPM: trailing,
       timeZoneLabel: ""
     )
@@ -113,8 +105,6 @@ struct TimeProvider {
       return nextMinuteBoundary(after: date, calendar: calendar)
     case .second:
       return nextSecondBoundary(after: date, calendar: calendar)
-    case .millisecond:
-      return nextFiftiethSecondBoundary(after: date)
     }
   }
 
@@ -141,14 +131,6 @@ struct TimeProvider {
       return date.addingTimeInterval(1)
     }
     return next
-  }
-
-  /// 毫秒精度：每 50ms 刷新一次显示，避免 1000 次/秒
-  private static func nextFiftiethSecondBoundary(after date: Date) -> Date {
-    let tick: TimeInterval = 0.05
-    let t = date.timeIntervalSince1970
-    let next = ceil(t / tick) * tick
-    return Date(timeIntervalSince1970: next)
   }
 
   static func secondsUntilNextDisplayChange(from date: Date, format: ClockFormatOptions) -> TimeInterval {
@@ -189,7 +171,6 @@ struct TimeProvider {
     if old.minuteOnes != new.minuteOnes { changed.insert(.minuteOnes) }
     if old.secondTens != new.secondTens { changed.insert(.secondTens) }
     if old.secondOnes != new.secondOnes { changed.insert(.secondOnes) }
-    if old.millis != new.millis { changed.insert(.millis) }
     if old.trailingAMPM != new.trailingAMPM { changed.insert(.trailingAMPM) }
     if old.timeZoneLabel != new.timeZoneLabel { changed.insert(.timeZoneLabel) }
     return changed

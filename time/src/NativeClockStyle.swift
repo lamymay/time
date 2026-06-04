@@ -55,8 +55,7 @@ enum NativeClockTextBuilder {
     )
   }
 
-  /// 主行（不含毫秒）；毫秒单独 layer 更新以降低 tick 开销
-  static func timeBodyAttributedString(
+  static func timeAttributedString(
     segments: TimeSegments,
     fonts: NativeClockFonts,
     precision: TimeDisplayPrecision,
@@ -88,35 +87,6 @@ enum NativeClockTextBuilder {
       append(" ", font: fonts.main)
       append(segments.trailingAMPM, font: fonts.ampm)
     }
-    return result
-  }
-
-  static func millisAttributedString(
-    segments: TimeSegments,
-    fonts: NativeClockFonts,
-    color: PlatformColor
-  ) -> NSAttributedString? {
-    guard !segments.millis.isEmpty else { return nil }
-    let attrs: [NSAttributedString.Key: Any] = [
-      .font: fonts.sub,
-      .foregroundColor: color,
-    ]
-    return NSAttributedString(string: ".\(segments.millis)", attributes: attrs)
-  }
-
-  static func timeAttributedString(
-    segments: TimeSegments,
-    fonts: NativeClockFonts,
-    precision: TimeDisplayPrecision,
-    color: PlatformColor
-  ) -> NSAttributedString {
-    let body = timeBodyAttributedString(
-      segments: segments, fonts: fonts, precision: precision, color: color)
-    guard precision.includesMilliseconds, let ms = millisAttributedString(
-      segments: segments, fonts: fonts, color: color)
-    else { return body }
-    let result = NSMutableAttributedString(attributedString: body)
-    result.append(ms)
     return result
   }
 

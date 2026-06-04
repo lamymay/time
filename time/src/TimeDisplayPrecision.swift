@@ -4,7 +4,6 @@ import Foundation
 enum TimeDisplayPrecision: String, CaseIterable, Identifiable, Codable {
   case minute
   case second
-  case millisecond
 
   var id: String { rawValue }
 
@@ -12,7 +11,6 @@ enum TimeDisplayPrecision: String, CaseIterable, Identifiable, Codable {
     switch self {
     case .minute: return "分"
     case .second: return "秒"
-    case .millisecond: return "毫秒"
     }
   }
 
@@ -21,7 +19,6 @@ enum TimeDisplayPrecision: String, CaseIterable, Identifiable, Codable {
     switch self {
     case .minute: return "yyyy-MM-dd HH:mm"
     case .second: return "yyyy-MM-dd HH:mm:ss"
-    case .millisecond: return "yyyy-MM-dd HH:mm:ss.SSS"
     }
   }
 
@@ -29,11 +26,12 @@ enum TimeDisplayPrecision: String, CaseIterable, Identifiable, Codable {
     self != .minute
   }
 
-  var includesMilliseconds: Bool {
-    self == .millisecond
+  /// 将旧版「millisecond」设置迁移为「秒」
+  static func resolved(fromRaw raw: String) -> TimeDisplayPrecision {
+    if raw == "millisecond" { return .second }
+    return TimeDisplayPrecision(rawValue: raw) ?? .minute
   }
 
-  /// Debug 叠层刷新间隔（与主时钟解耦，避免毫秒模式下 20fps 拖垮 CPU）
   var debugTimelineInterval: TimeInterval { 1 }
 }
 
@@ -52,14 +50,11 @@ enum SystemTimeFormatters {
     dateFormat: TimeDisplayPrecision.minute.systemDateFormat)
   static let second: DateFormatter = makeFormatter(
     dateFormat: TimeDisplayPrecision.second.systemDateFormat)
-  static let millisecond: DateFormatter = makeFormatter(
-    dateFormat: TimeDisplayPrecision.millisecond.systemDateFormat)
 
   static func string(from date: Date, precision: TimeDisplayPrecision) -> String {
     switch precision {
     case .minute: minute.string(from: date)
     case .second: second.string(from: date)
-    case .millisecond: millisecond.string(from: date)
     }
   }
 }

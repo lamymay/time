@@ -136,7 +136,7 @@ struct ContentView: View {
   @Environment(\.scenePhase) private var scenePhase
 
   private var timeDisplayPrecision: TimeDisplayPrecision {
-    TimeDisplayPrecision(rawValue: timeDisplayPrecisionRaw) ?? .minute
+    TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
   }
 
   private var clockConfig: ClockDisplayConfig {
@@ -219,6 +219,9 @@ struct ContentView: View {
           .buttonStyle(.plain)
       }
       .onAppear {
+        if timeDisplayPrecisionRaw == "millisecond" {
+          timeDisplayPrecisionRaw = TimeDisplayPrecision.second.rawValue
+        }
         syncTimeScheduler()
         timeScheduler.setActive(scenePhase == .active)
         DisplayKeepAwake.setEnabled(keepDisplayAwake)
