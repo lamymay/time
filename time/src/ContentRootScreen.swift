@@ -256,7 +256,8 @@ struct ContentRootScreen: View {
         moveSpeed: moveSpeed,
         isActive: scenePhase == .active,
         isPaused: isPaused,
-        backgroundColorHex: backgroundColorHex
+        backgroundColorHex: backgroundColorHex,
+        clockColorHex: clockColorHex
       )
     case .flip:
       FlipClockScene(

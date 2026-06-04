@@ -85,12 +85,11 @@ struct SettingsPanelView: View {
       header
       ScrollView {
         VStack(alignment: .leading, spacing: 22) {
-          appearanceSection
-          if displayStyle == .classic {
-            motionSection
-          }
+          fontSizeSection
+          fontSection
+          clockAppearanceSection
           timeFormatSection
-          displaySection
+          systemSection
           supportSection
           advancedSection
         }
@@ -241,8 +240,25 @@ struct SettingsPanelView: View {
 
   // MARK: - Sections
 
-  private var appearanceSection: some View {
-    SettingsSection(title: L10n.text("settings.appearance"), systemImage: "paintbrush") {
+  private var fontSizeSection: some View {
+    SettingsSection(title: L10n.text("settings.font_size"), systemImage: "textformat.size") {
+      settingSlider(
+        title: L10n.text("settings.font_size"),
+        value: $fontSize,
+        range: fontSizeRange,
+        label: "\(Int(fontSize))"
+      )
+    }
+  }
+
+  private var fontSection: some View {
+    SettingsSection(title: L10n.text("settings.font"), systemImage: "textformat") {
+      fontPickerRow
+    }
+  }
+
+  private var clockAppearanceSection: some View {
+    SettingsSection(title: L10n.text("settings.clock_appearance"), systemImage: "clock") {
       labeledPickerRow(title: L10n.text("settings.clock_style")) {
         Picker(L10n.text("settings.clock_style"), selection: $clockDisplayStyleRaw) {
           ForEach(ClockDisplayStyle.allCases) { style in
@@ -256,17 +272,29 @@ struct SettingsPanelView: View {
         .font(.caption)
         .foregroundStyle(SettingsTheme.secondaryText)
 
-      settingSlider(
-        title: L10n.text("settings.font_size"),
-        value: $fontSize,
-        range: fontSizeRange,
-        label: "\(Int(fontSize))"
+      SettingsClockPreview(
+        config: panelClockConfig,
+        style: displayStyle,
+        backgroundColorHex: backgroundColorHex,
+        clockColorHex: clockColorHex
+      )
+
+      ColorPlanePicker(
+        title: L10n.text("settings.clock_color"),
+        colorHex: $clockColorHex,
+        saturation: 0.82
       )
       ColorPlanePicker(
         title: L10n.text("settings.background_color"),
         colorHex: $backgroundColorHex
       )
       backgroundPureBlackShortcut
+      ColorPlanePicker(
+        title: L10n.text("settings.font_color"),
+        colorHex: $clockColorHex,
+        saturation: 0.82
+      )
+
       if displayStyle == .flip {
         labeledPickerRow(title: L10n.text("settings.flip_format")) {
           Picker(L10n.text("settings.flip_format"), selection: $flipClockFormatRaw) {
@@ -290,14 +318,41 @@ struct SettingsPanelView: View {
             isOn: $flipCompactDetachedSeconds
           )
         }
-
-        ColorPlanePicker(
-          title: L10n.text("settings.clock_color"),
-          colorHex: $clockColorHex,
-          saturation: 0.82
-        )
       }
-      fontPickerRow
+
+      labeledPickerRow(title: L10n.text("settings.time_precision")) {
+        Picker(L10n.text("settings.time_precision"), selection: $timeDisplayPrecisionRaw) {
+          ForEach(TimeDisplayPrecision.allCases) { item in
+            Text(item.label).tag(item.rawValue)
+          }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+      }
+
+      if precision != .minute {
+        Label {
+          Text(L10n.text("settings.precision_warning"))
+        } icon: {
+          Image(systemName: "exclamationmark.triangle.fill")
+        }
+        .font(.caption)
+        .foregroundStyle(.orange.opacity(0.9))
+      }
+
+      SettingsToggleRow(title: L10n.text("settings.show_timezone"), isOn: $showTimeZoneText)
+
+      if displayStyle == .classic {
+        settingSlider(
+          title: L10n.text("settings.move_speed"),
+          value: $moveSpeed,
+          range: MoveSpeedLimits.min...MoveSpeedLimits.max,
+          label: MoveSpeedLimits.displayLabel(for: moveSpeed)
+        ) { onSpeedChange() }
+        Text(L10n.text("settings.motion_hint"))
+          .font(.caption)
+          .foregroundStyle(SettingsTheme.secondaryText)
+      }
     }
   }
 
@@ -331,20 +386,6 @@ struct SettingsPanelView: View {
       .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
     .buttonStyle(.plain)
-  }
-
-  private var motionSection: some View {
-    SettingsSection(title: L10n.text("settings.motion"), systemImage: "arrow.up.left.and.arrow.down.right") {
-      settingSlider(
-        title: L10n.text("settings.move_speed"),
-        value: $moveSpeed,
-        range: MoveSpeedLimits.min...MoveSpeedLimits.max,
-        label: MoveSpeedLimits.displayLabel(for: moveSpeed)
-      ) { onSpeedChange() }
-      Text(L10n.text("settings.motion_hint"))
-        .font(.caption)
-        .foregroundStyle(SettingsTheme.secondaryText)
-    }
   }
 
   private var timeFormatSection: some View {
@@ -385,29 +426,8 @@ struct SettingsPanelView: View {
     }
   }
 
-  private var displaySection: some View {
+  private var systemSection: some View {
     SettingsSection(title: L10n.text("settings.display"), systemImage: "display") {
-      labeledPickerRow(title: L10n.text("settings.time_precision")) {
-        Picker(L10n.text("settings.time_precision"), selection: $timeDisplayPrecisionRaw) {
-          ForEach(TimeDisplayPrecision.allCases) { item in
-            Text(item.label).tag(item.rawValue)
-          }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-      }
-
-      if precision != .minute {
-        Label {
-          Text(L10n.text("settings.precision_warning"))
-        } icon: {
-          Image(systemName: "exclamationmark.triangle.fill")
-        }
-        .font(.caption)
-        .foregroundStyle(.orange.opacity(0.9))
-      }
-
-      SettingsToggleRow(title: L10n.text("settings.show_timezone"), isOn: $showTimeZoneText)
       SettingsToggleRow(
         title: L10n.text("settings.keep_awake"),
         subtitle: L10n.text("settings.keep_awake_hint"),
@@ -488,7 +508,7 @@ struct SettingsPanelView: View {
       }
     } label: {
       HStack {
-        Label(L10n.text("settings.font"), systemImage: "textformat")
+        Text(L10n.text("settings.font_pick"))
         Spacer()
         Text(selectedFontName)
           .font(.caption)

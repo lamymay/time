@@ -13,6 +13,7 @@ struct MotionClockScene: View {
   let isActive: Bool
   let isPaused: Bool
   let backgroundColorHex: String
+  let clockColorHex: String
 
   var body: some View {
     MotionClockContent(
@@ -26,7 +27,8 @@ struct MotionClockScene: View {
       moveSpeed: moveSpeed,
       isActive: isActive,
       isPaused: isPaused,
-      backgroundColorHex: backgroundColorHex
+      backgroundColorHex: backgroundColorHex,
+      clockColorHex: clockColorHex
     )
   }
 }
@@ -43,6 +45,7 @@ struct MotionClockContent: View {
   let isActive: Bool
   let isPaused: Bool
   let backgroundColorHex: String
+  let clockColorHex: String
 
   private var styleStamp: ClockStyleStamp {
     ClockStyleStamp(
@@ -63,6 +66,7 @@ struct MotionClockContent: View {
       motion.setPaused(isPaused)
       motion.setMotionActive(isActive)
       motion.applyBackground(hex: backgroundColorHex)
+      motion.applyUserClockColor(hex: clockColorHex)
       motion.clearTrail()
     }
     .onChange(of: scheduler.segments) { _, _ in
@@ -70,6 +74,10 @@ struct MotionClockContent: View {
     }
       .onChange(of: backgroundColorHex) { _, hex in
         motion.applyBackground(hex: hex)
+        motion.applyUserClockColor(hex: clockColorHex)
+      }
+      .onChange(of: clockColorHex) { _, hex in
+        motion.applyUserClockColor(hex: hex)
       }
       .onChange(of: screenSize) { _, newSize in
         motion.setScreenSize(newSize)

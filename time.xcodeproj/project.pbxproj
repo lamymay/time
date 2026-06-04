@@ -399,7 +399,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = OLEDu5c4fu5e55u4fddu62a4u65f6u949f;
-				"INFOPLIST_KEY_LSApplicationCategoryType[sdk=macosx*]" = "public.app.utilities";
+				"INFOPLIST_KEY_LSApplicationCategoryType[sdk=macosx*]" = public.app.utilities;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -444,7 +444,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = OLEDu5c4fu5e55u4fddu62a4u65f6u949f;
-				"INFOPLIST_KEY_LSApplicationCategoryType[sdk=macosx*]" = "public.app.utilities";
+				"INFOPLIST_KEY_LSApplicationCategoryType[sdk=macosx*]" = public.app.utilities;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

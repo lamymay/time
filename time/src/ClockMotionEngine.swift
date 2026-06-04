@@ -19,6 +19,7 @@ final class ClockMotionEngine {
   private var isMotionActive = false
   private var isPaused = false
   private var lightBackground = false
+  private var userClockColorHex: String?
 
   private weak var renderer: ClockMotionRenderer?
   private var lastRenderedOffset: CGSize?
@@ -34,7 +35,20 @@ final class ClockMotionEngine {
     let preset = BackgroundColorPreset.from(hex: hex)
     let bg = Color(hex: ColorPickerCodec.normalizedHex(hex))
     lightBackground = preset?.isLight ?? bg.isLightBackground
-    clockColor = preset?.defaultClockColor ?? (bg.isLightBackground
+    applyResolvedClockColor(preset: preset, background: bg)
+  }
+
+  func applyUserClockColor(hex: String) {
+    userClockColorHex = ColorPickerCodec.normalizedHex(hex)
+    clockColor = Color(hex: userClockColorHex ?? hex)
+  }
+
+  private func applyResolvedClockColor(preset: BackgroundColorPreset?, background: Color) {
+    if let userClockColorHex {
+      clockColor = Color(hex: userClockColorHex)
+      return
+    }
+    clockColor = preset?.defaultClockColor ?? (background.isLightBackground
       ? Color(hex: "#0A6B5C")
       : Color(hex: "#6EEBD8"))
   }
