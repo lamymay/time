@@ -65,7 +65,7 @@ struct FlipClockScene: View {
 
         if config.showTimeZoneText, !segments.timeZoneLabel.isEmpty {
           Text(segments.timeZoneLabel)
-            .font(FlipClockFont.swiftUI(size: digitSize * 0.14, fontName: config.selectedFontName))
+            .font(FlipClockFont.swiftUI(size: digitSize * 0.5, fontName: config.selectedFontName))
             .foregroundStyle(digitColor.opacity(0.75))
             .multilineTextAlignment(.center)
             .padding(.top, digitSize * 0.06)

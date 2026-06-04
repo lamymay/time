@@ -8,11 +8,11 @@ final class ClockTimeScheduler {
 
   private weak var tickTarget: NativeClockTickTarget?
   private var format = ClockFormatOptions(
-    is24Hour: false,
+    is24Hour: true,
     padZero: false,
     showAMPM: true,
     ampmSide: "Leading",
-    showTimeZoneText: true,
+    showTimeZoneText: false,
     timeZoneIdentifier: TimeZone.current.identifier,
     displayPrecision: .minute
   )

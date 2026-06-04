@@ -214,7 +214,7 @@ struct ContentRootScreen: View {
         scheduler: timeScheduler,
         style: style,
         precision: timeDisplayPrecision,
-        timeZoneTopGap: -style.fontSize * 0.062,
+        timeZoneTopGap: -style.timeZoneSize * 0.12,
         showTimeZoneText: showTimeZoneText,
         screenSize: screenSize,
         moveSpeed: moveSpeed,
@@ -394,12 +394,23 @@ struct ContentRootScreen: View {
     if AppUITestConfig.openSettingsOnLaunch {
       showSettings = true
     }
+    enterLaunchFullscreenIfNeeded()
     if clockDisplayStyle == .flip, !flipLaunchPresentationApplied {
       flipLaunchPresentationApplied = true
       applyFlipPresentation()
     } else {
       clampFontSizeToScreen()
     }
+  }
+
+  /// 启动即全屏（DVD / 翻页均适用；UI 测试跳过）
+  private func enterLaunchFullscreenIfNeeded() {
+    #if os(macOS)
+      guard !AppUITestConfig.skipFlipLaunchFullscreen else { return }
+      DispatchQueue.main.async {
+        WindowFullscreen.enterIfNeeded()
+      }
+    #endif
   }
 
   private func reactConfigChange() {
@@ -456,13 +467,7 @@ struct ContentRootScreen: View {
       screen: screenSize,
       config: clockConfig
     )
-    #if os(macOS)
-      if !AppUITestConfig.skipFlipLaunchFullscreen {
-        DispatchQueue.main.async {
-          WindowFullscreen.enterIfNeeded()
-        }
-      }
-    #endif
+    enterLaunchFullscreenIfNeeded()
   }
 }
 

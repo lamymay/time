@@ -22,6 +22,6 @@ enum FlipClockFormat: String, CaseIterable, Identifiable, Codable {
   }
 
   static func resolved(fromRaw raw: String) -> FlipClockFormat {
-    FlipClockFormat(rawValue: raw) ?? .tripleEqual
+    FlipClockFormat(rawValue: raw) ?? .compactPanels
   }
 }

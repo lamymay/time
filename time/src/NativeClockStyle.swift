@@ -23,7 +23,8 @@ struct NativeClockStyle: Equatable {
 
   var ampmSize: CGFloat { fontSize * ampmScale }
   var subSecondSize: CGFloat { fontSize * 0.35 }
-  var timeZoneSize: CGFloat { fontSize * 0.22 }
+  /// 开启时区时与主时钟同字体，字号为主数字的 1/2
+  var timeZoneSize: CGFloat { fontSize * 0.5 }
 
   static func resolve(fontSize: Double, ampmScale: Double, fontName: String) -> NativeClockStyle {
     NativeClockStyle(

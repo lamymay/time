@@ -48,12 +48,12 @@ struct ContentView: View {
   @AppStorage("moveSpeed") private var moveSpeed: Double = 0.09
   @AppStorage("fontSize") private var fontSize: Double = 214
   @AppStorage("padZero") private var padZero: Bool = false
-  @AppStorage("is24Hour") private var is24Hour: Bool = false
+  @AppStorage("is24Hour") private var is24Hour: Bool = true
   @AppStorage("showAMPM") private var showAMPM: Bool = true
   @AppStorage("ampmScale") private var ampmScale: Double = 0.25
   @AppStorage("ampmSide") private var ampmSide: String = "Leading"
   @AppStorage("selectedTimeZone") private var selectedTimeZone: String = TimeZone.current.identifier
-  @AppStorage("showTimeZoneText") private var showTimeZoneText: Bool = true
+  @AppStorage("showTimeZoneText") private var showTimeZoneText: Bool = false
   @AppStorage("selectedFontName") private var selectedFontName: String = "System Monospaced"
   @AppStorage("showDebugInfo") private var showDebugInfo: Bool = false
   @AppStorage("backgroundColorHex") private var backgroundColorHex: String = BackgroundColorPreset.black
