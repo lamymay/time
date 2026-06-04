@@ -71,7 +71,8 @@ enum NativeClockTextBuilder {
     segments: TimeSegments,
     fonts: NativeClockFonts,
     precision: TimeDisplayPrecision,
-    color: PlatformColor
+    color: PlatformColor,
+    inlineAMPM: Bool = true
   ) -> NSAttributedString {
     let result = NSMutableAttributedString()
     let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: color]
@@ -83,8 +84,10 @@ enum NativeClockTextBuilder {
       result.append(NSAttributedString(string: text, attributes: a))
     }
 
-    append(segments.leadingAMPM, font: fonts.ampm)
-    if !segments.leadingAMPM.isEmpty { append(" ", font: fonts.main) }
+    if inlineAMPM {
+      append(segments.leadingAMPM, font: fonts.ampm)
+      if !segments.leadingAMPM.isEmpty { append(" ", font: fonts.main) }
+    }
     append(segments.hourTens, font: fonts.main)
     append(segments.hourOnes, font: fonts.main)
     append(":", font: fonts.main)
@@ -95,7 +98,7 @@ enum NativeClockTextBuilder {
       append(segments.secondTens, font: fonts.sub)
       append(segments.secondOnes, font: fonts.sub)
     }
-    if !segments.trailingAMPM.isEmpty {
+    if inlineAMPM, !segments.trailingAMPM.isEmpty {
       append(" ", font: fonts.main)
       append(segments.trailingAMPM, font: fonts.ampm)
     }
@@ -123,25 +126,14 @@ enum NativeClockTextBuilder {
     showTimeZone: Bool,
     timeZoneTopGap: CGFloat
   ) -> CGSize {
-    let time = timeAttributedString(
-      segments: segments, fonts: fonts, precision: precision, color: color)
-    let timeSize = NativeClockTextMeasure.boundingSize(of: time)
-
-    guard showTimeZone, !segments.timeZoneLabel.isEmpty else {
-      return CGSize(width: ceil(timeSize.width), height: ceil(timeSize.height))
-    }
-
-    let tz = NSAttributedString(
-      string: segments.timeZoneLabel,
-      attributes: [.font: fonts.timeZone, .foregroundColor: color.withAlphaComponent(0.62)]
-    )
-    let tzSize = NativeClockTextMeasure.boundingSize(of: tz)
-
-    let gap = max(0, timeZoneTopGap)
-    return CGSize(
-      width: ceil(max(timeSize.width, tzSize.width)),
-      height: ceil(timeSize.height + gap + tzSize.height)
-    )
+    NativeClockLayoutEngine.frames(
+      segments: segments,
+      fonts: fonts,
+      precision: precision,
+      color: color,
+      showTimeZone: showTimeZone,
+      timeZoneTopGap: timeZoneTopGap
+    ).totalSize
   }
 
   static func measure(

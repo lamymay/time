@@ -27,6 +27,7 @@ private enum NativeClockLayoutHelper {
     private let rootLayer = CALayer()
     private let timeLayer = CATextLayer()
     private let timeZoneLayer = CATextLayer()
+    private let ampmLayer = CATextLayer()
 
     private var styleStamp: ClockStyleStamp?
     private var fonts: NativeClockFonts?
@@ -49,9 +50,10 @@ private enum NativeClockLayoutHelper {
       layer.addSublayer(rootLayer)
       rootLayer.addSublayer(timeLayer)
       rootLayer.addSublayer(timeZoneLayer)
+      rootLayer.addSublayer(ampmLayer)
 
       let scale = NSScreen.main?.backingScaleFactor ?? 2
-      [timeLayer, timeZoneLayer].forEach {
+      [timeLayer, timeZoneLayer, ampmLayer].forEach {
         $0.contentsScale = scale
         $0.alignmentMode = .center
         $0.isWrapped = false
@@ -79,8 +81,21 @@ private enum NativeClockLayoutHelper {
         segments: segments,
         fonts: fonts,
         precision: stamp.precision,
-        color: color
+        color: color,
+        inlineAMPM: false
       )
+
+      switch NativeClockAMPMPlacement.from(segments: segments) {
+      case .none:
+        ampmLayer.isHidden = true
+        ampmLayer.string = nil
+      case .leading(let text), .trailing(let text):
+        ampmLayer.isHidden = false
+        ampmLayer.string = NSAttributedString(
+          string: text,
+          attributes: [.font: fonts.ampm, .foregroundColor: color]
+        )
+      }
 
       if stamp.showTimeZoneText, !segments.timeZoneLabel.isEmpty {
         timeZoneLayer.isHidden = false
@@ -103,7 +118,7 @@ private enum NativeClockLayoutHelper {
       guard let stamp = styleStamp, let fonts else { return }
 
       let color = stamp.color.platformColor
-      measuredSize = NativeClockTextBuilder.measure(
+      let layout = NativeClockLayoutEngine.frames(
         segments: segments,
         fonts: fonts,
         precision: stamp.precision,
@@ -111,40 +126,23 @@ private enum NativeClockLayoutHelper {
         showTimeZone: stamp.showTimeZoneText,
         timeZoneTopGap: stamp.timeZoneTopGap
       )
-
-      let timeBounds = NativeClockLayoutHelper.bounds(of: timeLayer.string as? NSAttributedString)
-
-      let tzBounds: CGSize = {
-        guard !timeZoneLayer.isHidden,
-          let tz = timeZoneLayer.string as? NSAttributedString
-        else { return .zero }
-        return NativeClockLayoutHelper.bounds(of: tz)
-      }()
-
-      let gap = stamp.showTimeZoneText ? max(0, stamp.timeZoneTopGap) : 0
-      let totalW = max(timeBounds.width, tzBounds.width)
-      let totalH = timeBounds.height + gap + tzBounds.height
+      measuredSize = layout.totalSize
 
       rootLayer.frame = CGRect(
-        x: (bounds.width - totalW) / 2,
-        y: (bounds.height - totalH) / 2,
-        width: totalW,
-        height: totalH
+        x: (bounds.width - layout.totalSize.width) / 2,
+        y: (bounds.height - layout.totalSize.height) / 2,
+        width: layout.totalSize.width,
+        height: layout.totalSize.height
       )
 
-      timeLayer.frame = CGRect(
-        x: (totalW - timeBounds.width) / 2,
-        y: tzBounds.height + gap,
-        width: timeBounds.width,
-        height: timeBounds.height
-      )
-
-      timeZoneLayer.frame = CGRect(
-        x: (totalW - tzBounds.width) / 2,
-        y: 0,
-        width: tzBounds.width,
-        height: tzBounds.height
-      )
+      timeZoneLayer.frame = layout.timeZone
+      timeLayer.frame = layout.time
+      if let ampm = layout.ampm {
+        ampmLayer.isHidden = false
+        ampmLayer.frame = ampm
+      } else {
+        ampmLayer.isHidden = true
+      }
 
       if measuredSize != .zero {
         sizeDelegate?.nativeClock(didMeasure: measuredSize)
@@ -167,6 +165,7 @@ private enum NativeClockLayoutHelper {
 
     private let timeLayer = CATextLayer()
     private let timeZoneLayer = CATextLayer()
+    private let ampmLayer = CATextLayer()
 
     private var styleStamp: ClockStyleStamp?
     private var fonts: NativeClockFonts?
@@ -178,8 +177,9 @@ private enum NativeClockLayoutHelper {
       isUserInteractionEnabled = false
       layer.addSublayer(timeLayer)
       layer.addSublayer(timeZoneLayer)
+      layer.addSublayer(ampmLayer)
       let scale = UIScreen.main.scale
-      [timeLayer, timeZoneLayer].forEach {
+      [timeLayer, timeZoneLayer, ampmLayer].forEach {
         $0.contentsScale = scale
         $0.alignmentMode = .center
         $0.isWrapped = false
@@ -211,8 +211,21 @@ private enum NativeClockLayoutHelper {
         segments: segments,
         fonts: fonts,
         precision: stamp.precision,
-        color: color
+        color: color,
+        inlineAMPM: false
       )
+
+      switch NativeClockAMPMPlacement.from(segments: segments) {
+      case .none:
+        ampmLayer.isHidden = true
+        ampmLayer.string = nil
+      case .leading(let text), .trailing(let text):
+        ampmLayer.isHidden = false
+        ampmLayer.string = NSAttributedString(
+          string: text,
+          attributes: [.font: fonts.ampm, .foregroundColor: color]
+        )
+      }
 
       if stamp.showTimeZoneText, !segments.timeZoneLabel.isEmpty {
         timeZoneLayer.isHidden = false
@@ -235,7 +248,7 @@ private enum NativeClockLayoutHelper {
       guard let stamp = styleStamp, let fonts else { return }
 
       let color = stamp.color.platformColor
-      measuredSize = NativeClockTextBuilder.measure(
+      let layout = NativeClockLayoutEngine.frames(
         segments: segments,
         fonts: fonts,
         precision: stamp.precision,
@@ -243,35 +256,19 @@ private enum NativeClockLayoutHelper {
         showTimeZone: stamp.showTimeZoneText,
         timeZoneTopGap: stamp.timeZoneTopGap
       )
+      measuredSize = layout.totalSize
 
-      let timeBounds = NativeClockLayoutHelper.bounds(of: timeLayer.string as? NSAttributedString)
+      let originX = (bounds.width - layout.totalSize.width) / 2
+      let originY = (bounds.height - layout.totalSize.height) / 2
 
-      let tzBounds: CGSize = {
-        guard !timeZoneLayer.isHidden,
-          let tz = timeZoneLayer.string as? NSAttributedString
-        else { return .zero }
-        return NativeClockLayoutHelper.bounds(of: tz)
-      }()
-
-      let gap = stamp.showTimeZoneText ? max(0, stamp.timeZoneTopGap) : 0
-      let totalW = max(timeBounds.width, tzBounds.width)
-      let totalH = timeBounds.height + gap + tzBounds.height
-      let originX = (bounds.width - totalW) / 2
-      let originY = (bounds.height - totalH) / 2
-
-      timeLayer.frame = CGRect(
-        x: originX + (totalW - timeBounds.width) / 2,
-        y: originY + tzBounds.height + gap,
-        width: timeBounds.width,
-        height: timeBounds.height
-      )
-
-      timeZoneLayer.frame = CGRect(
-        x: originX + (totalW - tzBounds.width) / 2,
-        y: originY,
-        width: tzBounds.width,
-        height: tzBounds.height
-      )
+      timeZoneLayer.frame = layout.timeZone.offsetBy(dx: originX, dy: originY)
+      timeLayer.frame = layout.time.offsetBy(dx: originX, dy: originY)
+      if let ampm = layout.ampm {
+        ampmLayer.isHidden = false
+        ampmLayer.frame = ampm.offsetBy(dx: originX, dy: originY)
+      } else {
+        ampmLayer.isHidden = true
+      }
 
       if measuredSize != .zero {
         sizeDelegate?.nativeClock(didMeasure: measuredSize)
