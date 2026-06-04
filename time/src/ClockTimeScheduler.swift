@@ -1,11 +1,10 @@
 import Foundation
-import Observation
 
-/// 按下一分钟整点调度；缓存 Calendar 减少分配
-@Observable
+/// 按显示精度调度；tick 直推 NativeClockTickTarget，不经过 SwiftUI
 final class ClockTimeScheduler {
   private(set) var segments = TimeSegments()
 
+  private weak var tickTarget: NativeClockTickTarget?
   private var format = ClockFormatOptions(
     is24Hour: false,
     padZero: false,
@@ -19,11 +18,21 @@ final class ClockTimeScheduler {
   private var scheduleWorkItem: DispatchWorkItem?
   private var isActive = false
 
+  func setTickTarget(_ target: NativeClockTickTarget?) {
+    tickTarget = target
+    if let target {
+      target.applyTick(
+        segments: segments,
+        changedFields: Set(TimeSegmentField.allCases)
+      )
+    }
+  }
+
   func setFormat(_ format: ClockFormatOptions) {
     guard self.format != format else { return }
     self.format = format
     calendar = TimeProvider.makeCalendar(for: format.timeZoneIdentifier)
-    refreshIfNeeded(at: Date())
+    refreshIfNeeded(at: Date(), force: true)
     reschedule()
   }
 
@@ -31,17 +40,21 @@ final class ClockTimeScheduler {
     guard active != isActive else { return }
     isActive = active
     if active {
-      refreshIfNeeded(at: Date())
+      refreshIfNeeded(at: Date(), force: true)
       reschedule()
     } else {
       cancelSchedule()
     }
   }
 
-  private func refreshIfNeeded(at date: Date) {
+  private func refreshIfNeeded(at date: Date, force: Bool = false) {
     let new = TimeProvider.segments(from: date, format: format, calendar: calendar)
-    guard new != segments else { return }
+    if !force, new == segments { return }
+    let changed = force
+      ? Set(TimeSegmentField.allCases)
+      : TimeProvider.changedFields(from: segments, to: new)
     segments = new
+    tickTarget?.applyTick(segments: new, changedFields: changed)
   }
 
   private func reschedule() {

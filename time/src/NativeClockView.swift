@@ -10,18 +10,32 @@ protocol NativeClockSizeDelegate: AnyObject {
   func nativeClock(didMeasure size: CGSize)
 }
 
+private enum NativeClockLayoutHelper {
+  static func bounds(of string: NSAttributedString?) -> CGSize {
+    guard let string else { return .zero }
+    return string.boundingRect(
+      with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
+      options: [.usesLineFragmentOrigin, .usesFontLeading]
+    ).size
+  }
+}
+
 // MARK: - macOS
 
 #if os(macOS)
 
-  final class NativeClockNSView: NSView {
+  final class NativeClockNSView: NSView, NativeClockTickTarget {
     weak var sizeDelegate: NativeClockSizeDelegate?
 
     private let rootLayer = CALayer()
-    private let timeLayer = CATextLayer()
+    private let timeRowLayer = CALayer()
+    private let mainTimeLayer = CATextLayer()
+    private let millisTimeLayer = CATextLayer()
     private let timeZoneLayer = CATextLayer()
 
-    private var stamp: ClockBounceStamp?
+    private var styleStamp: ClockStyleStamp?
+    private var fonts: NativeClockFonts?
+    private var segments = TimeSegments()
     private var measuredSize: CGSize = .zero
 
     override init(frame frameRect: NSRect) {
@@ -38,33 +52,48 @@ protocol NativeClockSizeDelegate: AnyObject {
     private func configureLayers() {
       guard let layer else { return }
       layer.addSublayer(rootLayer)
-      rootLayer.addSublayer(timeLayer)
+      rootLayer.addSublayer(timeRowLayer)
+      timeRowLayer.addSublayer(mainTimeLayer)
+      timeRowLayer.addSublayer(millisTimeLayer)
       rootLayer.addSublayer(timeZoneLayer)
 
       let scale = NSScreen.main?.backingScaleFactor ?? 2
-      [timeLayer, timeZoneLayer].forEach {
+      [mainTimeLayer, millisTimeLayer, timeZoneLayer].forEach {
         $0.contentsScale = scale
         $0.alignmentMode = .center
         $0.isWrapped = false
         $0.truncationMode = .none
       }
+      millisTimeLayer.isHidden = true
     }
 
-    func apply(stamp: ClockBounceStamp) {
-      self.stamp = stamp
+    func applyStyle(_ stamp: ClockStyleStamp) {
+      styleStamp = stamp
+      fonts = NativeClockFonts.make(style: stamp.style)
+      millisTimeLayer.isHidden = !stamp.precision.includesMilliseconds
+      rebuildTimeLayers()
+      needsLayout = true
+    }
+
+    func applyTick(segments: TimeSegments, changedFields: Set<TimeSegmentField>) {
+      self.segments = segments
+      guard let stamp = styleStamp, let fonts else { return }
       let color = stamp.color.platformColor
-      timeLayer.string = NativeClockTextBuilder.timeAttributedString(
-        segments: stamp.segments,
-        style: stamp.style,
-        precision: stamp.precision,
-        color: color
-      )
-      if stamp.showTimeZoneText, !stamp.segments.timeZoneLabel.isEmpty {
+
+      if stamp.precision.includesMilliseconds,
+        changedFields.allSatisfy({ $0 == .millis })
+      {
+        millisTimeLayer.string = NativeClockTextBuilder.millisAttributedString(
+          segments: segments, fonts: fonts, color: color)
+        return
+      }
+
+      rebuildTimeLayers()
+      if stamp.showTimeZoneText, !segments.timeZoneLabel.isEmpty {
         timeZoneLayer.isHidden = false
-        timeZoneLayer.string = NativeClockTextBuilder.timeZoneAttributedString(
-          stamp.segments.timeZoneLabel,
-          style: stamp.style,
-          color: color
+        timeZoneLayer.string = NSAttributedString(
+          string: segments.timeZoneLabel,
+          attributes: [.font: fonts.timeZone, .foregroundColor: color]
         )
       } else {
         timeZoneLayer.isHidden = true
@@ -73,38 +102,52 @@ protocol NativeClockSizeDelegate: AnyObject {
       needsLayout = true
     }
 
+    private func rebuildTimeLayers() {
+      guard let stamp = styleStamp, let fonts else { return }
+      let color = stamp.color.platformColor
+      mainTimeLayer.string = NativeClockTextBuilder.timeBodyAttributedString(
+        segments: segments,
+        fonts: fonts,
+        precision: stamp.precision,
+        color: color
+      )
+      if stamp.precision.includesMilliseconds {
+        millisTimeLayer.string = NativeClockTextBuilder.millisAttributedString(
+          segments: segments, fonts: fonts, color: color)
+      } else {
+        millisTimeLayer.string = nil
+      }
+    }
+
     override func layout() {
       super.layout()
-      guard let stamp else { return }
+      guard let stamp = styleStamp, let fonts else { return }
 
       let color = stamp.color.platformColor
       measuredSize = NativeClockTextBuilder.measure(
-        segments: stamp.segments,
-        style: stamp.style,
+        segments: segments,
+        fonts: fonts,
         precision: stamp.precision,
         color: color,
         showTimeZone: stamp.showTimeZoneText,
         timeZoneTopGap: stamp.timeZoneTopGap
       )
 
-      let timeBounds = (timeLayer.string as? NSAttributedString)?.boundingRect(
-        with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
-        options: [.usesLineFragmentOrigin, .usesFontLeading]
-      ).size ?? .zero
+      let mainBounds = NativeClockLayoutHelper.bounds(of: mainTimeLayer.string as? NSAttributedString)
+      let msBounds = NativeClockLayoutHelper.bounds(of: millisTimeLayer.string as? NSAttributedString)
+      let rowW = mainBounds.width + msBounds.width
+      let rowH = max(mainBounds.height, msBounds.height)
 
       let tzBounds: CGSize = {
         guard !timeZoneLayer.isHidden,
           let tz = timeZoneLayer.string as? NSAttributedString
         else { return .zero }
-        return tz.boundingRect(
-          with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
-          options: [.usesLineFragmentOrigin, .usesFontLeading]
-        ).size
+        return NativeClockLayoutHelper.bounds(of: tz)
       }()
 
       let gap = stamp.showTimeZoneText ? max(0, stamp.timeZoneTopGap) : 0
-      let totalW = max(timeBounds.width, tzBounds.width)
-      let totalH = timeBounds.height + gap + tzBounds.height
+      let totalW = max(rowW, tzBounds.width)
+      let totalH = rowH + gap + tzBounds.height
 
       rootLayer.frame = CGRect(
         x: (bounds.width - totalW) / 2,
@@ -113,11 +156,25 @@ protocol NativeClockSizeDelegate: AnyObject {
         height: totalH
       )
 
-      timeLayer.frame = CGRect(
-        x: (totalW - timeBounds.width) / 2,
+      timeRowLayer.frame = CGRect(
+        x: (totalW - rowW) / 2,
         y: tzBounds.height + gap,
-        width: timeBounds.width,
-        height: timeBounds.height
+        width: rowW,
+        height: rowH
+      )
+
+      mainTimeLayer.frame = CGRect(
+        x: 0,
+        y: (rowH - mainBounds.height) / 2,
+        width: mainBounds.width,
+        height: mainBounds.height
+      )
+
+      millisTimeLayer.frame = CGRect(
+        x: mainBounds.width,
+        y: (rowH - msBounds.height) / 2,
+        width: msBounds.width,
+        height: msBounds.height
       )
 
       timeZoneLayer.frame = CGRect(
@@ -143,48 +200,69 @@ protocol NativeClockSizeDelegate: AnyObject {
 
 #if os(iOS)
 
-  final class NativeClockUIView: UIView {
+  final class NativeClockUIView: UIView, NativeClockTickTarget {
     weak var sizeDelegate: NativeClockSizeDelegate?
 
-    private let timeLayer = CATextLayer()
+    private let rootLayer = CALayer()
+    private let timeRowLayer = CALayer()
+    private let mainTimeLayer = CATextLayer()
+    private let millisTimeLayer = CATextLayer()
     private let timeZoneLayer = CATextLayer()
 
-    private var stamp: ClockBounceStamp?
+    private var styleStamp: ClockStyleStamp?
+    private var fonts: NativeClockFonts?
+    private var segments = TimeSegments()
     private var measuredSize: CGSize = .zero
 
     override init(frame: CGRect) {
       super.init(frame: frame)
       isUserInteractionEnabled = false
-      layer.addSublayer(timeLayer)
-      layer.addSublayer(timeZoneLayer)
+      layer.addSublayer(rootLayer)
+      rootLayer.addSublayer(timeRowLayer)
+      timeRowLayer.addSublayer(mainTimeLayer)
+      timeRowLayer.addSublayer(millisTimeLayer)
+      rootLayer.addSublayer(timeZoneLayer)
       let scale = UIScreen.main.scale
-      [timeLayer, timeZoneLayer].forEach {
+      [mainTimeLayer, millisTimeLayer, timeZoneLayer].forEach {
         $0.contentsScale = scale
         $0.alignmentMode = .center
         $0.isWrapped = false
         $0.truncationMode = .none
       }
+      millisTimeLayer.isHidden = true
     }
 
     required init?(coder: NSCoder) {
       fatalError("init(coder:) has not been implemented")
     }
 
-    func apply(stamp: ClockBounceStamp) {
-      self.stamp = stamp
+    func applyStyle(_ stamp: ClockStyleStamp) {
+      styleStamp = stamp
+      fonts = NativeClockFonts.make(style: stamp.style)
+      millisTimeLayer.isHidden = !stamp.precision.includesMilliseconds
+      rebuildTimeLayers()
+      setNeedsLayout()
+    }
+
+    func applyTick(segments: TimeSegments, changedFields: Set<TimeSegmentField>) {
+      self.segments = segments
+      guard let stamp = styleStamp, let fonts else { return }
       let color = stamp.color.platformColor
-      timeLayer.string = NativeClockTextBuilder.timeAttributedString(
-        segments: stamp.segments,
-        style: stamp.style,
-        precision: stamp.precision,
-        color: color
-      )
-      if stamp.showTimeZoneText, !stamp.segments.timeZoneLabel.isEmpty {
+
+      if stamp.precision.includesMilliseconds,
+        changedFields.allSatisfy({ $0 == .millis })
+      {
+        millisTimeLayer.string = NativeClockTextBuilder.millisAttributedString(
+          segments: segments, fonts: fonts, color: color)
+        return
+      }
+
+      rebuildTimeLayers()
+      if stamp.showTimeZoneText, !segments.timeZoneLabel.isEmpty {
         timeZoneLayer.isHidden = false
-        timeZoneLayer.string = NativeClockTextBuilder.timeZoneAttributedString(
-          stamp.segments.timeZoneLabel,
-          style: stamp.style,
-          color: color
+        timeZoneLayer.string = NSAttributedString(
+          string: segments.timeZoneLabel,
+          attributes: [.font: fonts.timeZone, .foregroundColor: color]
         )
       } else {
         timeZoneLayer.isHidden = true
@@ -193,51 +271,81 @@ protocol NativeClockSizeDelegate: AnyObject {
       setNeedsLayout()
     }
 
+    private func rebuildTimeLayers() {
+      guard let stamp = styleStamp, let fonts else { return }
+      let color = stamp.color.platformColor
+      mainTimeLayer.string = NativeClockTextBuilder.timeBodyAttributedString(
+        segments: segments,
+        fonts: fonts,
+        precision: stamp.precision,
+        color: color
+      )
+      if stamp.precision.includesMilliseconds {
+        millisTimeLayer.string = NativeClockTextBuilder.millisAttributedString(
+          segments: segments, fonts: fonts, color: color)
+      } else {
+        millisTimeLayer.string = nil
+      }
+    }
+
     override func layoutSubviews() {
       super.layoutSubviews()
-      guard let stamp else { return }
+      guard let stamp = styleStamp, let fonts else { return }
 
       let color = stamp.color.platformColor
       measuredSize = NativeClockTextBuilder.measure(
-        segments: stamp.segments,
-        style: stamp.style,
+        segments: segments,
+        fonts: fonts,
         precision: stamp.precision,
         color: color,
         showTimeZone: stamp.showTimeZoneText,
         timeZoneTopGap: stamp.timeZoneTopGap
       )
 
-      let timeBounds = (timeLayer.string as? NSAttributedString)?.boundingRect(
-        with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
-        options: [.usesLineFragmentOrigin, .usesFontLeading]
-      ).size ?? .zero
+      let mainBounds = NativeClockLayoutHelper.bounds(of: mainTimeLayer.string as? NSAttributedString)
+      let msBounds = NativeClockLayoutHelper.bounds(of: millisTimeLayer.string as? NSAttributedString)
+      let rowW = mainBounds.width + msBounds.width
+      let rowH = max(mainBounds.height, msBounds.height)
 
       let tzBounds: CGSize = {
         guard !timeZoneLayer.isHidden,
           let tz = timeZoneLayer.string as? NSAttributedString
         else { return .zero }
-        return tz.boundingRect(
-          with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
-          options: [.usesLineFragmentOrigin, .usesFontLeading]
-        ).size
+        return NativeClockLayoutHelper.bounds(of: tz)
       }()
 
       let gap = stamp.showTimeZoneText ? max(0, stamp.timeZoneTopGap) : 0
-      let totalW = max(timeBounds.width, tzBounds.width)
-      let totalH = timeBounds.height + gap + tzBounds.height
+      let totalW = max(rowW, tzBounds.width)
+      let totalH = rowH + gap + tzBounds.height
       let originX = (bounds.width - totalW) / 2
       let originY = (bounds.height - totalH) / 2
 
-      timeLayer.frame = CGRect(
-        x: originX + (totalW - timeBounds.width) / 2,
-        y: originY + tzBounds.height + gap,
-        width: timeBounds.width,
-        height: timeBounds.height
+      rootLayer.frame = CGRect(x: originX, y: originY, width: totalW, height: totalH)
+
+      timeRowLayer.frame = CGRect(
+        x: (totalW - rowW) / 2,
+        y: tzBounds.height + gap,
+        width: rowW,
+        height: rowH
+      )
+
+      mainTimeLayer.frame = CGRect(
+        x: 0,
+        y: (rowH - mainBounds.height) / 2,
+        width: mainBounds.width,
+        height: mainBounds.height
+      )
+
+      millisTimeLayer.frame = CGRect(
+        x: mainBounds.width,
+        y: (rowH - msBounds.height) / 2,
+        width: msBounds.width,
+        height: msBounds.height
       )
 
       timeZoneLayer.frame = CGRect(
-        x: originX + (totalW - tzBounds.width) / 2,
-        y: originY,
+        x: (totalW - tzBounds.width) / 2,
+        y: 0,
         width: tzBounds.width,
         height: tzBounds.height
       )

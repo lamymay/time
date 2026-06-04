@@ -24,6 +24,22 @@ struct NativeClockStyle: Equatable {
   }
 }
 
+struct NativeClockFonts: Equatable {
+  let main: PlatformFont
+  let ampm: PlatformFont
+  let sub: PlatformFont
+  let timeZone: PlatformFont
+
+  static func make(style: NativeClockStyle) -> NativeClockFonts {
+    NativeClockFonts(
+      main: PlatformFont.native(style.fontName, size: style.fontSize, weight: .bold),
+      ampm: PlatformFont.native(style.fontName, size: style.ampmSize, weight: .bold),
+      sub: PlatformFont.native(style.fontName, size: style.subSecondSize, weight: .bold),
+      timeZone: PlatformFont.native(style.fontName, size: style.timeZoneSize, weight: .bold)
+    )
+  }
+}
+
 enum NativeClockTextBuilder {
   static func timeAttributedString(
     segments: TimeSegments,
@@ -31,10 +47,22 @@ enum NativeClockTextBuilder {
     precision: TimeDisplayPrecision,
     color: PlatformColor
   ) -> NSAttributedString {
+    timeAttributedString(
+      segments: segments,
+      fonts: NativeClockFonts.make(style: style),
+      precision: precision,
+      color: color
+    )
+  }
+
+  /// 主行（不含毫秒）；毫秒单独 layer 更新以降低 tick 开销
+  static func timeBodyAttributedString(
+    segments: TimeSegments,
+    fonts: NativeClockFonts,
+    precision: TimeDisplayPrecision,
+    color: PlatformColor
+  ) -> NSAttributedString {
     let result = NSMutableAttributedString()
-    let mainFont = PlatformFont.native(style.fontName, size: style.fontSize, weight: .bold)
-    let ampmFont = PlatformFont.native(style.fontName, size: style.ampmSize, weight: .bold)
-    let subFont = PlatformFont.native(style.fontName, size: style.subSecondSize, weight: .bold)
     let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: color]
 
     func append(_ text: String, font: PlatformFont) {
@@ -44,26 +72,51 @@ enum NativeClockTextBuilder {
       result.append(NSAttributedString(string: text, attributes: a))
     }
 
-    append(segments.leadingAMPM, font: ampmFont)
-    if !segments.leadingAMPM.isEmpty { append(" ", font: mainFont) }
-    append(segments.hourTens, font: mainFont)
-    append(segments.hourOnes, font: mainFont)
-    append(":", font: mainFont)
-    append(segments.minuteTens, font: mainFont)
-    append(segments.minuteOnes, font: mainFont)
+    append(segments.leadingAMPM, font: fonts.ampm)
+    if !segments.leadingAMPM.isEmpty { append(" ", font: fonts.main) }
+    append(segments.hourTens, font: fonts.main)
+    append(segments.hourOnes, font: fonts.main)
+    append(":", font: fonts.main)
+    append(segments.minuteTens, font: fonts.main)
+    append(segments.minuteOnes, font: fonts.main)
     if precision.includesSeconds {
-      append(":", font: mainFont)
-      append(segments.secondTens, font: subFont)
-      append(segments.secondOnes, font: subFont)
-    }
-    if precision.includesMilliseconds {
-      append(".", font: subFont)
-      append(segments.millis, font: subFont)
+      append(":", font: fonts.main)
+      append(segments.secondTens, font: fonts.sub)
+      append(segments.secondOnes, font: fonts.sub)
     }
     if !segments.trailingAMPM.isEmpty {
-      append(" ", font: mainFont)
-      append(segments.trailingAMPM, font: ampmFont)
+      append(" ", font: fonts.main)
+      append(segments.trailingAMPM, font: fonts.ampm)
     }
+    return result
+  }
+
+  static func millisAttributedString(
+    segments: TimeSegments,
+    fonts: NativeClockFonts,
+    color: PlatformColor
+  ) -> NSAttributedString? {
+    guard !segments.millis.isEmpty else { return nil }
+    let attrs: [NSAttributedString.Key: Any] = [
+      .font: fonts.sub,
+      .foregroundColor: color,
+    ]
+    return NSAttributedString(string: ".\(segments.millis)", attributes: attrs)
+  }
+
+  static func timeAttributedString(
+    segments: TimeSegments,
+    fonts: NativeClockFonts,
+    precision: TimeDisplayPrecision,
+    color: PlatformColor
+  ) -> NSAttributedString {
+    let body = timeBodyAttributedString(
+      segments: segments, fonts: fonts, precision: precision, color: color)
+    guard precision.includesMilliseconds, let ms = millisAttributedString(
+      segments: segments, fonts: fonts, color: color)
+    else { return body }
+    let result = NSMutableAttributedString(attributedString: body)
+    result.append(ms)
     return result
   }
 
@@ -81,14 +134,14 @@ enum NativeClockTextBuilder {
 
   static func measure(
     segments: TimeSegments,
-    style: NativeClockStyle,
+    fonts: NativeClockFonts,
     precision: TimeDisplayPrecision,
     color: PlatformColor,
     showTimeZone: Bool,
     timeZoneTopGap: CGFloat
   ) -> CGSize {
     let time = timeAttributedString(
-      segments: segments, style: style, precision: precision, color: color)
+      segments: segments, fonts: fonts, precision: precision, color: color)
     let timeSize = time.boundingRect(
       with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
       options: [.usesLineFragmentOrigin, .usesFontLeading]
@@ -98,7 +151,10 @@ enum NativeClockTextBuilder {
       return CGSize(width: ceil(timeSize.width), height: ceil(timeSize.height))
     }
 
-    let tz = timeZoneAttributedString(segments.timeZoneLabel, style: style, color: color)
+    let tz = NSAttributedString(
+      string: segments.timeZoneLabel,
+      attributes: [.font: fonts.timeZone, .foregroundColor: color]
+    )
     let tzSize = tz.boundingRect(
       with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
       options: [.usesLineFragmentOrigin, .usesFontLeading]
@@ -108,6 +164,24 @@ enum NativeClockTextBuilder {
     return CGSize(
       width: ceil(max(timeSize.width, tzSize.width)),
       height: ceil(timeSize.height + gap + tzSize.height)
+    )
+  }
+
+  static func measure(
+    segments: TimeSegments,
+    style: NativeClockStyle,
+    precision: TimeDisplayPrecision,
+    color: PlatformColor,
+    showTimeZone: Bool,
+    timeZoneTopGap: CGFloat
+  ) -> CGSize {
+    measure(
+      segments: segments,
+      fonts: NativeClockFonts.make(style: style),
+      precision: precision,
+      color: color,
+      showTimeZone: showTimeZone,
+      timeZoneTopGap: timeZoneTopGap
     )
   }
 }

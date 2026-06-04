@@ -28,7 +28,7 @@ struct ClockDisplayConfig: Equatable {
 /// 屏保级：原生 CATextLayer + layer transform 弹跳；无 NSHostingView
 struct MotionClockScene: View {
   @State private var motion = ClockMotionEngine()
-  let segments: TimeSegments
+  let scheduler: ClockTimeScheduler
   let style: NativeClockStyle
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
@@ -41,8 +41,8 @@ struct MotionClockScene: View {
 
   var body: some View {
     MotionClockContent(
+      scheduler: scheduler,
       motion: motion,
-      segments: segments,
       style: style,
       precision: precision,
       timeZoneTopGap: timeZoneTopGap,
@@ -58,8 +58,8 @@ struct MotionClockScene: View {
 
 /// 使用 @Bindable 传入 engine；弹跳位移不再暴露 offset 属性
 private struct MotionClockContent: View {
+  let scheduler: ClockTimeScheduler
   @Bindable var motion: ClockMotionEngine
-  let segments: TimeSegments
   let style: NativeClockStyle
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
@@ -70,9 +70,8 @@ private struct MotionClockContent: View {
   let isPaused: Bool
   let backgroundColorHex: String
 
-  private var bounceStamp: ClockBounceStamp {
-    ClockBounceStamp(
-      segments: segments,
+  private var styleStamp: ClockStyleStamp {
+    ClockStyleStamp(
       style: style,
       precision: precision,
       timeZoneTopGap: timeZoneTopGap,
@@ -82,7 +81,7 @@ private struct MotionClockContent: View {
   }
 
   var body: some View {
-    BouncingClockHost(motion: motion, stamp: bounceStamp)
+    BouncingClockHost(scheduler: scheduler, motion: motion, styleStamp: styleStamp)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onAppear {
       motion.setScreenSize(screenSize)
@@ -187,7 +186,7 @@ struct ContentView: View {
           #endif
 
         MotionClockScene(
-          segments: timeScheduler.segments,
+          scheduler: timeScheduler,
           style: clockStyle,
           precision: timeDisplayPrecision,
           timeZoneTopGap: -fontSize * 0.062,

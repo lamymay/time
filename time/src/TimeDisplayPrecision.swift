@@ -33,14 +33,8 @@ enum TimeDisplayPrecision: String, CaseIterable, Identifiable, Codable {
     self == .millisecond
   }
 
-  /// Debug 叠层 TimelineView 刷新间隔
-  var debugTimelineInterval: TimeInterval {
-    switch self {
-    case .minute: return 1
-    case .second: return 1
-    case .millisecond: return 0.05
-    }
-  }
+  /// Debug 叠层刷新间隔（与主时钟解耦，避免毫秒模式下 20fps 拖垮 CPU）
+  var debugTimelineInterval: TimeInterval { 1 }
 }
 
 /// 预加载全部精度的 DateFormatter（无锁，主线程 / OS 时钟刷新）

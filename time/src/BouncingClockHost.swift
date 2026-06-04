@@ -1,24 +1,16 @@
 import SwiftUI
 
-struct ClockBounceStamp: Equatable {
-  var segments: TimeSegments
-  var style: NativeClockStyle
-  var precision: TimeDisplayPrecision
-  var timeZoneTopGap: CGFloat
-  var color: Color
-  var showTimeZoneText: Bool
-}
-
-/// 屏保弹跳 + 纯原生 CATextLayer 时钟（无 NSHostingView）
+/// 屏保弹跳 + 纯原生 CATextLayer 时钟（无 NSHostingView）；时间 tick 由 ClockTimeScheduler 直推
 struct BouncingClockHost: View {
+  let scheduler: ClockTimeScheduler
   let motion: ClockMotionEngine
-  let stamp: ClockBounceStamp
+  let styleStamp: ClockStyleStamp
 
   var body: some View {
     #if os(macOS)
-      MacBouncingClockHost(motion: motion, stamp: stamp)
+      MacBouncingClockHost(scheduler: scheduler, motion: motion, styleStamp: styleStamp)
     #else
-      IOSBouncingClockHost(motion: motion, stamp: stamp)
+      IOSBouncingClockHost(scheduler: scheduler, motion: motion, styleStamp: styleStamp)
     #endif
   }
 }
@@ -26,8 +18,9 @@ struct BouncingClockHost: View {
 #if os(macOS)
 
   private struct MacBouncingClockHost: NSViewRepresentable {
+    let scheduler: ClockTimeScheduler
     let motion: ClockMotionEngine
-    let stamp: ClockBounceStamp
+    let styleStamp: ClockStyleStamp
 
     func makeCoordinator() -> Coordinator {
       Coordinator()
@@ -37,34 +30,38 @@ struct BouncingClockHost: View {
       let container = BounceContainerNSView()
       let clock = NativeClockNSView()
       container.install(clock: clock)
-      clock.apply(stamp: stamp)
+      clock.applyStyle(styleStamp)
+      context.coordinator.scheduler = scheduler
       context.coordinator.motion = motion
       context.coordinator.container = container
       context.coordinator.clock = clock
-      context.coordinator.stamp = stamp
+      context.coordinator.styleStamp = styleStamp
       clock.sizeDelegate = context.coordinator
       motion.setRenderer(context.coordinator)
+      scheduler.setTickTarget(clock)
       return container
     }
 
     func updateNSView(_ container: BounceContainerNSView, context: Context) {
       guard let clock = context.coordinator.clock else { return }
-      if context.coordinator.stamp != stamp {
-        clock.apply(stamp: stamp)
-        context.coordinator.stamp = stamp
+      if context.coordinator.styleStamp != styleStamp {
+        clock.applyStyle(styleStamp)
+        context.coordinator.styleStamp = styleStamp
         container.needsLayout = true
       }
     }
 
     static func dismantleNSView(_: BounceContainerNSView, coordinator: Coordinator) {
+      coordinator.scheduler?.setTickTarget(nil)
       coordinator.motion?.setRenderer(nil)
     }
 
     final class Coordinator: NSObject, ClockMotionRenderer, NativeClockSizeDelegate {
+      weak var scheduler: ClockTimeScheduler?
       weak var motion: ClockMotionEngine?
       weak var container: BounceContainerNSView?
       weak var clock: NativeClockNSView?
-      var stamp: ClockBounceStamp?
+      var styleStamp: ClockStyleStamp?
 
       func setTranslation(_ offset: CGSize) {
         container?.setTranslation(offset)
@@ -109,8 +106,9 @@ struct BouncingClockHost: View {
 #else
 
   private struct IOSBouncingClockHost: UIViewRepresentable {
+    let scheduler: ClockTimeScheduler
     let motion: ClockMotionEngine
-    let stamp: ClockBounceStamp
+    let styleStamp: ClockStyleStamp
 
     func makeCoordinator() -> Coordinator {
       Coordinator()
@@ -120,34 +118,38 @@ struct BouncingClockHost: View {
       let container = BounceContainerUIView()
       let clock = NativeClockUIView()
       container.install(clock: clock)
-      clock.apply(stamp: stamp)
+      clock.applyStyle(styleStamp)
+      context.coordinator.scheduler = scheduler
       context.coordinator.motion = motion
       context.coordinator.container = container
       context.coordinator.clock = clock
-      context.coordinator.stamp = stamp
+      context.coordinator.styleStamp = styleStamp
       clock.sizeDelegate = context.coordinator
       motion.setRenderer(context.coordinator)
+      scheduler.setTickTarget(clock)
       return container
     }
 
     func updateUIView(_ container: BounceContainerUIView, context: Context) {
       guard let clock = context.coordinator.clock else { return }
-      if context.coordinator.stamp != stamp {
-        clock.apply(stamp: stamp)
-        context.coordinator.stamp = stamp
+      if context.coordinator.styleStamp != styleStamp {
+        clock.applyStyle(styleStamp)
+        context.coordinator.styleStamp = styleStamp
         container.setNeedsLayout()
       }
     }
 
     static func dismantleUIView(_: BounceContainerUIView, coordinator: Coordinator) {
+      coordinator.scheduler?.setTickTarget(nil)
       coordinator.motion?.setRenderer(nil)
     }
 
     final class Coordinator: NSObject, ClockMotionRenderer, NativeClockSizeDelegate {
+      weak var scheduler: ClockTimeScheduler?
       weak var motion: ClockMotionEngine?
       weak var container: BounceContainerUIView?
       weak var clock: NativeClockUIView?
-      var stamp: ClockBounceStamp?
+      var styleStamp: ClockStyleStamp?
 
       func setTranslation(_ offset: CGSize) {
         container?.setTranslation(offset)
