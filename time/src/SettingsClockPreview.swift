@@ -5,7 +5,8 @@ struct SettingsClockPreview: View {
   let config: ClockDisplayConfig
   let style: ClockDisplayStyle
   let backgroundColorHex: String
-  let clockColorHex: String
+  let flipCardColorHex: String
+  let fontColorHex: String
 
   @State private var previewScheduler = ClockTimeScheduler()
 
@@ -26,13 +27,14 @@ struct SettingsClockPreview: View {
             scheduler: previewScheduler,
             config: previewConfig,
             backgroundColorHex: backgroundColorHex,
-            clockColorHex: clockColorHex,
+            flipCardColorHex: flipCardColorHex,
+            fontColorHex: fontColorHex,
             isActive: true
           )
         case .classic:
           SettingsClassicClockPreview(
             config: previewConfig,
-            clockColorHex: clockColorHex
+            fontColorHex: fontColorHex
           )
         }
       }
@@ -57,7 +59,7 @@ struct SettingsClockPreview: View {
 
 private struct SettingsClassicClockPreview: View {
   let config: ClockDisplayConfig
-  let clockColorHex: String
+  let fontColorHex: String
 
   private var nativeStyle: NativeClockStyle {
     NativeClockStyle.resolve(
@@ -70,7 +72,7 @@ private struct SettingsClassicClockPreview: View {
   var body: some View {
     TimelineView(.periodic(from: .now, by: 1.0)) { timeline in
       let segments = TimeProvider.segments(from: timeline.date, format: config.formatOptions)
-      let color = Color(hex: ColorPickerCodec.normalizedHex(clockColorHex))
+      let color = Color(hex: ColorPickerCodec.normalizedHex(fontColorHex))
       Text(Self.previewTimeString(segments: segments, config: config))
         .font(
           .custom(

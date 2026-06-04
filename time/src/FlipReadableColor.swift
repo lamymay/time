@@ -7,6 +7,14 @@ import SwiftUI
 #endif
 
 /// 翻页灰底面板上的数字色：过暗时自动提亮，避免与 #46464C 融在一起
+extension Color {
+  func adjustedPickerBrightness(_ delta: Double) -> Color {
+    guard let (h, s, b, _) = hsbaComponents else { return self }
+    let next = min(max(b + delta, 0), 1)
+    return Color(hue: h, saturation: s, brightness: next)
+  }
+}
+
 enum FlipReadableColor {
   static func digitColor(preferred: Color, cardFace: Color) -> Color {
     let textL = preferred.relativeLuminance

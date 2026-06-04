@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "%lld" : {
+
+    },
     "bg.black" : {
       "localizations" : {
         "en" : {
@@ -535,6 +538,118 @@
         }
       }
     },
+    "flip.format.compact_panels" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compact"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンパクト"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "压缩秒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "壓縮秒"
+          }
+        }
+      }
+    },
+    "flip.format.compact_panels_subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two large panels · optional second strip"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時・分の大パネル、秒は独立表示可"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时、分双大板，秒可独立显示在右侧"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時、分雙大板，秒可獨立顯示在右側"
+          }
+        }
+      }
+    },
+    "flip.format.triple_equal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Triple equal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "三等分"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "三等分"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "三等分"
+          }
+        }
+      }
+    },
+    "flip.format.triple_equal_subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hour · minute · second, same-size flip cards"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時・分・秒を同サイズのカードで表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时、分、秒三块等大翻页卡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時、分、秒三塊等大翻頁卡"
+          }
+        }
+      }
+    },
     "format.12h" : {
       "localizations" : {
         "en" : {
@@ -928,6 +1043,7 @@
       }
     },
     "settings.appearance" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -951,62 +1067,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "外觀"
-          }
-        }
-      }
-    },
-    "settings.resize_panel_width" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resize settings panel width"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定パネルの幅を調整"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "调整设置面板宽度"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "調整設定面板寬度"
-          }
-        }
-      }
-    },
-    "settings.background_pure_black" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pure black"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "純黒"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "纯黑"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "純黑"
           }
         }
       }
@@ -1039,30 +1099,30 @@
         }
       }
     },
-    "settings.clock_color" : {
+    "settings.background_pure_black" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clock color"
+            "value" : "Pure black"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "時計の色"
+            "value" : "純黒"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "时钟颜色"
+            "value" : "纯黑"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "時鐘顏色"
+            "value" : "純黑"
           }
         }
       }
@@ -1095,7 +1155,36 @@
         }
       }
     },
+    "settings.clock_color" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flip tile color"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フリップ板の色"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻页色块"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻頁色塊"
+          }
+        }
+      }
+    },
     "settings.clock_style" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1291,6 +1380,118 @@
         }
       }
     },
+    "settings.flip_compact_detached_seconds" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seconds beside minutes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分の横に秒を表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分钟右下独立显示秒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分鐘右下獨立顯示秒"
+          }
+        }
+      }
+    },
+    "settings.flip_compact_detached_seconds_hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off: hour and minute panels only (no overlap). On: a smaller second panel aligned at the bottom-right."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ：時・分の2枚のみ。オン：分の右下に小さな秒パネル。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭：仅时、分两块，不叠加。开启：在分钟板右下增加独立秒板。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉：僅時、分兩塊，不疊加。開啟：在分鐘板右下增加獨立秒板。"
+          }
+        }
+      }
+    },
+    "settings.flip_format" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flip layout"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フリップ配置"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻页版式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻頁版式"
+          }
+        }
+      }
+    },
+    "settings.font" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Font"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォント"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字体"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字體"
+          }
+        }
+      }
+    },
     "settings.font_color" : {
       "localizations" : {
         "en" : {
@@ -1320,6 +1521,7 @@
       }
     },
     "settings.font_pick" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1343,34 +1545,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇字體"
-          }
-        }
-      }
-    },
-    "settings.font" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Font"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "フォント"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "字体"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "字體"
           }
         }
       }
@@ -1455,62 +1629,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "小時前置補零"
-          }
-        }
-      }
-    },
-    "settings.oled_pixel_shift" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reduce pixel aging"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ピクセル老化を抑える"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "优化像素老化"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "優化像素老化"
-          }
-        }
-      }
-    },
-    "settings.oled_pixel_shift_hint" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shift the clock ~1 px per minute along screen edges (DVD / flip)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "毎分約1px、画面端に沿ってゆっくり移動（DVD・フリップ共通）"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每分钟约 1 像素沿边缓慢漂移，翻页与弹跳共用"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每分鐘約 1 像素沿邊緩慢漂移，翻頁與彈跳共用"
           }
         }
       }
@@ -1600,6 +1718,7 @@
       }
     },
     "settings.motion" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1683,6 +1802,62 @@
         }
       }
     },
+    "settings.oled_pixel_shift" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduce pixel aging"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピクセル老化を抑える"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "优化像素老化"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "優化像素老化"
+          }
+        }
+      }
+    },
+    "settings.oled_pixel_shift_hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shift the clock ~1 px per minute along screen edges (DVD / flip)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎分約1px、画面端に沿ってゆっくり移動（DVD・フリップ共通）"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每分钟约 1 像素沿边缓慢漂移，翻页与弹跳共用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每分鐘約 1 像素沿邊緩慢漂移，翻頁與彈跳共用"
+          }
+        }
+      }
+    },
     "settings.precision_warning" : {
       "localizations" : {
         "en" : {
@@ -1707,6 +1882,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "精度越高 CPU 佔用越高，屏保常駐建議使用「分」。"
+          }
+        }
+      }
+    },
+    "settings.resize_panel_width" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resize settings panel width"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定パネルの幅を調整"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调整设置面板宽度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調整設定面板寬度"
           }
         }
       }
@@ -2045,62 +2248,6 @@
             "value" : "全螢幕居中 · 翻頁時鐘"
           }
         }
-      }
-    },
-    "settings.flip_format" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Flip layout" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "フリップ配置" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "翻页版式" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "翻頁版式" } }
-      }
-    },
-    "flip.format.triple_equal" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Triple equal" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "三等分" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "三等分" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "三等分" } }
-      }
-    },
-    "flip.format.triple_equal_subtitle" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hour · minute · second, same-size flip cards" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "時・分・秒を同サイズのカードで表示" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "时、分、秒三块等大翻页卡" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "時、分、秒三塊等大翻頁卡" } }
-      }
-    },
-    "flip.format.compact_panels" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Compact" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "コンパクト" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "压缩秒" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "壓縮秒" } }
-      }
-    },
-    "flip.format.compact_panels_subtitle" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Two large panels · optional second strip" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "時・分の大パネル、秒は独立表示可" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "时、分双大板，秒可独立显示在右侧" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "時、分雙大板，秒可獨立顯示在右側" } }
-      }
-    },
-    "settings.flip_compact_detached_seconds" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Seconds beside minutes" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "分の横に秒を表示" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分钟右下独立显示秒" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "分鐘右下獨立顯示秒" } }
-      }
-    },
-    "settings.flip_compact_detached_seconds_hint" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Off: hour and minute panels only (no overlap). On: a smaller second panel aligned at the bottom-right." } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "オフ：時・分の2枚のみ。オン：分の右下に小さな秒パネル。" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关闭：仅时、分两块，不叠加。开启：在分钟板右下增加独立秒板。" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "關閉：僅時、分兩塊，不疊加。開啟：在分鐘板右下增加獨立秒板。" } }
       }
     }
   },

@@ -64,7 +64,9 @@ struct ContentView: View {
   @AppStorage("oledPixelShiftEnabled") private var oledPixelShiftEnabled = true
   @AppStorage("clockDisplayStyle") private var clockDisplayStyleRaw: String =
     ClockDisplayStyle.flip.rawValue
-  @AppStorage("clockColorHex") private var clockColorHex: String = ClockColorPreset.mint.rawValue
+  @AppStorage("fontColorHex") private var fontColorHex: String = ClockColorPreset.mint.rawValue
+  /// 翻页数字方块底色（翻页色块）
+  @AppStorage("flipCardColorHex") private var flipCardColorHex: String = "#46464C"
   @AppStorage("flipClockFormat") private var flipClockFormatRaw: String =
     FlipClockFormat.compactPanels.rawValue
   @AppStorage("flipCompactDetachedSeconds") private var flipCompactDetachedSeconds = true
@@ -101,7 +103,8 @@ struct ContentView: View {
         clockDisplayStyleRaw: $clockDisplayStyleRaw,
         flipClockFormatRaw: $flipClockFormatRaw,
         flipCompactDetachedSeconds: $flipCompactDetachedSeconds,
-        clockColorHex: $clockColorHex,
+        fontColorHex: $fontColorHex,
+        flipCardColorHex: $flipCardColorHex,
         keepDisplayAwake: $keepDisplayAwake,
         oledPixelShiftEnabled: $oledPixelShiftEnabled,
         settingsPanelOffset: $settingsPanelOffset,
@@ -117,7 +120,21 @@ struct ContentView: View {
       .onChange(of: geo.size.height) { _, _ in
         clampFontSize(for: geo.size)
       }
+      .onAppear { migrateLegacyClockColorIfNeeded() }
     }
+  }
+
+  private static let colorKeysMigratedKey = "colorKeysMigratedV2"
+
+  /// 旧版 clockColorHex 表示数字色；拆分为 fontColorHex + flipCardColorHex 后迁移一次
+  private func migrateLegacyClockColorIfNeeded() {
+    guard !UserDefaults.standard.bool(forKey: Self.colorKeysMigratedKey) else { return }
+    if UserDefaults.standard.object(forKey: "fontColorHex") == nil,
+      let legacy = UserDefaults.standard.string(forKey: "clockColorHex")
+    {
+      fontColorHex = legacy
+    }
+    UserDefaults.standard.set(true, forKey: Self.colorKeysMigratedKey)
   }
 
   private func clampFontSize(for screen: CGSize) {

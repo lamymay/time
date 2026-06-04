@@ -29,19 +29,24 @@ struct FlipClockScene: View {
   let scheduler: ClockTimeScheduler
   let config: ClockDisplayConfig
   let backgroundColorHex: String
-  let clockColorHex: String
+  let flipCardColorHex: String
+  let fontColorHex: String
   let isActive: Bool
 
   @State private var segments = TimeSegments()
   @State private var tickEpoch = 0
   private let tickBridge = FlipClockTickBridge()
 
+  private var lightBackground: Bool {
+    BackgroundColorPreset.from(hex: backgroundColorHex)?.isLight ?? false
+  }
+
   private var cardStyle: FlipCardStyle {
-    FlipCardStyle(lightBackground: BackgroundColorPreset.from(hex: backgroundColorHex)?.isLight ?? false)
+    FlipCardStyle.resolve(faceHex: flipCardColorHex, lightBackground: lightBackground)
   }
 
   private var digitColor: Color {
-    let picked = Color(hex: ColorPickerCodec.normalizedHex(clockColorHex))
+    let picked = Color(hex: ColorPickerCodec.normalizedHex(fontColorHex))
     return FlipReadableColor.digitColor(preferred: picked, cardFace: cardStyle.face)
   }
 
@@ -209,6 +214,28 @@ private struct FlipCardStyle {
   let border: Color
   let hinge: Color
 
+  static func resolve(faceHex: String, lightBackground: Bool) -> FlipCardStyle {
+    let trimmed = faceHex.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !trimmed.isEmpty,
+      let custom = customFace(from: trimmed)
+    {
+      return FlipCardStyle(
+        face: custom,
+        faceBottom: custom.adjustedPickerBrightness(-0.05),
+        shell: custom.adjustedPickerBrightness(-0.1),
+        border: lightBackground ? Color.black.opacity(0.1) : Color.white.opacity(0.12),
+        hinge: lightBackground ? Color.black.opacity(0.18) : Color.black.opacity(0.5)
+      )
+    }
+    return FlipCardStyle(lightBackground: lightBackground)
+  }
+
+  private static func customFace(from hex: String) -> Color? {
+    let trimmed = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+    return Color(hex: ColorPickerCodec.normalizedHex(trimmed))
+  }
+
   init(lightBackground: Bool) {
     if lightBackground {
       face = Color(hex: "#ECECEF")
@@ -223,6 +250,20 @@ private struct FlipCardStyle {
       border = Color.white.opacity(0.12)
       hinge = Color.black.opacity(0.5)
     }
+  }
+
+  private init(
+    face: Color,
+    faceBottom: Color,
+    shell: Color,
+    border: Color,
+    hinge: Color
+  ) {
+    self.face = face
+    self.faceBottom = faceBottom
+    self.shell = shell
+    self.border = border
+    self.hinge = hinge
   }
 }
 

@@ -22,7 +22,8 @@ struct ContentRootScreen: View {
   @Binding var clockDisplayStyleRaw: String
   @Binding var flipClockFormatRaw: String
   @Binding var flipCompactDetachedSeconds: Bool
-  @Binding var clockColorHex: String
+  @Binding var fontColorHex: String
+  @Binding var flipCardColorHex: String
   @Binding var keepDisplayAwake: Bool
   @Binding var oledPixelShiftEnabled: Bool
   @Binding var settingsPanelOffset: CGSize
@@ -257,14 +258,15 @@ struct ContentRootScreen: View {
         isActive: scenePhase == .active,
         isPaused: isPaused,
         backgroundColorHex: backgroundColorHex,
-        clockColorHex: clockColorHex
+        fontColorHex: fontColorHex
       )
     case .flip:
       FlipClockScene(
         scheduler: timeScheduler,
         config: clockConfig,
         backgroundColorHex: backgroundColorHex,
-        clockColorHex: clockColorHex,
+        flipCardColorHex: flipCardColorHex,
+        fontColorHex: fontColorHex,
         isActive: scenePhase == .active
       )
       .ignoresSafeArea()
@@ -340,7 +342,8 @@ struct ContentRootScreen: View {
       clockDisplayStyleRaw: $clockDisplayStyleRaw,
       flipClockFormatRaw: $flipClockFormatRaw,
       flipCompactDetachedSeconds: $flipCompactDetachedSeconds,
-      clockColorHex: $clockColorHex,
+      fontColorHex: $fontColorHex,
+      flipCardColorHex: $flipCardColorHex,
       keepDisplayAwake: $keepDisplayAwake,
       oledPixelShiftEnabled: $oledPixelShiftEnabled,
       layout: isWide ? .sidePanel : .bottomSheet,

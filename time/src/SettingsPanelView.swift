@@ -25,7 +25,8 @@ struct SettingsPanelView: View {
   @Binding var clockDisplayStyleRaw: String
   @Binding var flipClockFormatRaw: String
   @Binding var flipCompactDetachedSeconds: Bool
-  @Binding var clockColorHex: String
+  @Binding var fontColorHex: String
+  @Binding var flipCardColorHex: String
   @Binding var keepDisplayAwake: Bool
   @Binding var oledPixelShiftEnabled: Bool
 
@@ -272,14 +273,17 @@ struct SettingsPanelView: View {
         config: panelClockConfig,
         style: displayStyle,
         backgroundColorHex: backgroundColorHex,
-        clockColorHex: clockColorHex
+        flipCardColorHex: flipCardColorHex,
+        fontColorHex: fontColorHex
       )
 
-      ColorPlanePicker(
-        title: L10n.text("settings.clock_color"),
-        colorHex: $clockColorHex,
-        saturation: 0.82
-      )
+      if displayStyle == .flip {
+        ColorPlanePicker(
+          title: L10n.text("settings.clock_color"),
+          colorHex: $flipCardColorHex,
+          saturation: 0.35
+        )
+      }
       ColorPlanePicker(
         title: L10n.text("settings.background_color"),
         colorHex: $backgroundColorHex
@@ -287,7 +291,7 @@ struct SettingsPanelView: View {
       backgroundPureBlackShortcut
       ColorPlanePicker(
         title: L10n.text("settings.font_color"),
-        colorHex: $clockColorHex,
+        colorHex: $fontColorHex,
         saturation: 0.82
       )
 
