@@ -241,36 +241,32 @@ struct SettingsPanelView: View {
   // MARK: - Sections
 
   private var fontSizeSection: some View {
-    SettingsSection(title: L10n.text("settings.font_size"), systemImage: "textformat.size") {
-      settingSlider(
-        title: L10n.text("settings.font_size"),
-        value: $fontSize,
-        range: fontSizeRange,
-        label: "\(Int(fontSize))"
-      )
+    SettingsInlineSection(title: L10n.text("settings.font_size"), systemImage: "textformat.size") {
+      Slider(value: $fontSize, in: fontSizeRange)
+      Text("\(Int(fontSize))")
+        .font(.subheadline.monospacedDigit())
+        .foregroundStyle(SettingsTheme.accent)
+        .frame(minWidth: 40, alignment: .trailing)
     }
   }
 
   private var fontSection: some View {
-    SettingsSection(title: L10n.text("settings.font"), systemImage: "textformat") {
+    SettingsInlineSection(title: L10n.text("settings.font"), systemImage: "textformat") {
       fontPickerRow
     }
   }
 
   private var clockAppearanceSection: some View {
     SettingsSection(title: L10n.text("settings.clock_appearance"), systemImage: "clock") {
-      labeledPickerRow(title: L10n.text("settings.clock_style")) {
-        Picker(L10n.text("settings.clock_style"), selection: $clockDisplayStyleRaw) {
-          ForEach(ClockDisplayStyle.allCases) { style in
-            Text(style.label).tag(style.rawValue)
-          }
+      Picker(selection: $clockDisplayStyleRaw) {
+        ForEach(ClockDisplayStyle.allCases) { style in
+          Text(style.label).tag(style.rawValue)
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
+      } label: {
+        EmptyView()
       }
-      Text(displayStyle.subtitle)
-        .font(.caption)
-        .foregroundStyle(SettingsTheme.secondaryText)
+      .pickerStyle(.segmented)
+      .labelsHidden()
 
       SettingsClockPreview(
         config: panelClockConfig,
@@ -507,18 +503,16 @@ struct SettingsPanelView: View {
         showFontPicker = true
       }
     } label: {
-      HStack {
-        Text(L10n.text("settings.font_pick"))
-        Spacer()
+      HStack(spacing: 6) {
+        Spacer(minLength: 0)
         Text(selectedFontName)
-          .font(.caption)
+          .font(.subheadline)
           .lineLimit(1)
           .foregroundStyle(SettingsTheme.secondaryText)
         Image(systemName: "chevron.right")
           .font(.caption.weight(.semibold))
           .foregroundStyle(SettingsTheme.secondaryText)
       }
-      .padding(.vertical, 4)
     }
     .buttonStyle(.plain)
   }
@@ -612,6 +606,30 @@ private struct SettingsSection<Content: View>: View {
       .background(SettingsTheme.cardBackground)
       .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
+  }
+}
+
+/// 标题与控件同一行（字号、字体等）
+private struct SettingsInlineSection<Content: View>: View {
+  let title: String
+  let systemImage: String
+  @ViewBuilder let content: Content
+
+  var body: some View {
+    HStack(alignment: .center, spacing: 12) {
+      Label(title, systemImage: systemImage)
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(SettingsTheme.secondaryText)
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+
+      content
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 12)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(SettingsTheme.cardBackground)
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 

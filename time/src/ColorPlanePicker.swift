@@ -17,8 +17,15 @@ struct ColorPlanePicker: View {
     ColorPickerCodec.normalizedHex(colorHex)
   }
 
+  /// 色条最左为黄（HSB 约 60°），向右扫完整色相环
+  private static let huePlaneOrigin: Double = 1.0 / 6.0
+
   private var displayHue: Double {
     liveHue ?? Color(hex: normalizedHex).pickerHue
+  }
+
+  private var displayPlaneHue: Double {
+    planeHue(from: displayHue)
   }
 
   private var displayBrightness: Double {
@@ -108,9 +115,23 @@ struct ColorPlanePicker: View {
   }
 
   private var hueStops: [Color] {
-    stride(from: 0.0, through: 1.0, by: 0.05).map { step in
-      Color(hue: step, saturation: saturation, brightness: 1)
+    stride(from: 0.0, through: 1.0, by: 0.05).map { planeHue in
+      Color(
+        hue: actualHue(from: planeHue),
+        saturation: saturation,
+        brightness: 1
+      )
     }
+  }
+
+  private func actualHue(from planeHue: Double) -> Double {
+    (planeHue + Self.huePlaneOrigin).truncatingRemainder(dividingBy: 1)
+  }
+
+  private func planeHue(from actualHue: Double) -> Double {
+    var plane = actualHue - Self.huePlaneOrigin
+    if plane < 0 { plane += 1 }
+    return plane
   }
 
   private var crosshair: some View {
@@ -130,7 +151,7 @@ struct ColorPlanePicker: View {
   private func crosshairPoint(in size: CGSize) -> CGPoint {
     let usableW = max(size.width - inset * 2, 1)
     let usableH = max(size.height - inset * 2, 1)
-    let x = inset + CGFloat(displayHue.clamped(to: 0...1)) * usableW
+    let x = inset + CGFloat(displayPlaneHue.clamped(to: 0...1)) * usableW
     let y = inset + CGFloat(1 - displayBrightness.clamped(to: 0...1)) * usableH
     return CGPoint(x: x, y: y)
   }
@@ -140,7 +161,8 @@ struct ColorPlanePicker: View {
     let usableH = max(size.height - inset * 2, 1)
     let x = min(max(location.x - inset, 0), usableW)
     let y = min(max(location.y - inset, 0), usableH)
-    let hue = Double(x / usableW)
+    let planeHue = Double(x / usableW)
+    let hue = actualHue(from: planeHue)
     let brightness = 1 - Double(y / usableH)
     liveHue = hue
     liveBrightness = brightness
