@@ -1652,6 +1652,90 @@
           }
         }
       }
+    },
+    "feedback.copy_title": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邮箱已复制"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email copied"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールをコピーしました"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "郵件已複製"
+          }
+        }
+      }
+    },
+    "feedback.copy_message": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未检测到可用的邮件客户端，或无法打开邮件。邮箱地址 arcraydev@gmail.com 已复制到剪贴板，可在网页邮箱中粘贴发送。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No mail app is available. arcraydev@gmail.com has been copied—paste it in your webmail to send feedback."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールアプリを開けませんでした。arcraydev@gmail.com をコピーしました。Web メールから送信してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未偵測到可用的郵件用戶端。arcraydev@gmail.com 已複製，可在網頁郵箱貼上發送。"
+          }
+        }
+      }
+    },
+    "feedback.copy_button_hint": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制邮箱地址"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy email address"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールアドレスをコピー"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製郵件地址"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

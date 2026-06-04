@@ -29,6 +29,7 @@ struct SettingsPanelView: View {
   var onSpeedChange: () -> Void
 
   @GestureState private var dragOffset: CGSize = .zero
+  @State private var showEmailCopiedAlert = false
 
   private var precision: TimeDisplayPrecision {
     TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
@@ -77,6 +78,11 @@ struct SettingsPanelView: View {
     #if os(macOS)
       .frame(minWidth: 360, idealWidth: 380)
     #endif
+    .alert(L10n.text("feedback.copy_title"), isPresented: $showEmailCopiedAlert) {
+      Button(L10n.text("settings.done"), role: .cancel) {}
+    } message: {
+      Text(L10n.text("feedback.copy_message"))
+    }
   }
 
   // MARK: - Header
@@ -250,25 +256,53 @@ struct SettingsPanelView: View {
 
   private var supportSection: some View {
     SettingsSection(title: L10n.text("settings.support"), systemImage: "envelope") {
-      Button {
-        _ = FeedbackMail.openFeedbackMail()
-      } label: {
-        HStack {
-          VStack(alignment: .leading, spacing: 2) {
-            Text(L10n.text("settings.feedback"))
-            Text(FeedbackMail.developerEmail)
-              .font(.caption)
+      HStack(alignment: .center, spacing: 8) {
+        Button(action: openFeedbackMail) {
+          HStack {
+            VStack(alignment: .leading, spacing: 2) {
+              Text(L10n.text("settings.feedback"))
+              Text(FeedbackMail.developerEmail)
+                .font(.caption)
+                .foregroundStyle(SettingsTheme.secondaryText)
+            }
+            Spacer()
+            Image(systemName: "envelope.arrow.triangle.branch")
+              .font(.caption.weight(.semibold))
               .foregroundStyle(SettingsTheme.secondaryText)
           }
-          Spacer()
-          Image(systemName: "chevron.right")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(SettingsTheme.secondaryText)
+          .padding(.vertical, 4)
         }
-        .padding(.vertical, 4)
+        .buttonStyle(.plain)
+
+        Button(action: copyFeedbackEmail) {
+          Image(systemName: "doc.on.doc")
+            .font(.body)
+            .foregroundStyle(SettingsTheme.accent)
+            .padding(8)
+            .background(SettingsTheme.cardBackground.opacity(0.8))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        #if os(macOS)
+          .help(L10n.text("feedback.copy_button_hint"))
+        #else
+          .accessibilityLabel(L10n.text("feedback.copy_button_hint"))
+        #endif
       }
-      .buttonStyle(.plain)
     }
+  }
+
+  private func openFeedbackMail() {
+    FeedbackMail.requestFeedback { result in
+      if result == .copiedAddress {
+        showEmailCopiedAlert = true
+      }
+    }
+  }
+
+  private func copyFeedbackEmail() {
+    FeedbackMail.copyDeveloperEmail()
+    showEmailCopiedAlert = true
   }
 
   private var advancedSection: some View {

@@ -6,18 +6,72 @@ import Foundation
   import UIKit
 #endif
 
-/// 打开系统邮件客户端，向开发者发送反馈
+enum FeedbackMailResult {
+  case openedMailClient
+  case copiedAddress
+}
+
+/// 打开系统邮件客户端；无可用邮箱客户端时复制地址到剪贴板
 enum FeedbackMail {
   static let developerEmail = "arcraydev@gmail.com"
 
-  @discardableResult
-  static func openFeedbackMail() -> Bool {
-    guard let url = feedbackMailURL() else { return false }
+  /// 尝试打开邮件客户端（预填收件人、主题、正文）
+  static func requestFeedback(completion: @escaping (FeedbackMailResult) -> Void) {
+    guard let url = feedbackMailURL() else {
+      copyDeveloperEmail()
+      completion(.copiedAddress)
+      return
+    }
+
     #if os(macOS)
-      return NSWorkspace.shared.open(url)
+      guard canOpenMailClient(for: url) else {
+        copyDeveloperEmail()
+        completion(.copiedAddress)
+        return
+      }
+      DispatchQueue.main.async {
+        if NSWorkspace.shared.open(url) {
+          completion(.openedMailClient)
+        } else {
+          copyDeveloperEmail()
+          completion(.copiedAddress)
+        }
+      }
     #else
-      UIApplication.shared.open(url, options: [:], completionHandler: nil)
-      return true
+      guard UIApplication.shared.canOpenURL(url) else {
+        copyDeveloperEmail()
+        completion(.copiedAddress)
+        return
+      }
+      UIApplication.shared.open(url, options: [:]) { success in
+        DispatchQueue.main.async {
+          if success {
+            completion(.openedMailClient)
+          } else {
+            copyDeveloperEmail()
+            completion(.copiedAddress)
+          }
+        }
+      }
+    #endif
+  }
+
+  static func copyDeveloperEmail() {
+    #if os(macOS)
+      NSPasteboard.general.clearContents()
+      NSPasteboard.general.setString(developerEmail, forType: .string)
+    #else
+      UIPasteboard.general.string = developerEmail
+    #endif
+  }
+
+  static var mailSubject: String { L10n.text("feedback.mail_subject") }
+
+  private static func canOpenMailClient(for url: URL) -> Bool {
+    #if os(macOS)
+      NSWorkspace.shared.urlForApplication(toOpen: url) != nil
+    #else
+      UIApplication.shared.canOpenURL(url)
     #endif
   }
 
@@ -26,7 +80,7 @@ enum FeedbackMail {
     components.scheme = "mailto"
     components.path = developerEmail
     components.queryItems = [
-      URLQueryItem(name: "subject", value: L10n.text("feedback.mail_subject")),
+      URLQueryItem(name: "subject", value: mailSubject),
       URLQueryItem(name: "body", value: mailBody()),
     ]
     return components.url
