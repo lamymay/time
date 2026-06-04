@@ -16,6 +16,7 @@ struct ColorPlanePicker: View {
 
   @State private var liveHue: Double?
   @State private var liveBrightness: Double?
+  @State private var publishThrottle = SettingsChangeThrottle()
 
   private var normalizedHex: String {
     ColorPickerCodec.normalizedHex(colorHex)
@@ -68,11 +69,14 @@ struct ColorPlanePicker: View {
             apply(location: value.location, in: size)
           }
           .onEnded { value in
-            apply(location: value.location, in: size)
+            apply(location: value.location, in: size, publishImmediately: true)
             liveHue = nil
             liveBrightness = nil
           }
       )
+      .onDisappear {
+        publishThrottle.cancel()
+      }
     }
     .frame(maxWidth: .infinity)
     .frame(height: planeHeight)
@@ -92,16 +96,11 @@ struct ColorPlanePicker: View {
       )
       .blendMode(.multiply)
     }
+    .drawingGroup(opaque: false, colorMode: .linear)
   }
 
   private var hueStops: [Color] {
-    stride(from: 0.0, through: 1.0, by: 0.05).map { planeHue in
-      Color(
-        hue: actualHue(from: planeHue),
-        saturation: saturation,
-        brightness: 1
-      )
-    }
+    ColorPlaneGradientCache.hueStops(saturation: saturation)
   }
 
   private func actualHue(from planeHue: Double) -> Double {
@@ -136,7 +135,7 @@ struct ColorPlanePicker: View {
     return CGPoint(x: x, y: y)
   }
 
-  private func apply(location: CGPoint, in size: CGSize) {
+  private func apply(location: CGPoint, in size: CGSize, publishImmediately: Bool = false) {
     let usableW = max(size.width - inset * 2, 1)
     let usableH = max(size.height - inset * 2, 1)
     let x = min(max(location.x - inset, 0), usableW)
@@ -146,11 +145,15 @@ struct ColorPlanePicker: View {
     let brightness = 1 - Double(y / usableH)
     liveHue = hue
     liveBrightness = brightness
-    colorHex = ColorPickerCodec.hex(
-      hue: hue,
-      brightness: brightness,
-      saturation: saturation
-    )
+    let hex = ColorPickerCodec.hex(hue: hue, brightness: brightness, saturation: saturation)
+    if publishImmediately {
+      publishThrottle.flush { colorHex = hex }
+    } else {
+      let delay: UInt64 = compactLayout ? 140_000_000 : 80_000_000
+      publishThrottle.schedule(delayNanoseconds: delay) {
+        colorHex = hex
+      }
+    }
   }
 }
 

@@ -65,6 +65,10 @@ struct ContentRootScreen: View {
   private var isWideLayout: Bool { ClockScreenLayout.usesSideSettingsPanel(screen: screenSize) }
   private var sidePanelWidth: CGFloat { ClockScreenLayout.sidePanelWidth(screen: screenSize) }
   private var clockPaused: Bool { showSettings || showFontPicker }
+
+  #if os(iOS)
+    private var isIOSSheetSettingsOpen: Bool { showSettings && !isWideLayout }
+  #endif
   private var oledShiftActive: Bool {
     scenePhase == .active && !showSettings && !showFontPicker
   }
@@ -83,7 +87,12 @@ struct ContentRootScreen: View {
         clampFontSizeToScreen()
         oledPixelShift.setScreenSize(screenSize)
       }
-      .onChange(of: showSettings) { _, _ in clampFontSizeToScreen() }
+      .onChange(of: showSettings) { _, isOpen in
+        #if os(iOS)
+          if isOpen { return }
+        #endif
+        clampFontSizeToScreen()
+      }
       .onChange(of: showFontPicker) { _, _ in clampFontSizeToScreen() }
   }
 
@@ -483,6 +492,9 @@ struct ContentRootScreen: View {
 
   private func reactConfigChange() {
     timeScheduler.setFormat(clockConfig.schedulerFormatOptions(for: clockDisplayStyle))
+    #if os(iOS)
+      guard !isIOSSheetSettingsOpen else { return }
+    #endif
     clampFontSizeToScreen()
   }
 

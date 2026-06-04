@@ -37,6 +37,10 @@ struct SettingsPanelView: View {
 
   @GestureState private var dragOffset: CGSize = .zero
   @State private var showEmailCopiedAlert = false
+  #if os(iOS)
+    @State private var iosFontSizeDraft: Double?
+    @State private var iosFontSizeThrottle = SettingsChangeThrottle()
+  #endif
 
   #if os(iOS)
     private var isIOSSheet: Bool { layout == .bottomSheet }
@@ -94,7 +98,7 @@ struct SettingsPanelView: View {
     VStack(spacing: 0) {
       header
       ScrollView {
-        VStack(alignment: .leading, spacing: SettingsTheme.stackSpacing(compact: isIOSSheet)) {
+        LazyVStack(alignment: .leading, spacing: SettingsTheme.stackSpacing(compact: isIOSSheet)) {
           fontSizeSection
           fontSection
           clockAppearanceSection
@@ -124,7 +128,11 @@ struct SettingsPanelView: View {
     }
     .onChange(of: flipClockFormatRaw) { _, _ in syncFontSizeToLimits() }
     .onChange(of: flipCompactDetachedSeconds) { _, _ in syncFontSizeToLimits() }
-    .onChange(of: panelClockConfig) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: selectedFontName) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: padZero) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: is24Hour) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: showAMPM) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: timeDisplayPrecisionRaw) { _, _ in syncFontSizeToLimits() }
     .environment(\.settingsCompactLayout, isIOSSheet)
     .foregroundStyle(.white)
     .background(panelBackground)
@@ -178,8 +186,10 @@ struct SettingsPanelView: View {
 
       Divider().overlay(SettingsTheme.separator)
     }
-    .contentShape(Rectangle())
-    .gesture(panelDragGesture)
+    #if os(macOS)
+      .contentShape(Rectangle())
+      .gesture(panelDragGesture)
+    #endif
   }
 
   private var dragHandle: some View {
@@ -210,13 +220,42 @@ struct SettingsPanelView: View {
 
   private var fontSizeSection: some View {
     SettingsInlineSection(title: L10n.text("settings.font_size"), systemImage: "textformat.size") {
-      Slider(value: $fontSize, in: fontSizeRange)
-      Text("\(Int(fontSize))")
+      Slider(value: iosFontSizeBinding, in: fontSizeRange)
+      Text("\(Int(iosFontSizeBinding.wrappedValue))")
         .font(.subheadline.monospacedDigit())
         .foregroundStyle(SettingsTheme.accent)
         .frame(minWidth: 40, alignment: .trailing)
     }
+    #if os(iOS)
+      .onAppear { iosFontSizeDraft = fontSize }
+      .onDisappear { flushIOSFontSizeDraft() }
+    #endif
   }
+
+  #if os(iOS)
+    private var iosFontSizeBinding: Binding<Double> {
+      Binding(
+        get: { iosFontSizeDraft ?? fontSize },
+        set: { newValue in
+          iosFontSizeDraft = newValue
+          iosFontSizeThrottle.schedule(delayNanoseconds: 120_000_000) {
+            fontSize = newValue
+          }
+        }
+      )
+    }
+
+    private func flushIOSFontSizeDraft() {
+      iosFontSizeThrottle.flush {
+        if let draft = iosFontSizeDraft {
+          fontSize = draft
+        }
+      }
+      iosFontSizeDraft = nil
+    }
+  #else
+    private var iosFontSizeBinding: Binding<Double> { $fontSize }
+  #endif
 
   private var fontSection: some View {
     SettingsInlineSection(title: L10n.text("settings.font"), systemImage: "textformat") {
@@ -513,6 +552,9 @@ struct SettingsPanelView: View {
   }
 
   private func closePanel() {
+    #if os(iOS)
+      flushIOSFontSizeDraft()
+    #endif
     withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
       showSettings = false
     }
