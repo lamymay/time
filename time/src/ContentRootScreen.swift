@@ -183,7 +183,7 @@ struct ContentRootScreen: View {
   }
 
   private var clockLayer: some View {
-    clockScene(screenSize: layoutSize, isPaused: clockPaused)
+    clockScene(isPaused: clockPaused)
       .accessibilityIdentifier(TimeAccessibilityID.clockScene)
       .accessibilityElement(children: .contain)
       .oledPixelShift(
@@ -242,10 +242,10 @@ struct ContentRootScreen: View {
   // MARK: - Clock
 
   @ViewBuilder
-  private func clockScene(screenSize: CGSize, isPaused: Bool) -> some View {
+  private func clockScene(isPaused: Bool) -> some View {
     switch clockDisplayStyle {
     case .classic:
-      let style = classicClockStyle(screenSize: screenSize)
+      let style = classicClockStyle(screenSize: layoutSize)
       MotionClockScene(
         scheduler: timeScheduler,
         style: style,
@@ -345,7 +345,7 @@ struct ContentRootScreen: View {
       layout: isWide ? .sidePanel : .bottomSheet,
       panelOffset: $settingsPanelOffset,
       settingsSheetWidth: $settingsSheetWidth,
-      onSpeedChange: {}
+        onSpeedChange: {}
     )
     let sheetHeight = min(size.height * 0.88, 720)
 

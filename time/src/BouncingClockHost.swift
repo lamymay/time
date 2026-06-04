@@ -70,12 +70,14 @@ struct BouncingClockHost: View {
       func nativeClock(didMeasure size: CGSize) {
         guard let motion, motion.totalSize != size else { return }
         motion.totalSize = size
+        motion.ensureBounceReady()
       }
     }
   }
 
   private final class BounceContainerNSView: NSView {
     private weak var clock: NativeClockNSView?
+    private var translation: CGSize = .zero
 
     func install(clock: NativeClockNSView) {
       self.clock = clock
@@ -84,10 +86,8 @@ struct BouncingClockHost: View {
     }
 
     func setTranslation(_ offset: CGSize) {
-      guard let clock else { return }
-      var transform = CATransform3DIdentity
-      transform = CATransform3DTranslate(transform, offset.width, offset.height, 0)
-      clock.layer?.transform = transform
+      translation = offset
+      applyTranslation()
     }
 
     override func layout() {
@@ -100,6 +100,14 @@ struct BouncingClockHost: View {
         width: max(size.width, 1),
         height: max(size.height, 1)
       )
+      applyTranslation()
+    }
+
+    private func applyTranslation() {
+      guard let clock else { return }
+      var transform = CATransform3DIdentity
+      transform = CATransform3DTranslate(transform, translation.width, translation.height, 0)
+      clock.layer?.transform = transform
     }
   }
 
@@ -158,12 +166,14 @@ struct BouncingClockHost: View {
       func nativeClock(didMeasure size: CGSize) {
         guard let motion, motion.totalSize != size else { return }
         motion.totalSize = size
+        motion.ensureBounceReady()
       }
     }
   }
 
   private final class BounceContainerUIView: UIView {
     private weak var clock: NativeClockUIView?
+    private var translation: CGSize = .zero
 
     func install(clock: NativeClockUIView) {
       self.clock = clock
@@ -172,8 +182,8 @@ struct BouncingClockHost: View {
     }
 
     func setTranslation(_ offset: CGSize) {
-      guard let clock else { return }
-      clock.transform = CGAffineTransform(translationX: offset.width, y: offset.height)
+      translation = offset
+      applyTranslation()
     }
 
     override func layoutSubviews() {
@@ -186,6 +196,12 @@ struct BouncingClockHost: View {
         width: max(size.width, 1),
         height: max(size.height, 1)
       )
+      applyTranslation()
+    }
+
+    private func applyTranslation() {
+      guard let clock else { return }
+      clock.transform = CGAffineTransform(translationX: translation.width, y: translation.height)
     }
   }
 

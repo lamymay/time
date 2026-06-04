@@ -42,7 +42,19 @@ final class ClockMotionEngine {
   func setScreenSize(_ size: CGSize) {
     screenSize = size
     screenCenter = CGPoint(x: size.width / 2, y: size.height / 2)
+    if position == nil {
+      position = screenCenter
+    }
     pushOffsetToRenderer()
+  }
+
+  /// 原生时钟完成测量后，确保定时器与位移已就绪
+  func ensureBounceReady() {
+    if position == nil {
+      position = screenCenter
+    }
+    pushOffsetToRenderer()
+    restartMotionTimerIfNeeded()
   }
 
   func setMoveSpeed(_ speed: Double) {

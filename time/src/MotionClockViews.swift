@@ -76,6 +76,9 @@ struct MotionClockContent: View {
       }
       .onChange(of: moveSpeed) { _, newSpeed in
         motion.setMoveSpeed(newSpeed)
+        if newSpeed > 0, !isPaused, isActive {
+          motion.ensureBounceReady()
+        }
       }
       .onChange(of: isActive) { _, active in
         motion.setMotionActive(active)
