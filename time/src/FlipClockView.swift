@@ -70,8 +70,14 @@ struct FlipClockScene: View {
 
         if config.showTimeZoneText, !segments.timeZoneLabel.isEmpty {
           Text(segments.timeZoneLabel)
-            .font(FlipClockFont.swiftUI(size: digitSize * 0.5, fontName: config.selectedFontName))
-            .foregroundStyle(digitColor.opacity(0.75))
+            .font(
+              FlipClockFont.swiftUI(
+                size: digitSize * NativeClockStyle.timeZoneScale,
+                fontName: config.selectedFontName,
+                weight: .regular
+              )
+            )
+            .foregroundStyle(digitColor.opacity(0.55))
             .multilineTextAlignment(.center)
             .padding(.top, digitSize * 0.06)
         }

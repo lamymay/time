@@ -86,7 +86,7 @@ private enum NativeClockLayoutHelper {
         timeZoneLayer.isHidden = false
         timeZoneLayer.string = NSAttributedString(
           string: segments.timeZoneLabel,
-          attributes: [.font: fonts.timeZone, .foregroundColor: color]
+          attributes: [.font: fonts.timeZone, .foregroundColor: color.withAlphaComponent(0.62)]
         )
       } else {
         timeZoneLayer.isHidden = true
@@ -218,7 +218,7 @@ private enum NativeClockLayoutHelper {
         timeZoneLayer.isHidden = false
         timeZoneLayer.string = NSAttributedString(
           string: segments.timeZoneLabel,
-          attributes: [.font: fonts.timeZone, .foregroundColor: color]
+          attributes: [.font: fonts.timeZone, .foregroundColor: color.withAlphaComponent(0.62)]
         )
       } else {
         timeZoneLayer.isHidden = true

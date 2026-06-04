@@ -23,8 +23,9 @@ struct NativeClockStyle: Equatable {
 
   var ampmSize: CGFloat { fontSize * ampmScale }
   var subSecondSize: CGFloat { fontSize * 0.35 }
-  /// 开启时区时与主时钟同字体，字号为主数字的 1/2
-  var timeZoneSize: CGFloat { fontSize * 0.5 }
+  /// 时区标注：小字、弱于主时钟与秒
+  static let timeZoneScale: CGFloat = 0.2
+  var timeZoneSize: CGFloat { fontSize * Self.timeZoneScale }
 
   static func resolve(fontSize: Double, ampmScale: Double, fontName: String) -> NativeClockStyle {
     NativeClockStyle(
@@ -46,7 +47,7 @@ struct NativeClockFonts: Equatable {
       main: PlatformFont.native(style.fontName, size: style.fontSize, weight: .bold),
       ampm: PlatformFont.native(style.fontName, size: style.ampmSize, weight: .bold),
       sub: PlatformFont.native(style.fontName, size: style.subSecondSize, weight: .bold),
-      timeZone: PlatformFont.native(style.fontName, size: style.timeZoneSize, weight: .bold)
+      timeZone: PlatformFont.native(style.fontName, size: style.timeZoneSize, weight: .regular)
     )
   }
 }
@@ -106,10 +107,11 @@ enum NativeClockTextBuilder {
     style: NativeClockStyle,
     color: PlatformColor
   ) -> NSAttributedString {
-    let font = PlatformFont.native(style.fontName, size: style.timeZoneSize, weight: .bold)
+    let font = PlatformFont.native(style.fontName, size: style.timeZoneSize, weight: .regular)
+    let subtle = color.withAlphaComponent(0.62)
     return NSAttributedString(
       string: text,
-      attributes: [.font: font, .foregroundColor: color]
+      attributes: [.font: font, .foregroundColor: subtle]
     )
   }
 
@@ -131,7 +133,7 @@ enum NativeClockTextBuilder {
 
     let tz = NSAttributedString(
       string: segments.timeZoneLabel,
-      attributes: [.font: fonts.timeZone, .foregroundColor: color]
+      attributes: [.font: fonts.timeZone, .foregroundColor: color.withAlphaComponent(0.62)]
     )
     let tzSize = NativeClockTextMeasure.boundingSize(of: tz)
 

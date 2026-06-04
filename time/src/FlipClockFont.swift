@@ -7,11 +7,11 @@ import SwiftUI
 #endif
 
 enum FlipClockFont {
-  static func swiftUI(size: CGFloat, fontName: String) -> Font {
-    #if os(macOS)
-      Font(PlatformFont.native(fontName, size: size, weight: .bold))
-    #else
-      Font(PlatformFont.native(fontName, size: size, weight: .bold))
-    #endif
+  static func swiftUI(
+    size: CGFloat,
+    fontName: String,
+    weight: PlatformFont.Weight = .bold
+  ) -> Font {
+    Font(PlatformFont.native(fontName, size: size, weight: weight))
   }
 }
