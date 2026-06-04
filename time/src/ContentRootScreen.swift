@@ -60,8 +60,8 @@ struct ContentRootScreen: View {
   }
 
   private var layoutSize: CGSize { clockLayoutSize(in: screenSize) }
-  private var isWideLayout: Bool { screenSize.width > 600 }
-  private var sidePanelWidth: CGFloat { screenSize.width > 600 ? 300 : screenSize.width * 0.7 }
+  private var isWideLayout: Bool { ClockScreenLayout.usesSideSettingsPanel(screen: screenSize) }
+  private var sidePanelWidth: CGFloat { ClockScreenLayout.sidePanelWidth(screen: screenSize) }
   private var clockPaused: Bool { showSettings || showFontPicker }
   private var oledShiftActive: Bool {
     scenePhase == .active && !showSettings && !showFontPicker
@@ -77,6 +77,10 @@ struct ContentRootScreen: View {
 
   private var panelClampLayer: some View {
     styleChangeLayer
+      .onChange(of: screenSize) { _, _ in
+        clampFontSizeToScreen()
+        oledPixelShift.setScreenSize(screenSize)
+      }
       .onChange(of: showSettings) { _, _ in clampFontSizeToScreen() }
       .onChange(of: showFontPicker) { _, _ in clampFontSizeToScreen() }
   }
@@ -478,14 +482,13 @@ struct ContentRootScreen: View {
   private func clockLayoutSize(in screen: CGSize) -> CGSize {
     guard screen.width > 0 else { return screen }
     var width = screen.width
-    if showSettings, screen.width > 600 {
-      width -= min(400, screen.width * 0.38) + 48
+    if showSettings, ClockScreenLayout.usesSideSettingsPanel(screen: screen) {
+      width -= ClockScreenLayout.settingsPanelWidth(screen: screen) + 48
     } else if showSettings {
       width *= 0.92
     }
     if showFontPicker {
-      let panel = screen.width > 600 ? CGFloat(300) : screen.width * 0.7
-      width -= panel + 40
+      width -= ClockScreenLayout.sidePanelWidth(screen: screen) + 40
     }
     width = max(width, screen.width * 0.42)
     return CGSize(width: width, height: screen.height)

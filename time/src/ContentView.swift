@@ -142,14 +142,13 @@ struct ContentView: View {
   private func layoutSize(for screen: CGSize) -> CGSize {
     guard screen.width > 0 else { return screen }
     var width = screen.width
-    if showSettings, screen.width > 600 {
-      width -= min(400, screen.width * 0.38) + 48
+    if showSettings, ClockScreenLayout.usesSideSettingsPanel(screen: screen) {
+      width -= ClockScreenLayout.settingsPanelWidth(screen: screen) + 48
     } else if showSettings {
       width *= 0.92
     }
     if showFontPicker {
-      let panel = screen.width > 600 ? CGFloat(300) : screen.width * 0.7
-      width -= panel + 40
+      width -= ClockScreenLayout.sidePanelWidth(screen: screen) + 40
     }
     width = max(width, screen.width * 0.42)
     return CGSize(width: width, height: screen.height)
