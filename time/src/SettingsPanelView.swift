@@ -21,6 +21,7 @@ struct SettingsPanelView: View {
   @Binding var selectedFontName: String
   @Binding var backgroundColorHex: String
   @Binding var timeDisplayPrecisionRaw: String
+  @Binding var clockDisplayStyleRaw: String
   @Binding var keepDisplayAwake: Bool
 
   let layout: SettingsPanelLayout
@@ -33,13 +34,19 @@ struct SettingsPanelView: View {
     TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
   }
 
+  private var displayStyle: ClockDisplayStyle {
+    ClockDisplayStyle(rawValue: clockDisplayStyleRaw) ?? .classic
+  }
+
   var body: some View {
     VStack(spacing: 0) {
       header
       ScrollView {
         VStack(alignment: .leading, spacing: 22) {
           appearanceSection
-          motionSection
+          if displayStyle == .classic {
+            motionSection
+          }
           timeFormatSection
           displaySection
           advancedSection
@@ -131,6 +138,19 @@ struct SettingsPanelView: View {
 
   private var appearanceSection: some View {
     SettingsSection(title: "外观", systemImage: "paintbrush") {
+      labeledPickerRow(title: "时钟样式") {
+        Picker("样式", selection: $clockDisplayStyleRaw) {
+          ForEach(ClockDisplayStyle.allCases) { style in
+            Text(style.label).tag(style.rawValue)
+          }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+      }
+      Text(displayStyle.subtitle)
+        .font(.caption)
+        .foregroundStyle(SettingsTheme.secondaryText)
+
       settingSlider(
         title: "字号",
         value: $fontSize,
@@ -138,7 +158,9 @@ struct SettingsPanelView: View {
         label: "\(Int(fontSize))"
       )
       backgroundColorPicker
-      fontPickerRow
+      if displayStyle == .classic {
+        fontPickerRow
+      }
     }
   }
 

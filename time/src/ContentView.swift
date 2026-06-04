@@ -127,6 +127,8 @@ struct ContentView: View {
   @AppStorage("timeDisplayPrecision") private var timeDisplayPrecisionRaw: String =
     TimeDisplayPrecision.minute.rawValue
   @AppStorage("keepDisplayAwake") private var keepDisplayAwake = true
+  @AppStorage("clockDisplayStyle") private var clockDisplayStyleRaw: String =
+    ClockDisplayStyle.classic.rawValue
 
   @State private var timeScheduler = ClockTimeScheduler()
   @State private var showSettings = false
@@ -152,6 +154,10 @@ struct ContentView: View {
       selectedFontName: selectedFontName,
       displayPrecision: timeDisplayPrecision
     )
+  }
+
+  private var clockDisplayStyle: ClockDisplayStyle {
+    ClockDisplayStyle(rawValue: clockDisplayStyleRaw) ?? .classic
   }
 
   private var clockStyle: NativeClockStyle {
@@ -185,17 +191,9 @@ struct ContentView: View {
             }
           #endif
 
-        MotionClockScene(
-          scheduler: timeScheduler,
-          style: clockStyle,
-          precision: timeDisplayPrecision,
-          timeZoneTopGap: -fontSize * 0.062,
-          showTimeZoneText: showTimeZoneText,
+        clockScene(
           screenSize: screenGeo.size,
-          moveSpeed: moveSpeed,
-          isActive: scenePhase == .active,
-          isPaused: showSettings || showFontPicker,
-          backgroundColorHex: backgroundColorHex
+          isPaused: showSettings || showFontPicker
         )
 
         if showDebugInfo {
@@ -235,6 +233,9 @@ struct ContentView: View {
       .onChange(of: clockConfig) { _, _ in
         syncTimeScheduler()
       }
+      .onChange(of: clockDisplayStyleRaw) { _, _ in
+        showFontPicker = false
+      }
       .onChange(of: showFontPicker) { _, show in
         if show {
           if fontCatalog == nil { fontCatalog = FontCatalog.load() }
@@ -247,6 +248,32 @@ struct ContentView: View {
 
   private func syncTimeScheduler() {
     timeScheduler.setFormat(clockConfig.formatOptions)
+  }
+
+  @ViewBuilder
+  private func clockScene(screenSize: CGSize, isPaused: Bool) -> some View {
+    switch clockDisplayStyle {
+    case .classic:
+      MotionClockScene(
+        scheduler: timeScheduler,
+        style: clockStyle,
+        precision: timeDisplayPrecision,
+        timeZoneTopGap: -fontSize * 0.062,
+        showTimeZoneText: showTimeZoneText,
+        screenSize: screenSize,
+        moveSpeed: moveSpeed,
+        isActive: scenePhase == .active,
+        isPaused: isPaused,
+        backgroundColorHex: backgroundColorHex
+      )
+    case .flip:
+      FlipClockScene(
+        scheduler: timeScheduler,
+        config: clockConfig,
+        backgroundColorHex: backgroundColorHex,
+        isActive: scenePhase == .active
+      )
+    }
   }
 
   private func settingsTransition(isWide: Bool) -> AnyTransition {
@@ -324,6 +351,7 @@ struct ContentView: View {
       selectedFontName: $selectedFontName,
       backgroundColorHex: $backgroundColorHex,
       timeDisplayPrecisionRaw: $timeDisplayPrecisionRaw,
+      clockDisplayStyleRaw: $clockDisplayStyleRaw,
       keepDisplayAwake: $keepDisplayAwake,
       layout: layout,
       panelOffset: $settingsPanelOffset,
