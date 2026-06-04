@@ -5,9 +5,9 @@ enum SettingsPanelMetrics {
   static let macMinWidth: CGFloat = 360
   static let macIdealWidth: CGFloat = 380
 
-  static let iosSheetMin: CGFloat = 280
-  static let iosSheetMaxCap: CGFloat = 420
-  static let iosSheetHorizontalInset: CGFloat = 16
+  static let iosSheetMin: CGFloat = 260
+  static let iosSheetMaxCap: CGFloat = 320
+  static let iosSheetHorizontalInset: CGFloat = 20
 
   static func iosSheetAutoWidth(screen: CGSize) -> CGFloat {
     min(screen.width - iosSheetHorizontalInset * 2, iosSheetMaxCap)

@@ -351,7 +351,12 @@ struct ContentRootScreen: View {
       settingsSheetWidth: $settingsSheetWidth,
         onSpeedChange: {}
     )
-    let sheetHeight = min(size.height * 0.88, 720)
+    let sheetHeight: CGFloat = {
+      #if os(iOS)
+        if !isWide { return min(size.height * 0.78, 560) }
+      #endif
+      return min(size.height * 0.88, 720)
+    }()
 
     if isWide {
       panel

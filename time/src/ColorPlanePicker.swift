@@ -6,7 +6,12 @@ struct ColorPlanePicker: View {
   @Binding var colorHex: String
   var saturation: Double = ColorPickerCodec.defaultSaturation
 
-  private let planeHeight: CGFloat = 128
+  @Environment(\.settingsCompactLayout) private var compactLayout
+
+  private var planeHeight: CGFloat { compactLayout ? 72 : 128 }
+  private var dragMinimumDistance: CGFloat { compactLayout ? 14 : 4 }
+  private var planeCornerRadius: CGFloat { compactLayout ? 8 : 12 }
+  private var crosshairSize: CGFloat { compactLayout ? 14 : 18 }
   private let inset: CGFloat = 10
 
   @State private var liveHue: Double?
@@ -32,9 +37,9 @@ struct ColorPlanePicker: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: compactLayout ? 4 : 8) {
       Text(title)
-        .font(.subheadline)
+        .font(SettingsTheme.rowLabelFont(compact: compactLayout))
         .foregroundStyle(SettingsTheme.secondaryText)
 
       colorPlane
@@ -48,17 +53,17 @@ struct ColorPlanePicker: View {
 
       ZStack {
         colorField
-          .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+          .clipShape(RoundedRectangle(cornerRadius: planeCornerRadius, style: .continuous))
 
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
+        RoundedRectangle(cornerRadius: planeCornerRadius, style: .continuous)
           .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
 
         crosshair
           .position(point)
       }
-      .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+      .contentShape(RoundedRectangle(cornerRadius: planeCornerRadius, style: .continuous))
       .gesture(
-        DragGesture(minimumDistance: 0)
+        DragGesture(minimumDistance: dragMinimumDistance)
           .onChanged { value in
             apply(location: value.location, in: size)
           }
@@ -114,10 +119,10 @@ struct ColorPlanePicker: View {
       Circle()
         .strokeBorder(.white, lineWidth: 2.5)
         .background(Circle().fill(.white.opacity(0.25)))
-        .frame(width: 18, height: 18)
+        .frame(width: crosshairSize, height: crosshairSize)
       Circle()
         .strokeBorder(.black.opacity(0.35), lineWidth: 1)
-        .frame(width: 20, height: 20)
+        .frame(width: crosshairSize + 2, height: crosshairSize + 2)
     }
     .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
     .allowsHitTesting(false)
@@ -151,8 +156,10 @@ struct ColorPlanePicker: View {
 
 /// 色条操作说明（设置里整组颜色只显示一次）
 struct ColorPlanePickerHints: View {
+  @Environment(\.settingsCompactLayout) private var compactLayout
+
   var body: some View {
-    HStack(spacing: 16) {
+    HStack(spacing: compactLayout ? 10 : 16) {
       Label(L10n.text("color.picker_hue"), systemImage: "arrow.left.and.right")
       Label(L10n.text("color.picker_brightness"), systemImage: "arrow.up.and.down")
     }

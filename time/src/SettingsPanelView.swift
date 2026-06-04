@@ -37,7 +37,12 @@ struct SettingsPanelView: View {
 
   @GestureState private var dragOffset: CGSize = .zero
   @State private var showEmailCopiedAlert = false
-  @State private var widthAtResizeStart: CGFloat?
+
+  #if os(iOS)
+    private var isIOSSheet: Bool { layout == .bottomSheet }
+  #else
+    private var isIOSSheet: Bool { false }
+  #endif
 
   private var precision: TimeDisplayPrecision {
     TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
@@ -89,7 +94,7 @@ struct SettingsPanelView: View {
     VStack(spacing: 0) {
       header
       ScrollView {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: SettingsTheme.stackSpacing(compact: isIOSSheet)) {
           fontSizeSection
           fontSection
           clockAppearanceSection
@@ -98,10 +103,11 @@ struct SettingsPanelView: View {
           supportSection
           advancedSection
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
-        .padding(.bottom, layout == .bottomSheet ? 8 : 16)
+        .padding(.horizontal, SettingsTheme.contentPadding(compact: isIOSSheet))
+        .padding(.vertical, isIOSSheet ? 10 : 16)
+        .padding(.bottom, layout == .bottomSheet ? 4 : 16)
       }
+      .scrollBounceBehavior(.basedOnSize)
       #if os(iOS)
         if layout == .bottomSheet {
           footerDoneButton
@@ -119,6 +125,7 @@ struct SettingsPanelView: View {
     .onChange(of: flipClockFormatRaw) { _, _ in syncFontSizeToLimits() }
     .onChange(of: flipCompactDetachedSeconds) { _, _ in syncFontSizeToLimits() }
     .onChange(of: panelClockConfig) { _, _ in syncFontSizeToLimits() }
+    .environment(\.settingsCompactLayout, isIOSSheet)
     .foregroundStyle(.white)
     .background(panelBackground)
     .clipShape(RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous))
@@ -133,13 +140,6 @@ struct SettingsPanelView: View {
     )
     #if os(macOS)
       .frame(minWidth: SettingsPanelMetrics.macMinWidth, idealWidth: SettingsPanelMetrics.macIdealWidth)
-    #endif
-    #if os(iOS)
-      .overlay(alignment: .trailing) {
-        if layout == .bottomSheet {
-          iosSheetWidthResizeHandle
-        }
-      }
     #endif
     .accessibilityIdentifier(TimeAccessibilityID.settingsPanel)
     .alert(L10n.text("feedback.copy_title"), isPresented: $showEmailCopiedAlert) {
@@ -157,11 +157,11 @@ struct SettingsPanelView: View {
 
       HStack(alignment: .center) {
         Text(L10n.text("settings.title"))
-          .font(.title2.weight(.semibold))
+          .font(isIOSSheet ? .headline.weight(.semibold) : .title2.weight(.semibold))
         Spacer()
         Button(action: closePanel) {
           Image(systemName: "xmark.circle.fill")
-            .font(.title2)
+            .font(isIOSSheet ? .title3 : .title2)
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(.secondary)
         }
@@ -172,9 +172,9 @@ struct SettingsPanelView: View {
           .help(L10n.text("settings.close_help"))
         #endif
       }
-      .padding(.horizontal, 18)
-      .padding(.top, 4)
-      .padding(.bottom, 12)
+      .padding(.horizontal, SettingsTheme.contentPadding(compact: isIOSSheet))
+      .padding(.top, isIOSSheet ? 2 : 4)
+      .padding(.bottom, isIOSSheet ? 8 : 12)
 
       Divider().overlay(SettingsTheme.separator)
     }
@@ -190,8 +190,8 @@ struct SettingsPanelView: View {
         .frame(width: 36, height: 5)
       Spacer()
     }
-    .padding(.top, layout == .bottomSheet ? 10 : 12)
-    .padding(.bottom, 6)
+    .padding(.top, layout == .bottomSheet ? 6 : 12)
+    .padding(.bottom, layout == .bottomSheet ? 4 : 6)
     .accessibilityLabel(L10n.text("settings.drag_handle"))
   }
 
@@ -205,48 +205,6 @@ struct SettingsPanelView: View {
         panelOffset.height += value.translation.height
       }
   }
-
-  #if os(iOS)
-    private var iosSheetResolvedWidth: CGFloat {
-      SettingsPanelMetrics.resolvedIOSSheetWidth(stored: settingsSheetWidth, screen: screenSize)
-    }
-
-    private var iosSheetWidthResizeHandle: some View {
-      HStack(spacing: 0) {
-        Capsule()
-          .fill(Color.white.opacity(0.22))
-          .frame(width: 3, height: 36)
-        Image(systemName: "arrow.left.and.right")
-          .font(.caption2.weight(.semibold))
-          .foregroundStyle(SettingsTheme.secondaryText)
-          .padding(.leading, 4)
-      }
-      .frame(width: 28)
-      .frame(maxHeight: .infinity)
-      .contentShape(Rectangle())
-      .gesture(iosSheetWidthResizeGesture)
-      .accessibilityLabel(L10n.text("settings.resize_panel_width"))
-      .padding(.trailing, 4)
-    }
-
-    private var iosSheetWidthResizeGesture: some Gesture {
-      DragGesture(minimumDistance: 2)
-        .onChanged { value in
-          if widthAtResizeStart == nil {
-            widthAtResizeStart = iosSheetResolvedWidth
-          }
-          guard let start = widthAtResizeStart else { return }
-          let next = SettingsPanelMetrics.clampIOSSheetWidth(
-            start + value.translation.width,
-            screen: screenSize
-          )
-          settingsSheetWidth = Double(next)
-        }
-        .onEnded { _ in
-          widthAtResizeStart = nil
-        }
-    }
-  #endif
 
   // MARK: - Sections
 
@@ -277,14 +235,6 @@ struct SettingsPanelView: View {
       }
       .pickerStyle(.segmented)
       .labelsHidden()
-
-      SettingsClockPreview(
-        config: effectivePanelClockConfig,
-        style: displayStyle,
-        backgroundColorHex: backgroundColorHex,
-        flipCardColorHex: flipCardColorHex,
-        fontColorHex: fontColorHex
-      )
 
       ColorPlanePickerHints()
 
@@ -393,10 +343,10 @@ struct SettingsPanelView: View {
             .foregroundStyle(SettingsTheme.accent)
         }
       }
-      .padding(.horizontal, 12)
-      .padding(.vertical, 10)
+      .padding(.horizontal, isIOSSheet ? 10 : 12)
+      .padding(.vertical, isIOSSheet ? 7 : 10)
       .background(SettingsTheme.cardBackground)
-      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+      .clipShape(RoundedRectangle(cornerRadius: isIOSSheet ? 8 : 10, style: .continuous))
     }
     .buttonStyle(.plain)
   }
@@ -540,15 +490,16 @@ struct SettingsPanelView: View {
     private var footerDoneButton: some View {
       Button(action: closePanel) {
         Text(L10n.text("settings.done"))
-          .font(.headline)
+          .font(.subheadline.weight(.semibold))
           .frame(maxWidth: .infinity)
-          .padding(.vertical, 14)
+          .padding(.vertical, 10)
       }
       .buttonStyle(.borderedProminent)
+      .controlSize(.small)
       .accessibilityIdentifier(TimeAccessibilityID.settingsDoneButton)
-      .padding(.horizontal, 18)
-      .padding(.bottom, 16)
-      .padding(.top, 8)
+      .padding(.horizontal, SettingsTheme.contentPadding(compact: true))
+      .padding(.bottom, 10)
+      .padding(.top, 4)
     }
   #endif
 
@@ -571,9 +522,9 @@ struct SettingsPanelView: View {
   private func labeledPickerRow<Content: View>(title: String, @ViewBuilder content: () -> Content)
     -> some View
   {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: isIOSSheet ? 5 : 8) {
       Text(title)
-        .font(.subheadline)
+        .font(SettingsTheme.rowLabelFont(compact: isIOSSheet))
         .foregroundStyle(SettingsTheme.secondaryText)
       content()
     }
@@ -587,13 +538,13 @@ struct SettingsPanelView: View {
     label: String,
     onEdit: (() -> Void)? = nil
   ) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: isIOSSheet ? 5 : 8) {
       HStack {
         Text(title)
-          .font(.subheadline)
+          .font(SettingsTheme.rowLabelFont(compact: isIOSSheet))
         Spacer()
         Text(label)
-          .font(.subheadline.monospacedDigit())
+          .font(SettingsTheme.rowLabelFont(compact: isIOSSheet).monospacedDigit())
           .foregroundStyle(SettingsTheme.accent)
       }
       Slider(value: value, in: range)
@@ -607,52 +558,55 @@ struct SettingsPanelView: View {
 // MARK: - Building blocks
 
 private struct SettingsSection<Content: View>: View {
+  @Environment(\.settingsCompactLayout) private var compactLayout
   let title: String
   let systemImage: String
   @ViewBuilder let content: Content
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: compactLayout ? 6 : 12) {
       Label(title, systemImage: systemImage)
-        .font(.subheadline.weight(.semibold))
+        .font(SettingsTheme.sectionHeaderFont(compact: compactLayout))
         .foregroundStyle(SettingsTheme.secondaryText)
 
-      VStack(alignment: .leading, spacing: 16) {
+      VStack(alignment: .leading, spacing: compactLayout ? 10 : 16) {
         content
       }
-      .padding(14)
+      .padding(compactLayout ? 10 : 14)
       .frame(maxWidth: .infinity, alignment: .leading)
       .background(SettingsTheme.cardBackground)
-      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+      .clipShape(RoundedRectangle(cornerRadius: compactLayout ? 10 : 12, style: .continuous))
     }
   }
 }
 
 /// 标题与控件同一行（字号、字体等）
 private struct SettingsInlineSection<Content: View>: View {
+  @Environment(\.settingsCompactLayout) private var compactLayout
   let title: String
   let systemImage: String
   @ViewBuilder let content: Content
 
   var body: some View {
-    HStack(alignment: .center, spacing: 12) {
+    HStack(alignment: .center, spacing: compactLayout ? 8 : 12) {
       Label(title, systemImage: systemImage)
-        .font(.subheadline.weight(.semibold))
+        .font(SettingsTheme.sectionHeaderFont(compact: compactLayout))
         .foregroundStyle(SettingsTheme.secondaryText)
         .lineLimit(1)
         .fixedSize(horizontal: true, vertical: false)
 
       content
     }
-    .padding(.horizontal, 14)
-    .padding(.vertical, 12)
+    .padding(.horizontal, compactLayout ? 10 : 14)
+    .padding(.vertical, compactLayout ? 8 : 12)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(SettingsTheme.cardBackground)
-    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    .clipShape(RoundedRectangle(cornerRadius: compactLayout ? 10 : 12, style: .continuous))
   }
 }
 
 private struct SettingsToggleRow: View {
+  @Environment(\.settingsCompactLayout) private var compactLayout
   let title: String
   var subtitle: String?
   @Binding var isOn: Bool
@@ -661,13 +615,17 @@ private struct SettingsToggleRow: View {
     Toggle(isOn: $isOn) {
       VStack(alignment: .leading, spacing: 2) {
         Text(title)
+          .font(compactLayout ? .subheadline : .body)
         if let subtitle {
           Text(subtitle)
-            .font(.caption)
+            .font(compactLayout ? .caption2 : .caption)
             .foregroundStyle(SettingsTheme.secondaryText)
         }
       }
     }
+    #if os(iOS)
+      .controlSize(compactLayout ? .small : .regular)
+    #endif
     #if os(macOS)
       .toggleStyle(.switch)
     #endif
