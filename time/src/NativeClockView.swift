@@ -13,10 +13,7 @@ protocol NativeClockSizeDelegate: AnyObject {
 private enum NativeClockLayoutHelper {
   static func bounds(of string: NSAttributedString?) -> CGSize {
     guard let string else { return .zero }
-    return string.boundingRect(
-      with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
-      options: [.usesLineFragmentOrigin, .usesFontLeading]
-    ).size
+    return NativeClockTextMeasure.boundingSize(of: string)
   }
 }
 

@@ -6,6 +6,16 @@ import SwiftUI
   import UIKit
 #endif
 
+enum NativeClockTextMeasure {
+  static func boundingSize(of string: NSAttributedString) -> CGSize {
+    string.boundingRect(
+      with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
+      options: [.usesLineFragmentOrigin, .usesFontLeading],
+      context: nil
+    ).size
+  }
+}
+
 struct NativeClockStyle: Equatable {
   let fontSize: CGFloat
   let ampmScale: Double
@@ -112,10 +122,7 @@ enum NativeClockTextBuilder {
   ) -> CGSize {
     let time = timeAttributedString(
       segments: segments, fonts: fonts, precision: precision, color: color)
-    let timeSize = time.boundingRect(
-      with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
-      options: [.usesLineFragmentOrigin, .usesFontLeading]
-    ).size
+    let timeSize = NativeClockTextMeasure.boundingSize(of: time)
 
     guard showTimeZone, !segments.timeZoneLabel.isEmpty else {
       return CGSize(width: ceil(timeSize.width), height: ceil(timeSize.height))
@@ -125,10 +132,7 @@ enum NativeClockTextBuilder {
       string: segments.timeZoneLabel,
       attributes: [.font: fonts.timeZone, .foregroundColor: color]
     )
-    let tzSize = tz.boundingRect(
-      with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
-      options: [.usesLineFragmentOrigin, .usesFontLeading]
-    ).size
+    let tzSize = NativeClockTextMeasure.boundingSize(of: tz)
 
     let gap = max(0, timeZoneTopGap)
     return CGSize(
