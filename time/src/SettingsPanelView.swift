@@ -64,11 +64,15 @@ struct SettingsPanelView: View {
     )
   }
 
+  private var effectivePanelClockConfig: ClockDisplayConfig {
+    panelClockConfig.applyingDisplayStyle(displayStyle)
+  }
+
   private var fontSizeRange: ClosedRange<Double> {
     ClockFontSizeLimits.sliderRange(
       style: displayStyle,
       screen: screenSize,
-      config: panelClockConfig
+      config: effectivePanelClockConfig
     )
   }
 
@@ -77,7 +81,7 @@ struct SettingsPanelView: View {
       &fontSize,
       style: displayStyle,
       screen: screenSize,
-      config: panelClockConfig
+      config: effectivePanelClockConfig
     )
   }
 
@@ -106,7 +110,12 @@ struct SettingsPanelView: View {
     }
     .onAppear { syncFontSizeToLimits() }
     .onChange(of: screenSize) { _, _ in syncFontSizeToLimits() }
-    .onChange(of: clockDisplayStyleRaw) { _, _ in syncFontSizeToLimits() }
+    .onChange(of: clockDisplayStyleRaw) { _, raw in
+      if ClockDisplayStyle(rawValue: raw) == .flip {
+        showTimeZoneText = false
+      }
+      syncFontSizeToLimits()
+    }
     .onChange(of: flipClockFormatRaw) { _, _ in syncFontSizeToLimits() }
     .onChange(of: flipCompactDetachedSeconds) { _, _ in syncFontSizeToLimits() }
     .onChange(of: panelClockConfig) { _, _ in syncFontSizeToLimits() }
@@ -270,7 +279,7 @@ struct SettingsPanelView: View {
       .labelsHidden()
 
       SettingsClockPreview(
-        config: panelClockConfig,
+        config: effectivePanelClockConfig,
         style: displayStyle,
         backgroundColorHex: backgroundColorHex,
         flipCardColorHex: flipCardColorHex,
@@ -342,7 +351,9 @@ struct SettingsPanelView: View {
         .foregroundStyle(.orange.opacity(0.9))
       }
 
-      SettingsToggleRow(title: L10n.text("settings.show_timezone"), isOn: $showTimeZoneText)
+      if displayStyle == .classic {
+        SettingsToggleRow(title: L10n.text("settings.show_timezone"), isOn: $showTimeZoneText)
+      }
 
       if displayStyle == .classic {
         settingSlider(
@@ -406,13 +417,15 @@ struct SettingsPanelView: View {
       if !is24Hour {
         SettingsToggleRow(title: L10n.text("settings.show_ampm"), isOn: $showAMPM)
         if showAMPM {
-          labeledPickerRow(title: L10n.text("settings.ampm_position")) {
-            Picker(L10n.text("settings.ampm_position"), selection: $ampmSide) {
-              Text(L10n.text("format.ampm_before")).tag("Leading")
-              Text(L10n.text("format.ampm_after")).tag("Trailing")
+          if displayStyle == .classic {
+            labeledPickerRow(title: L10n.text("settings.ampm_position")) {
+              Picker(L10n.text("settings.ampm_position"), selection: $ampmSide) {
+                Text(L10n.text("format.ampm_before")).tag("Leading")
+                Text(L10n.text("format.ampm_after")).tag("Trailing")
+              }
+              .pickerStyle(.segmented)
+              .labelsHidden()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
           }
           labeledPickerRow(title: L10n.text("settings.ampm_scale")) {
             Picker(L10n.text("settings.ampm_scale"), selection: $ampmScale) {

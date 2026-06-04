@@ -89,7 +89,7 @@ struct FlipClockScene: View {
       if active { attachScheduler() }
     }
     .onChange(of: config) { _, _ in
-      scheduler.setFormat(config.schedulerFormatOptions)
+      scheduler.setFormat(config.schedulerFormatOptions(for: .flip))
       attachScheduler()
     }
   }
@@ -100,7 +100,7 @@ struct FlipClockScene: View {
       segments = newSegments
       tickEpoch += 1
     }
-    scheduler.setFormat(config.schedulerFormatOptions)
+    scheduler.setFormat(config.schedulerFormatOptions(for: .flip))
     scheduler.setTickTarget(tickBridge)
     if isActive {
       scheduler.setActive(true)
@@ -139,7 +139,7 @@ private struct FlipClockLayout {
 
   init(segments: TimeSegments, config: ClockDisplayConfig) {
     format = config.flipFormat
-    clockFormat = config.schedulerFormatOptions
+    clockFormat = config.schedulerFormatOptions(for: .flip)
     leadingAMPM = segments.leadingAMPM
     trailingAMPM = segments.trailingAMPM
     showsSeconds = config.showsLiveSeconds

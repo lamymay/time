@@ -27,13 +27,30 @@ struct ClockDisplayConfig: Equatable {
     )
   }
 
-  /// 压缩版右下角秒开启时，走时按秒调度（与 DVD 秒精度一致）
-  var schedulerFormatOptions: ClockFormatOptions {
+  /// 按展示样式应用限制：翻页无时区、AM/PM 仅在前
+  func formatOptions(for style: ClockDisplayStyle) -> ClockFormatOptions {
     var options = formatOptions
+    guard style == .flip else { return options }
+    options.showTimeZoneText = false
+    options.ampmSide = "Leading"
+    return options
+  }
+
+  /// 压缩版右下角秒开启时，走时按秒调度（与 DVD 秒精度一致）
+  func schedulerFormatOptions(for style: ClockDisplayStyle) -> ClockFormatOptions {
+    var options = formatOptions(for: style)
     if flipFormat == .compactPanels, flipCompactDetachedSeconds {
       options.displayPrecision = .second
     }
     return options
+  }
+
+  func applyingDisplayStyle(_ style: ClockDisplayStyle) -> ClockDisplayConfig {
+    var copy = self
+    guard style == .flip else { return copy }
+    copy.showTimeZoneText = false
+    copy.ampmSide = "Leading"
+    return copy
   }
 
   var showsLiveSeconds: Bool {
@@ -156,7 +173,12 @@ struct ContentView: View {
       flipCompactDetachedSeconds: flipCompactDetachedSeconds
     )
     let limitScreen = style == .flip ? screen : layout
-    ClockFontSizeLimits.clampStoredFontSize(&fontSize, style: style, screen: limitScreen, config: config)
+    ClockFontSizeLimits.clampStoredFontSize(
+      &fontSize,
+      style: style,
+      screen: limitScreen,
+      config: config.applyingDisplayStyle(style)
+    )
   }
 
   private func layoutSize(for screen: CGSize) -> CGSize {

@@ -263,7 +263,7 @@ struct ContentRootScreen: View {
     case .flip:
       FlipClockScene(
         scheduler: timeScheduler,
-        config: clockConfig,
+        config: clockConfig.applyingDisplayStyle(.flip),
         backgroundColorHex: backgroundColorHex,
         flipCardColorHex: flipCardColorHex,
         fontColorHex: fontColorHex,
@@ -451,7 +451,7 @@ struct ContentRootScreen: View {
     if timeDisplayPrecisionRaw == "millisecond" {
       timeDisplayPrecisionRaw = TimeDisplayPrecision.second.rawValue
     }
-    timeScheduler.setFormat(clockConfig.schedulerFormatOptions)
+    timeScheduler.setFormat(clockConfig.schedulerFormatOptions(for: clockDisplayStyle))
     timeScheduler.setActive(scenePhase == .active)
     DisplayKeepAwake.setEnabled(keepDisplayAwake)
     if AppUITestConfig.openSettingsOnLaunch {
@@ -477,7 +477,7 @@ struct ContentRootScreen: View {
   }
 
   private func reactConfigChange() {
-    timeScheduler.setFormat(clockConfig.schedulerFormatOptions)
+    timeScheduler.setFormat(clockConfig.schedulerFormatOptions(for: clockDisplayStyle))
     clampFontSizeToScreen()
   }
 

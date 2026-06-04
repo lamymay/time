@@ -52,7 +52,7 @@ struct SettingsClockPreview: View {
   }
 
   private func syncPreviewScheduler() {
-    previewScheduler.setFormat(previewConfig.schedulerFormatOptions)
+    previewScheduler.setFormat(previewConfig.schedulerFormatOptions(for: style))
     previewScheduler.setActive(true)
   }
 }
