@@ -3,6 +3,8 @@ import SwiftUI
 /// 屏保级：原生 CATextLayer + layer transform 弹跳；无 NSHostingView
 struct MotionClockScene: View {
   @State private var motion = ClockMotionEngine()
+  @State private var collisionDebugEdges: Set<DVDCollisionDebug.Edge> = []
+  @State private var collisionDebugPlayfield: CGSize = .zero
   let scheduler: ClockTimeScheduler
   let style: NativeClockStyle
   let precision: TimeDisplayPrecision
@@ -30,6 +32,28 @@ struct MotionClockScene: View {
       backgroundColorHex: backgroundColorHex,
       fontColorHex: fontColorHex
     )
+    .overlay {
+      if DVDCollisionDebug.isEnabled, !collisionDebugEdges.isEmpty {
+        DVDCollisionDebugOverlay(
+          playfieldSize: collisionDebugPlayfield,
+          edges: collisionDebugEdges
+        )
+      }
+    }
+    .onReceive(NotificationCenter.default.publisher(for: DVDCollisionDebug.collisionNotification)) { note in
+      guard DVDCollisionDebug.isEnabled else { return }
+      let names = note.userInfo?["edgeNames"] as? [String] ?? []
+      let edges = Set(names.compactMap(DVDCollisionDebug.Edge.init(rawValue:)))
+      guard !edges.isEmpty else { return }
+      let w = note.userInfo?["playfieldWidth"] as? CGFloat ?? 0
+      let h = note.userInfo?["playfieldHeight"] as? CGFloat ?? 0
+      collisionDebugEdges = edges
+      collisionDebugPlayfield = CGSize(width: w, height: h)
+      Task { @MainActor in
+        try? await Task.sleep(for: .seconds(DVDCollisionDebug.pauseDuration))
+        collisionDebugEdges = []
+      }
+    }
   }
 }
 

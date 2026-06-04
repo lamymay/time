@@ -22,6 +22,8 @@ final class ClockMotionEngine {
   private weak var renderer: ClockMotionRenderer?
   private var lastRenderedCenter: CGPoint?
   private var lastCollisionColorDate: Date?
+  private var debugPauseUntil: Date?
+  private var debugResumeWorkItem: DispatchWorkItem?
   private static let minPlaySpan: CGFloat = 12
   private static let collisionColorCooldown: TimeInterval = 0.15
 
@@ -142,6 +144,9 @@ final class ClockMotionEngine {
   }
 
   private func tick(at date: Date) {
+    if DVDCollisionDebug.isEnabled, let until = debugPauseUntil, date < until {
+      return
+    }
     let interval = MoveSpeedLimits.motionInterval(for: moveSpeed)
     let delta = min(
       lastTickDate.map { date.timeIntervalSince($0) } ?? interval,
@@ -188,37 +193,60 @@ final class ClockMotionEngine {
     let step = CGFloat(MoveSpeedLimits.pixelsPerSecondFactor * moveSpeed) * CGFloat(delta)
     var newX = currentPos.x + direction.dx * step
     var newY = currentPos.y + direction.dy * step
-    var didCollide = false
+    var hitEdges: Set<DVDCollisionDebug.Edge> = []
 
     if newX < minX {
       newX = minX
       direction.dx = abs(direction.dx)
-      didCollide = true
+      hitEdges.insert(.left)
     } else if newX > maxX {
       newX = maxX
       direction.dx = -abs(direction.dx)
-      didCollide = true
+      hitEdges.insert(.right)
     }
 
     if newY < minY {
       newY = minY
       direction.dy = abs(direction.dy)
-      didCollide = true
+      hitEdges.insert(.top)
     } else if newY > maxY {
       newY = maxY
       direction.dy = -abs(direction.dy)
-      didCollide = true
+      hitEdges.insert(.bottom)
     }
 
     let newPosition = CGPoint(x: newX, y: newY)
-    if didCollide {
+    if !hitEdges.isEmpty {
       applyCollisionColorIfNeeded()
+      handleCollisionDebug(edges: hitEdges, at: newPosition)
     }
 
     if position != newPosition {
       position = newPosition
       pushPositionToRenderer()
     }
+  }
+
+  private func handleCollisionDebug(edges: Set<DVDCollisionDebug.Edge>, at center: CGPoint) {
+    guard DVDCollisionDebug.isEnabled else { return }
+    DVDCollisionDebug.postCollision(
+      DVDCollisionDebug.Event(
+        edges: edges,
+        playfieldSize: screenSize,
+        clockCenter: center,
+        clockSize: totalSize
+      )
+    )
+    stopMotionTimer()
+    debugPauseUntil = Date().addingTimeInterval(DVDCollisionDebug.pauseDuration)
+    debugResumeWorkItem?.cancel()
+    let work = DispatchWorkItem { [weak self] in
+      guard let self else { return }
+      self.debugPauseUntil = nil
+      self.restartMotionTimerIfNeeded()
+    }
+    debugResumeWorkItem = work
+    DispatchQueue.main.asyncAfter(deadline: .now() + DVDCollisionDebug.pauseDuration, execute: work)
   }
 
   private func applyCollisionColorIfNeeded() {
@@ -245,6 +273,7 @@ final class ClockMotionEngine {
   }
 
   deinit {
+    debugResumeWorkItem?.cancel()
     stopMotionTimer()
   }
 }
