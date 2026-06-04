@@ -33,6 +33,7 @@ private enum NativeClockLayoutHelper {
     private var fonts: NativeClockFonts?
     private var segments = TimeSegments()
     private var measuredSize: CGSize = .zero
+    private var lastReportedSize: CGSize = .zero
 
     override init(frame frameRect: NSRect) {
       super.init(frame: frameRect)
@@ -151,13 +152,18 @@ private enum NativeClockLayoutHelper {
         ampmLayer.isHidden = true
       }
 
-      if measuredSize != .zero {
-        sizeDelegate?.nativeClock(didMeasure: measuredSize)
-      }
+      reportMeasuredSizeIfNeeded()
     }
 
     func fittingSize() -> CGSize {
       measuredSize == .zero ? CGSize(width: 1, height: 1) : measuredSize
+    }
+
+    private func reportMeasuredSizeIfNeeded() {
+      guard measuredSize.width > 0, measuredSize.height > 0 else { return }
+      guard measuredSize != lastReportedSize else { return }
+      lastReportedSize = measuredSize
+      sizeDelegate?.nativeClock(didMeasure: measuredSize)
     }
   }
 
@@ -178,6 +184,7 @@ private enum NativeClockLayoutHelper {
     private var fonts: NativeClockFonts?
     private var segments = TimeSegments()
     private var measuredSize: CGSize = .zero
+    private var lastReportedSize: CGSize = .zero
 
     override init(frame: CGRect) {
       super.init(frame: frame)
@@ -284,13 +291,18 @@ private enum NativeClockLayoutHelper {
         ampmLayer.isHidden = true
       }
 
-      if measuredSize != .zero {
-        sizeDelegate?.nativeClock(didMeasure: measuredSize)
-      }
+      reportMeasuredSizeIfNeeded()
     }
 
     func fittingSize() -> CGSize {
       measuredSize == .zero ? CGSize(width: 1, height: 1) : measuredSize
+    }
+
+    private func reportMeasuredSizeIfNeeded() {
+      guard measuredSize.width > 0, measuredSize.height > 0 else { return }
+      guard measuredSize != lastReportedSize else { return }
+      lastReportedSize = measuredSize
+      sizeDelegate?.nativeClock(didMeasure: measuredSize)
     }
   }
 

@@ -23,6 +23,9 @@ final class ClockMotionEngine {
 
   private weak var renderer: ClockMotionRenderer?
   private var lastRenderedOffset: CGSize?
+  private var lastCollisionColorDate: Date?
+  private static let minPlaySpan: CGFloat = 12
+  private static let collisionColorCooldown: TimeInterval = 0.15
 
   func setRenderer(_ renderer: ClockMotionRenderer?) {
     self.renderer = renderer
@@ -173,7 +176,10 @@ final class ClockMotionEngine {
     let minY = totalSize.height / 2
     let maxY = effectiveHeight - (totalSize.height / 2)
 
-    guard maxX >= minX, maxY >= minY else {
+    let spanX = maxX - minX
+    let spanY = maxY - minY
+    guard spanX >= Self.minPlaySpan, spanY >= Self.minPlaySpan else {
+      stopMotionTimer()
       if position != screenCenter {
         position = screenCenter
         pushOffsetToRenderer()
@@ -186,21 +192,21 @@ final class ClockMotionEngine {
     var newY = currentPos.y + direction.dy * step
     var didCollide = false
 
-    if newX <= minX {
+    if newX < minX {
       newX = minX
       direction.dx = abs(direction.dx)
       didCollide = true
-    } else if newX >= maxX {
+    } else if newX > maxX {
       newX = maxX
       direction.dx = -abs(direction.dx)
       didCollide = true
     }
 
-    if newY <= minY {
+    if newY < minY {
       newY = minY
       direction.dy = abs(direction.dy)
       didCollide = true
-    } else if newY >= maxY {
+    } else if newY > maxY {
       newY = maxY
       direction.dy = -abs(direction.dy)
       didCollide = true
@@ -208,14 +214,25 @@ final class ClockMotionEngine {
 
     let newPosition = CGPoint(x: newX, y: newY)
     if didCollide {
-      clockColor = BackgroundColorPreset.randomCollisionColor(lightBackground: lightBackground)
-      renderer?.setClockDisplayColor(clockColor)
+      applyCollisionColorIfNeeded()
     }
 
     if position != newPosition {
       position = newPosition
       pushOffsetToRenderer()
     }
+  }
+
+  private func applyCollisionColorIfNeeded() {
+    let now = Date()
+    if let last = lastCollisionColorDate,
+      now.timeIntervalSince(last) < Self.collisionColorCooldown
+    {
+      return
+    }
+    lastCollisionColorDate = now
+    clockColor = BackgroundColorPreset.randomCollisionColor(lightBackground: lightBackground)
+    renderer?.setClockDisplayColor(clockColor)
   }
 
   private func pushOffsetToRenderer() {

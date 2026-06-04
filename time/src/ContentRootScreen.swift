@@ -143,10 +143,27 @@ struct ContentRootScreen: View {
     ZStack(alignment: .topLeading) {
       backgroundLayer
       clockLayer
+      #if os(iOS)
+        iosLongPressCaptureLayer
+      #endif
       overlayStack
       settingsShortcutButton
     }
   }
+
+  #if os(iOS)
+    /// 仅接管长按，不参与布局；设置打开时关闭命中避免挡面板
+    private var iosLongPressCaptureLayer: some View {
+      Color.clear
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
+        .contentShape(Rectangle())
+        .allowsHitTesting(!showSettings && !showFontPicker)
+        .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 48) {
+          toggleSettings()
+        }
+    }
+  #endif
 
   private var fontSizeShortcutButtons: some View {
     Group {
@@ -182,13 +199,6 @@ struct ContentRootScreen: View {
         isActive: oledShiftActive,
         screenSize: screenSize
       )
-      #if os(iOS)
-        .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 32) {
-          if clockDisplayStyle == .flip {
-            toggleSettings()
-          }
-        }
-      #endif
   }
 
   @ViewBuilder

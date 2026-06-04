@@ -38,15 +38,10 @@ struct BouncingClockHost: View {
 
 /// 仅使用根视图 GeometryReader 的 screenSize，避免 UIKit 容器 bounds 误报为小时钟框
 private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEngine?) {
-  guard playfieldSize.width > 1, playfieldSize.height > 1 else { return }
-  motion?.setScreenSize(playfieldSize)
+  let field = ClockScreenBounds.bouncePlayfield(swiftUISize: playfieldSize)
+  guard field.width > 1, field.height > 1 else { return }
+  motion?.setScreenSize(field)
 }
-
-#if os(iOS)
-  private enum BounceClockGesture {
-    static let openSettings = NSNotification.Name("ShowSettingsUI")
-  }
-#endif
 
 #if os(macOS)
 
@@ -86,17 +81,14 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
         context.coordinator.styleStamp = styleStamp
         container.needsLayout = true
       }
-      syncMotionRuntime(container: container, context: context)
+      syncMotionRuntime(context: context)
     }
 
-    private func syncMotionRuntime(container: BounceContainerNSView, context: Context) {
+    private func syncMotionRuntime(context: Context) {
       applyPlayfieldSize(playfieldSize: playfieldSize, to: context.coordinator.motion)
       context.coordinator.motion?.setMoveSpeed(moveSpeed)
       context.coordinator.motion?.setMotionActive(isActive)
       context.coordinator.motion?.setPaused(isPaused)
-      if !isPaused, isActive, moveSpeed > 0 {
-        context.coordinator.motion?.ensureBounceReady()
-      }
     }
 
     static func dismantleNSView(_: BounceContainerNSView, coordinator: Coordinator) {
@@ -196,29 +188,17 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
       clock.sizeDelegate = context.coordinator
       motion.setRenderer(context.coordinator)
       scheduler.setTickTarget(clock)
-      let longPress = UILongPressGestureRecognizer(
-        target: context.coordinator,
-        action: #selector(Coordinator.handleOpenSettingsLongPress(_:))
-      )
-      longPress.minimumPressDuration = 0.35
-      longPress.cancelsTouchesInView = false
-      container.addGestureRecognizer(longPress)
       return container
     }
 
     func updateUIView(_ container: BounceContainerUIView, context: Context) {
       guard let clock = context.coordinator.clock else { return }
-      if playfieldSize.width > 1, playfieldSize.height > 1,
-        container.bounds.size != playfieldSize
-      {
-        container.bounds = CGRect(origin: .zero, size: playfieldSize)
-      }
       if context.coordinator.styleStamp != styleStamp {
         clock.applyStyle(styleStamp)
         context.coordinator.styleStamp = styleStamp
         container.setNeedsLayout()
       }
-      syncMotionRuntime(container: container, context: context)
+      syncMotionRuntime(context: context)
     }
 
     static func sizeThatFits(
@@ -232,14 +212,11 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
       return CGSize(width: width, height: height)
     }
 
-    private func syncMotionRuntime(container: BounceContainerUIView, context: Context) {
+    private func syncMotionRuntime(context: Context) {
       applyPlayfieldSize(playfieldSize: playfieldSize, to: context.coordinator.motion)
       context.coordinator.motion?.setMoveSpeed(moveSpeed)
       context.coordinator.motion?.setMotionActive(isActive)
       context.coordinator.motion?.setPaused(isPaused)
-      if !isPaused, isActive, moveSpeed > 0 {
-        context.coordinator.motion?.ensureBounceReady()
-      }
     }
 
     static func dismantleUIView(_: BounceContainerUIView, coordinator: Coordinator) {
@@ -268,10 +245,6 @@ private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEng
         motion.ensureBounceReady()
       }
 
-      @objc func handleOpenSettingsLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began else { return }
-        NotificationCenter.default.post(name: BounceClockGesture.openSettings, object: nil)
-      }
     }
   }
 

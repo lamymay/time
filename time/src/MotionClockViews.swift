@@ -113,7 +113,8 @@ struct MotionClockContent: View {
   }
 
   private func applyPlayfieldToMotion() {
-    guard playfieldSize.width > 1, playfieldSize.height > 1 else { return }
-    motion.setScreenSize(playfieldSize)
+    let field = ClockScreenBounds.bouncePlayfield(swiftUISize: playfieldSize)
+    guard field.width > 1, field.height > 1 else { return }
+    motion.setScreenSize(field)
   }
 }
