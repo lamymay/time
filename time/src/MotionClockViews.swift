@@ -58,7 +58,14 @@ struct MotionClockContent: View {
   }
 
   var body: some View {
-    BouncingClockHost(scheduler: scheduler, motion: motion, styleStamp: styleStamp)
+    BouncingClockHost(
+      scheduler: scheduler,
+      motion: motion,
+      styleStamp: styleStamp,
+      moveSpeed: moveSpeed,
+      isActive: isActive,
+      isPaused: isPaused
+    )
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onAppear {
       motion.setScreenSize(screenSize)
@@ -93,7 +100,14 @@ struct MotionClockContent: View {
       }
       .onChange(of: isPaused) { _, paused in
         motion.setPaused(paused)
-        if paused { motion.clearTrail() }
+        if paused {
+          motion.clearTrail()
+        } else {
+          motion.setMoveSpeed(moveSpeed)
+          if isActive, moveSpeed > 0 {
+            motion.ensureBounceReady()
+          }
+        }
       }
   }
 }

@@ -5,12 +5,29 @@ struct BouncingClockHost: View {
   let scheduler: ClockTimeScheduler
   let motion: ClockMotionEngine
   let styleStamp: ClockStyleStamp
+  let moveSpeed: Double
+  let isActive: Bool
+  let isPaused: Bool
 
   var body: some View {
     #if os(macOS)
-      MacBouncingClockHost(scheduler: scheduler, motion: motion, styleStamp: styleStamp)
+      MacBouncingClockHost(
+        scheduler: scheduler,
+        motion: motion,
+        styleStamp: styleStamp,
+        moveSpeed: moveSpeed,
+        isActive: isActive,
+        isPaused: isPaused
+      )
     #else
-      IOSBouncingClockHost(scheduler: scheduler, motion: motion, styleStamp: styleStamp)
+      IOSBouncingClockHost(
+        scheduler: scheduler,
+        motion: motion,
+        styleStamp: styleStamp,
+        moveSpeed: moveSpeed,
+        isActive: isActive,
+        isPaused: isPaused
+      )
     #endif
   }
 }
@@ -21,6 +38,9 @@ struct BouncingClockHost: View {
     let scheduler: ClockTimeScheduler
     let motion: ClockMotionEngine
     let styleStamp: ClockStyleStamp
+    let moveSpeed: Double
+    let isActive: Bool
+    let isPaused: Bool
 
     func makeCoordinator() -> Coordinator {
       Coordinator()
@@ -48,6 +68,16 @@ struct BouncingClockHost: View {
         clock.applyStyle(styleStamp)
         context.coordinator.styleStamp = styleStamp
         container.needsLayout = true
+      }
+      syncMotionRuntime(context: context)
+    }
+
+    private func syncMotionRuntime(context: Context) {
+      context.coordinator.motion?.setMoveSpeed(moveSpeed)
+      context.coordinator.motion?.setMotionActive(isActive)
+      context.coordinator.motion?.setPaused(isPaused)
+      if !isPaused, isActive, moveSpeed > 0 {
+        context.coordinator.motion?.ensureBounceReady()
       }
     }
 
@@ -117,6 +147,9 @@ struct BouncingClockHost: View {
     let scheduler: ClockTimeScheduler
     let motion: ClockMotionEngine
     let styleStamp: ClockStyleStamp
+    let moveSpeed: Double
+    let isActive: Bool
+    let isPaused: Bool
 
     func makeCoordinator() -> Coordinator {
       Coordinator()
@@ -144,6 +177,16 @@ struct BouncingClockHost: View {
         clock.applyStyle(styleStamp)
         context.coordinator.styleStamp = styleStamp
         container.setNeedsLayout()
+      }
+      syncMotionRuntime(context: context)
+    }
+
+    private func syncMotionRuntime(context: Context) {
+      context.coordinator.motion?.setMoveSpeed(moveSpeed)
+      context.coordinator.motion?.setMotionActive(isActive)
+      context.coordinator.motion?.setPaused(isPaused)
+      if !isPaused, isActive, moveSpeed > 0 {
+        context.coordinator.motion?.ensureBounceReady()
       }
     }
 
