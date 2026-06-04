@@ -74,6 +74,8 @@ struct ContentView: View {
   @State private var showFontPicker = false
   @State private var fontCatalog: [String]?
   @State private var settingsPanelOffset: CGSize = .zero
+  /// iOS 底部设置面板宽度；0 = 自动（居中、最大约 420pt）
+  @AppStorage("settingsSheetWidth") private var settingsSheetWidth: Double = 0
   @State private var flipLaunchPresentationApplied = false
   @Environment(\.scenePhase) private var scenePhase
 
@@ -103,6 +105,7 @@ struct ContentView: View {
         keepDisplayAwake: $keepDisplayAwake,
         oledPixelShiftEnabled: $oledPixelShiftEnabled,
         settingsPanelOffset: $settingsPanelOffset,
+        settingsSheetWidth: $settingsSheetWidth,
         fontCatalog: $fontCatalog,
         flipLaunchPresentationApplied: $flipLaunchPresentationApplied,
         timeScheduler: timeScheduler,

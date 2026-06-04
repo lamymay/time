@@ -955,6 +955,34 @@
         }
       }
     },
+    "settings.resize_panel_width" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resize settings panel width"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定パネルの幅を調整"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调整设置面板宽度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調整設定面板寬度"
+          }
+        }
+      }
+    },
     "settings.background_pure_black" : {
       "localizations" : {
         "en" : {

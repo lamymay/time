@@ -31,10 +31,12 @@ struct SettingsPanelView: View {
 
   let layout: SettingsPanelLayout
   @Binding var panelOffset: CGSize
+  @Binding var settingsSheetWidth: Double
   var onSpeedChange: () -> Void
 
   @GestureState private var dragOffset: CGSize = .zero
   @State private var showEmailCopiedAlert = false
+  @State private var widthAtResizeStart: CGFloat?
 
   private var precision: TimeDisplayPrecision {
     TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
@@ -121,7 +123,14 @@ struct SettingsPanelView: View {
       y: panelOffset.height + dragOffset.height
     )
     #if os(macOS)
-      .frame(minWidth: 360, idealWidth: 380)
+      .frame(minWidth: SettingsPanelMetrics.macMinWidth, idealWidth: SettingsPanelMetrics.macIdealWidth)
+    #endif
+    #if os(iOS)
+      .overlay(alignment: .trailing) {
+        if layout == .bottomSheet {
+          iosSheetWidthResizeHandle
+        }
+      }
     #endif
     .accessibilityIdentifier(TimeAccessibilityID.settingsPanel)
     .alert(L10n.text("feedback.copy_title"), isPresented: $showEmailCopiedAlert) {
@@ -187,6 +196,48 @@ struct SettingsPanelView: View {
         panelOffset.height += value.translation.height
       }
   }
+
+  #if os(iOS)
+    private var iosSheetResolvedWidth: CGFloat {
+      SettingsPanelMetrics.resolvedIOSSheetWidth(stored: settingsSheetWidth, screen: screenSize)
+    }
+
+    private var iosSheetWidthResizeHandle: some View {
+      HStack(spacing: 0) {
+        Capsule()
+          .fill(Color.white.opacity(0.22))
+          .frame(width: 3, height: 36)
+        Image(systemName: "arrow.left.and.right")
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(SettingsTheme.secondaryText)
+          .padding(.leading, 4)
+      }
+      .frame(width: 28)
+      .frame(maxHeight: .infinity)
+      .contentShape(Rectangle())
+      .gesture(iosSheetWidthResizeGesture)
+      .accessibilityLabel(L10n.text("settings.resize_panel_width"))
+      .padding(.trailing, 4)
+    }
+
+    private var iosSheetWidthResizeGesture: some Gesture {
+      DragGesture(minimumDistance: 2)
+        .onChanged { value in
+          if widthAtResizeStart == nil {
+            widthAtResizeStart = iosSheetResolvedWidth
+          }
+          guard let start = widthAtResizeStart else { return }
+          let next = SettingsPanelMetrics.clampIOSSheetWidth(
+            start + value.translation.width,
+            screen: screenSize
+          )
+          settingsSheetWidth = Double(next)
+        }
+        .onEnded { _ in
+          widthAtResizeStart = nil
+        }
+    }
+  #endif
 
   // MARK: - Sections
 

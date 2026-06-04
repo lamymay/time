@@ -26,6 +26,7 @@ struct ContentRootScreen: View {
   @Binding var keepDisplayAwake: Bool
   @Binding var oledPixelShiftEnabled: Bool
   @Binding var settingsPanelOffset: CGSize
+  @Binding var settingsSheetWidth: Double
   @Binding var fontCatalog: [String]?
   @Binding var flipLaunchPresentationApplied: Bool
 
@@ -305,43 +306,7 @@ struct ContentRootScreen: View {
           }
         }
 
-      SettingsPanelView(
-        screenSize: size,
-        moveSpeed: $moveSpeed,
-        fontSize: $fontSize,
-        padZero: $padZero,
-        is24Hour: $is24Hour,
-        showAMPM: $showAMPM,
-        ampmScale: $ampmScale,
-        ampmSide: $ampmSide,
-        showTimeZoneText: $showTimeZoneText,
-        selectedTimeZone: $selectedTimeZone,
-        showSettings: $showSettings,
-        showFontPicker: $showFontPicker,
-        showDebugInfo: $showDebugInfo,
-        selectedFontName: $selectedFontName,
-        backgroundColorHex: $backgroundColorHex,
-        timeDisplayPrecisionRaw: $timeDisplayPrecisionRaw,
-        clockDisplayStyleRaw: $clockDisplayStyleRaw,
-        flipClockFormatRaw: $flipClockFormatRaw,
-        flipCompactDetachedSeconds: $flipCompactDetachedSeconds,
-        clockColorHex: $clockColorHex,
-        keepDisplayAwake: $keepDisplayAwake,
-        oledPixelShiftEnabled: $oledPixelShiftEnabled,
-        layout: isWide ? .sidePanel : .bottomSheet,
-        panelOffset: $settingsPanelOffset,
-        onSpeedChange: {}
-      )
-      .frame(
-        width: isWide ? min(400, size.width * 0.38) : nil,
-        height: isWide ? nil : min(size.height * 0.88, 720)
-      )
-      .frame(maxWidth: isWide ? nil : .infinity)
-      .padding(
-        isWide
-          ? EdgeInsets(top: 20, leading: 0, bottom: 20, trailing: 20)
-          : EdgeInsets(top: 0, leading: 12, bottom: 12, trailing: 12)
-      )
+      settingsPanel(in: size, isWide: isWide)
     }
     #if os(macOS)
       .onExitCommand {
@@ -350,6 +315,64 @@ struct ContentRootScreen: View {
         }
       }
     #endif
+  }
+
+  @ViewBuilder
+  private func settingsPanel(in size: CGSize, isWide: Bool) -> some View {
+    let panel = SettingsPanelView(
+      screenSize: size,
+      moveSpeed: $moveSpeed,
+      fontSize: $fontSize,
+      padZero: $padZero,
+      is24Hour: $is24Hour,
+      showAMPM: $showAMPM,
+      ampmScale: $ampmScale,
+      ampmSide: $ampmSide,
+      showTimeZoneText: $showTimeZoneText,
+      selectedTimeZone: $selectedTimeZone,
+      showSettings: $showSettings,
+      showFontPicker: $showFontPicker,
+      showDebugInfo: $showDebugInfo,
+      selectedFontName: $selectedFontName,
+      backgroundColorHex: $backgroundColorHex,
+      timeDisplayPrecisionRaw: $timeDisplayPrecisionRaw,
+      clockDisplayStyleRaw: $clockDisplayStyleRaw,
+      flipClockFormatRaw: $flipClockFormatRaw,
+      flipCompactDetachedSeconds: $flipCompactDetachedSeconds,
+      clockColorHex: $clockColorHex,
+      keepDisplayAwake: $keepDisplayAwake,
+      oledPixelShiftEnabled: $oledPixelShiftEnabled,
+      layout: isWide ? .sidePanel : .bottomSheet,
+      panelOffset: $settingsPanelOffset,
+      settingsSheetWidth: $settingsSheetWidth,
+      onSpeedChange: {}
+    )
+    let sheetHeight = min(size.height * 0.88, 720)
+
+    if isWide {
+      panel
+        .frame(width: min(400, size.width * 0.38))
+        .padding(EdgeInsets(top: 20, leading: 0, bottom: 20, trailing: 20))
+    } else {
+      #if os(iOS)
+        let sheetW = SettingsPanelMetrics.resolvedIOSSheetWidth(
+          stored: settingsSheetWidth,
+          screen: size
+        )
+        HStack(alignment: .bottom, spacing: 0) {
+          Spacer(minLength: 0)
+          panel
+            .frame(width: sheetW, height: sheetHeight)
+          Spacer(minLength: 0)
+        }
+        .padding(.bottom, 12)
+      #else
+        panel
+          .frame(height: sheetHeight)
+          .frame(maxWidth: .infinity)
+          .padding(EdgeInsets(top: 0, leading: 12, bottom: 12, trailing: 12))
+      #endif
+    }
   }
 
   @ViewBuilder
