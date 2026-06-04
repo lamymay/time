@@ -215,6 +215,7 @@ struct SettingsPanelView: View {
         title: L10n.text("settings.background_color"),
         colorHex: $backgroundColorHex
       )
+      backgroundPureBlackShortcut
       if displayStyle == .flip {
         labeledPickerRow(title: L10n.text("settings.flip_format")) {
           Picker(L10n.text("settings.flip_format"), selection: $flipClockFormatRaw) {
@@ -247,6 +248,38 @@ struct SettingsPanelView: View {
       }
       fontPickerRow
     }
+  }
+
+  private var backgroundPureBlackShortcut: some View {
+    let isPureBlack =
+      BackgroundColorPreset.from(hex: backgroundColorHex) == .black
+      || ColorPickerCodec.normalizedHex(backgroundColorHex) == BackgroundColorPreset.black.rawValue
+
+    return Button {
+      backgroundColorHex = BackgroundColorPreset.black.rawValue
+    } label: {
+      HStack(spacing: 12) {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(Color.black)
+          .frame(width: 32, height: 32)
+          .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+              .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+          )
+        Text(L10n.text("settings.background_pure_black"))
+          .foregroundStyle(.primary)
+        Spacer()
+        if isPureBlack {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(SettingsTheme.accent)
+        }
+      }
+      .padding(.horizontal, 12)
+      .padding(.vertical, 10)
+      .background(SettingsTheme.cardBackground)
+      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+    .buttonStyle(.plain)
   }
 
   private var motionSection: some View {
