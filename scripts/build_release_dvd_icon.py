@@ -11,9 +11,24 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "time/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
+ICON_SET = ROOT / "time/Assets.xcassets/AppIcon.appiconset"
+OUT = ICON_SET / "AppIcon-1024.png"
 CAND = ROOT / "IconCandidates/icon-release-dvd-trail-1024.png"
 SIZE = 1024
+
+# macOS AppIcon.appiconset 各档（像素边长）
+MAC_ICON_SIZES: dict[str, int] = {
+    "icon_16.png": 16,
+    "icon_16@2x.png": 32,
+    "icon_32.png": 32,
+    "icon_32@2x.png": 64,
+    "icon_128.png": 128,
+    "icon_128@2x.png": 256,
+    "icon_256.png": 256,
+    "icon_256@2x.png": 512,
+    "icon_512.png": 512,
+    "icon_512@2x.png": 1024,
+}
 BLACK = (0, 0, 0, 255)
 LABEL = "10:10"
 
@@ -97,15 +112,21 @@ def main() -> None:
     out = Image.new("RGB", (SIZE, SIZE), "#000000")
     out.paste(canvas, mask=canvas.split()[3])
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
+    ICON_SET.mkdir(parents=True, exist_ok=True)
     CAND.parent.mkdir(parents=True, exist_ok=True)
     out.save(OUT, "PNG", optimize=True)
     out.save(CAND, "PNG", optimize=True)
+
+    resample = Image.Resampling.LANCZOS
+    for name, edge in MAC_ICON_SIZES.items():
+        scaled = out.resize((edge, edge), resample)
+        scaled.save(ICON_SET / name, "PNG", optimize=True)
+
     sizes = [s[2] for s in stamps]
     grays = [s[3] for s in stamps]
     print(
-        f"Wrote {OUT} ({len(stamps)}× {LABEL}; "
-        f"sizes={sizes}, grays={grays})"
+        f"Wrote {OUT} + {len(MAC_ICON_SIZES)} mac sizes "
+        f"({len(stamps)}× {LABEL}; sizes={sizes}, grays={grays})"
     )
 
 
