@@ -277,13 +277,6 @@ struct SettingsPanelView: View {
         fontColorHex: fontColorHex
       )
 
-      if displayStyle == .flip {
-        ColorPlanePicker(
-          title: L10n.text("settings.clock_color"),
-          colorHex: $flipCardColorHex,
-          saturation: 0.35
-        )
-      }
       ColorPlanePicker(
         title: L10n.text("settings.background_color"),
         colorHex: $backgroundColorHex
@@ -294,6 +287,13 @@ struct SettingsPanelView: View {
         colorHex: $fontColorHex,
         saturation: 0.82
       )
+      if displayStyle == .flip {
+        ColorPlanePicker(
+          title: L10n.text("settings.clock_color"),
+          colorHex: $flipCardColorHex,
+          saturation: 0.35
+        )
+      }
 
       if displayStyle == .flip {
         labeledPickerRow(title: L10n.text("settings.flip_format")) {
