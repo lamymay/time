@@ -9,7 +9,7 @@ enum MoveSpeedLimits {
   static let pixelsPerSecondFactor: Double = 100
 
   static func displayLabel(for speed: Double) -> String {
-    if speed < 0.005 { return "静止" }
+    if speed < 0.005 { return L10n.text("speed.still") }
     return "\(Int(round(speed * 100)))%"
   }
 

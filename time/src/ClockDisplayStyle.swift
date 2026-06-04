@@ -9,15 +9,15 @@ enum ClockDisplayStyle: String, CaseIterable, Identifiable, Codable {
 
   var label: String {
     switch self {
-    case .classic: return "经典"
-    case .flip: return "翻页"
+    case .classic: L10n.text("style.classic")
+    case .flip: L10n.text("style.flip")
     }
   }
 
   var subtitle: String {
     switch self {
-    case .classic: return "可弹跳移动"
-    case .flip: return "全屏居中 · HTC 翻页"
+    case .classic: L10n.text("style.classic_subtitle")
+    case .flip: L10n.text("style.flip_subtitle")
     }
   }
 }

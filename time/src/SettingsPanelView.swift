@@ -85,7 +85,7 @@ struct SettingsPanelView: View {
       dragHandle
 
       HStack(alignment: .center) {
-        Text("设置")
+        Text(L10n.text("settings.title"))
           .font(.title2.weight(.semibold))
         Spacer()
         Button(action: closePanel) {
@@ -97,7 +97,7 @@ struct SettingsPanelView: View {
         .buttonStyle(.plain)
         #if os(macOS)
           .keyboardShortcut(.escape, modifiers: [])
-          .help("关闭设置")
+          .help(L10n.text("settings.close_help"))
         #endif
       }
       .padding(.horizontal, 18)
@@ -120,7 +120,7 @@ struct SettingsPanelView: View {
     }
     .padding(.top, layout == .bottomSheet ? 10 : 12)
     .padding(.bottom, 6)
-    .accessibilityLabel("拖动手柄")
+    .accessibilityLabel(L10n.text("settings.drag_handle"))
   }
 
   private var panelDragGesture: some Gesture {
@@ -137,9 +137,9 @@ struct SettingsPanelView: View {
   // MARK: - Sections
 
   private var appearanceSection: some View {
-    SettingsSection(title: "外观", systemImage: "paintbrush") {
-      labeledPickerRow(title: "时钟样式") {
-        Picker("样式", selection: $clockDisplayStyleRaw) {
+    SettingsSection(title: L10n.text("settings.appearance"), systemImage: "paintbrush") {
+      labeledPickerRow(title: L10n.text("settings.clock_style")) {
+        Picker(L10n.text("settings.clock_style"), selection: $clockDisplayStyleRaw) {
           ForEach(ClockDisplayStyle.allCases) { style in
             Text(style.label).tag(style.rawValue)
           }
@@ -152,7 +152,7 @@ struct SettingsPanelView: View {
         .foregroundStyle(SettingsTheme.secondaryText)
 
       settingSlider(
-        title: "字号",
+        title: L10n.text("settings.font_size"),
         value: $fontSize,
         range: 30...350,
         label: "\(Int(fontSize))"
@@ -165,48 +165,48 @@ struct SettingsPanelView: View {
   }
 
   private var motionSection: some View {
-    SettingsSection(title: "运动", systemImage: "arrow.up.left.and.arrow.down.right") {
+    SettingsSection(title: L10n.text("settings.motion"), systemImage: "arrow.up.left.and.arrow.down.right") {
       settingSlider(
-        title: "移动速度",
+        title: L10n.text("settings.move_speed"),
         value: $moveSpeed,
         range: MoveSpeedLimits.min...MoveSpeedLimits.max,
         label: MoveSpeedLimits.displayLabel(for: moveSpeed)
       ) { onSpeedChange() }
-      Text("设为「静止」可固定时钟位置，适合纯屏保展示。")
+      Text(L10n.text("settings.motion_hint"))
         .font(.caption)
         .foregroundStyle(SettingsTheme.secondaryText)
     }
   }
 
   private var timeFormatSection: some View {
-    SettingsSection(title: "时间", systemImage: "clock") {
-      labeledPickerRow(title: "时制") {
-        Picker("时制", selection: $is24Hour) {
-          Text("12 小时").tag(false)
-          Text("24 小时").tag(true)
+    SettingsSection(title: L10n.text("settings.time"), systemImage: "clock") {
+      labeledPickerRow(title: L10n.text("settings.time_format")) {
+        Picker(L10n.text("settings.time_format"), selection: $is24Hour) {
+          Text(L10n.text("format.12h")).tag(false)
+          Text(L10n.text("format.24h")).tag(true)
         }
         .pickerStyle(.segmented)
         .labelsHidden()
       }
 
-      SettingsToggleRow(title: "小时前置补零", isOn: $padZero)
+      SettingsToggleRow(title: L10n.text("settings.hour_pad_zero"), isOn: $padZero)
 
       if !is24Hour {
-        SettingsToggleRow(title: "显示 AM / PM", isOn: $showAMPM)
+        SettingsToggleRow(title: L10n.text("settings.show_ampm"), isOn: $showAMPM)
         if showAMPM {
-          labeledPickerRow(title: "AM/PM 位置") {
-            Picker("位置", selection: $ampmSide) {
-              Text("时间前").tag("Leading")
-              Text("时间后").tag("Trailing")
+          labeledPickerRow(title: L10n.text("settings.ampm_position")) {
+            Picker(L10n.text("settings.ampm_position"), selection: $ampmSide) {
+              Text(L10n.text("format.ampm_before")).tag("Leading")
+              Text(L10n.text("format.ampm_after")).tag("Trailing")
             }
             .pickerStyle(.segmented)
             .labelsHidden()
           }
-          labeledPickerRow(title: "AM/PM 字号") {
-            Picker("比例", selection: $ampmScale) {
-              Text("¼").tag(0.25)
-              Text("½").tag(0.5)
-              Text("等大").tag(1.0)
+          labeledPickerRow(title: L10n.text("settings.ampm_scale")) {
+            Picker(L10n.text("settings.ampm_scale"), selection: $ampmScale) {
+              Text(L10n.text("format.ampm_quarter")).tag(0.25)
+              Text(L10n.text("format.ampm_half")).tag(0.5)
+              Text(L10n.text("format.ampm_equal")).tag(1.0)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -217,9 +217,9 @@ struct SettingsPanelView: View {
   }
 
   private var displaySection: some View {
-    SettingsSection(title: "显示", systemImage: "display") {
-      labeledPickerRow(title: "时间精度") {
-        Picker("精度", selection: $timeDisplayPrecisionRaw) {
+    SettingsSection(title: L10n.text("settings.display"), systemImage: "display") {
+      labeledPickerRow(title: L10n.text("settings.time_precision")) {
+        Picker(L10n.text("settings.time_precision"), selection: $timeDisplayPrecisionRaw) {
           ForEach(TimeDisplayPrecision.allCases) { item in
             Text(item.label).tag(item.rawValue)
           }
@@ -230,7 +230,7 @@ struct SettingsPanelView: View {
 
       if precision != .minute {
         Label {
-          Text("精度越高 CPU 占用越高，屏保常驻建议使用「分」。")
+          Text(L10n.text("settings.precision_warning"))
         } icon: {
           Image(systemName: "exclamationmark.triangle.fill")
         }
@@ -238,14 +238,18 @@ struct SettingsPanelView: View {
         .foregroundStyle(.orange.opacity(0.9))
       }
 
-      SettingsToggleRow(title: "显示时区", isOn: $showTimeZoneText)
-      SettingsToggleRow(title: "屏保常亮", subtitle: "防止系统自动熄屏", isOn: $keepDisplayAwake)
+      SettingsToggleRow(title: L10n.text("settings.show_timezone"), isOn: $showTimeZoneText)
+      SettingsToggleRow(
+        title: L10n.text("settings.keep_awake"),
+        subtitle: L10n.text("settings.keep_awake_hint"),
+        isOn: $keepDisplayAwake
+      )
     }
   }
 
   private var advancedSection: some View {
-    SettingsSection(title: "高级", systemImage: "gearshape") {
-      SettingsToggleRow(title: "开发者 Debug", isOn: $showDebugInfo)
+    SettingsSection(title: L10n.text("settings.advanced"), systemImage: "gearshape") {
+      SettingsToggleRow(title: L10n.text("settings.debug"), isOn: $showDebugInfo)
     }
   }
 
@@ -253,8 +257,8 @@ struct SettingsPanelView: View {
 
   private var backgroundColorPicker: some View {
     VStack(alignment: .leading, spacing: 14) {
-      backgroundPresetRow(title: "深色", presets: BackgroundColorPreset.darkPresets)
-      backgroundPresetRow(title: "浅色", presets: BackgroundColorPreset.lightPresets)
+      backgroundPresetRow(title: L10n.text("color.theme_dark"), presets: BackgroundColorPreset.darkPresets)
+      backgroundPresetRow(title: L10n.text("color.theme_light"), presets: BackgroundColorPreset.lightPresets)
     }
   }
 
@@ -307,7 +311,7 @@ struct SettingsPanelView: View {
       }
     } label: {
       HStack {
-        Label("字体", systemImage: "textformat")
+        Label(L10n.text("settings.font"), systemImage: "textformat")
         Spacer()
         Text(selectedFontName)
           .font(.caption)
@@ -325,7 +329,7 @@ struct SettingsPanelView: View {
   #if os(iOS)
     private var footerDoneButton: some View {
       Button(action: closePanel) {
-        Text("完成")
+        Text(L10n.text("settings.done"))
           .font(.headline)
           .frame(maxWidth: .infinity)
           .padding(.vertical, 14)

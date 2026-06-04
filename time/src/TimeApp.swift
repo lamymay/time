@@ -15,7 +15,7 @@ struct TimeApp: App {
     }
     .commands {
       CommandGroup(replacing: .appSettings) {
-        Button("设置...") {
+        Button(L10n.text("settings.menu")) {
           NotificationCenter.default.post(name: NSNotification.Name("ShowSettingsUI"), object: nil)
         }
         .keyboardShortcut(",", modifiers: .command)

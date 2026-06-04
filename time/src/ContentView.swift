@@ -185,9 +185,9 @@ struct ContentView: View {
           }
           #if os(macOS)
             .contextMenu {
-              Button("个性化设置") { toggleSettings() }
+              Button(L10n.text("menu.settings")) { toggleSettings() }
               Divider()
-              Button("退出程序") { NSApplication.shared.terminate(nil) }
+              Button(L10n.text("menu.quit")) { NSApplication.shared.terminate(nil) }
             }
           #endif
 
@@ -363,9 +363,18 @@ struct ContentView: View {
     TimelineView(.periodic(from: .now, by: timeDisplayPrecision.debugTimelineInterval)) { timeline in
       VStack(alignment: .leading, spacing: 4) {
         Text(
-          "[SYSTEM] \(TimeProvider.formatSystemTime(from: timeline.date, precision: timeDisplayPrecision))"
+          String(
+            format: L10n.text("debug.system_format"),
+            TimeProvider.formatSystemTime(from: timeline.date, precision: timeDisplayPrecision)
+          )
         )
-        Text("[LOGIC] is24H:\(String(is24Hour)) | Font: \(selectedFontName)")
+        Text(
+          String(
+            format: L10n.text("debug.logic_format"),
+            String(is24Hour),
+            selectedFontName
+          )
+        )
       }
       .font(.system(size: 10, design: .monospaced))
       .foregroundColor(.green.opacity(0.9))

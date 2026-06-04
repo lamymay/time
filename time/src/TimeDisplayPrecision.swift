@@ -9,8 +9,8 @@ enum TimeDisplayPrecision: String, CaseIterable, Identifiable, Codable {
 
   var label: String {
     switch self {
-    case .minute: return "分"
-    case .second: return "秒"
+    case .minute: L10n.text("precision.minute")
+    case .second: L10n.text("precision.second")
     }
   }
 

@@ -35,14 +35,14 @@ enum BackgroundColorPreset: String, CaseIterable, Identifiable {
 
   var label: String {
     switch self {
-    case .black: return "纯黑"
-    case .darkGray: return "深灰"
-    case .navy: return "深蓝"
-    case .darkGreen: return "深绿"
-    case .white: return "纯白"
-    case .lightGray: return "浅灰"
-    case .cream: return "米白"
-    case .lightBlue: return "浅蓝"
+    case .black: L10n.text("bg.black")
+    case .darkGray: L10n.text("bg.dark_gray")
+    case .navy: L10n.text("bg.navy")
+    case .darkGreen: L10n.text("bg.dark_green")
+    case .white: L10n.text("bg.white")
+    case .lightGray: L10n.text("bg.light_gray")
+    case .cream: L10n.text("bg.cream")
+    case .lightBlue: L10n.text("bg.light_blue")
     }
   }
 

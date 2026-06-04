@@ -9,7 +9,7 @@ struct SideFontPickerView: View {
   var body: some View {
     VStack(spacing: 0) {
       HStack {
-        Text("字体")
+        Text(L10n.text("settings.font"))
           .font(.title2.weight(.semibold))
         Spacer()
         Button(action: { withAnimation { isPresented = false } }) {
@@ -26,7 +26,7 @@ struct SideFontPickerView: View {
 
       Divider().overlay(SettingsTheme.separator)
 
-      TextField("搜索字体", text: $searchText)
+      TextField(L10n.text("settings.font_search"), text: $searchText)
         .textFieldStyle(.roundedBorder)
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
