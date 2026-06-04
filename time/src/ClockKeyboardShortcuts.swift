@@ -1,11 +1,16 @@
 import SwiftUI
 
+extension Notification.Name {
+  static let clockAdjustFontSize = Notification.Name("clockAdjustFontSize")
+}
+
 #if os(macOS)
   import AppKit
 
-  /// 屏保快捷键：Enter 全屏；Q / S / K 退出
+  /// 屏保快捷键：Enter 全屏；Q / S / K 退出；⌘= / ⌘+ 放大字号；⌘- 缩小字号
   enum ClockKeyboardShortcuts {
     private static let quitKeys: Set<String> = ["q", "s", "k"]
+    private static let zoomInKeys: Set<String> = ["=", "+"]
     private static var monitor: Any?
 
     static func install() {
@@ -25,10 +30,27 @@ import SwiftUI
     /// - Returns: `true` 表示已消费该按键
     private static func handle(_ event: NSEvent) -> Bool {
       guard NSApp.isActive else { return false }
-      if event.modifierFlags.intersection([.command, .control, .option]).isEmpty == false {
+      if isTypingInTextField() { return false }
+
+      let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+      let hasCommand = flags.contains(.command)
+
+      if hasCommand {
+        guard let ch = event.charactersIgnoringModifiers, !ch.isEmpty else { return false }
+        if zoomInKeys.contains(ch) {
+          postFontSizeDelta(ClockFontSizeLimits.keyboardFontSizeStep)
+          return true
+        }
+        if ch == "-" {
+          postFontSizeDelta(-ClockFontSizeLimits.keyboardFontSizeStep)
+          return true
+        }
         return false
       }
-      if isTypingInTextField() { return false }
+
+      if flags.intersection([.control, .option]).isEmpty == false {
+        return false
+      }
 
       let keyCode = event.keyCode
       if keyCode == 36 || keyCode == 76 {
@@ -46,6 +68,14 @@ import SwiftUI
       return false
     }
 
+    private static func postFontSizeDelta(_ delta: Double) {
+      NotificationCenter.default.post(
+        name: .clockAdjustFontSize,
+        object: nil,
+        userInfo: ["delta": delta]
+      )
+    }
+
     private static func isTypingInTextField() -> Bool {
       guard let responder = NSApp.keyWindow?.firstResponder else { return false }
       return responder is NSTextView || responder is NSTextField
@@ -55,6 +85,13 @@ import SwiftUI
   enum WindowFullscreen {
     static func toggle() {
       guard let window = NSApp.keyWindow ?? NSApp.mainWindow else { return }
+      window.toggleFullScreen(nil)
+    }
+
+    /// 翻页模式启动时进入全屏（已全屏则跳过）
+    static func enterIfNeeded() {
+      guard let window = NSApp.keyWindow ?? NSApp.mainWindow else { return }
+      guard !window.styleMask.contains(.fullScreen) else { return }
       window.toggleFullScreen(nil)
     }
   }

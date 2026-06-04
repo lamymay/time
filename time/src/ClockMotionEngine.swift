@@ -8,6 +8,7 @@ final class ClockMotionEngine {
   var position: CGPoint?
   var clockColor: Color = BackgroundColorPreset.black.defaultClockColor
   var totalSize: CGSize = .zero
+  var trailSamples: [MotionTrailSample] = []
 
   private var direction = CGVector(dx: 1, dy: 1)
   private var motionTimer: DispatchSourceTimer?
@@ -31,8 +32,11 @@ final class ClockMotionEngine {
 
   func applyBackground(hex: String) {
     let preset = BackgroundColorPreset.from(hex: hex)
-    lightBackground = preset?.isLight ?? false
-    clockColor = preset?.defaultClockColor ?? BackgroundColorPreset.black.defaultClockColor
+    let bg = Color(hex: ColorPickerCodec.normalizedHex(hex))
+    lightBackground = preset?.isLight ?? bg.isLightBackground
+    clockColor = preset?.defaultClockColor ?? (bg.isLightBackground
+      ? Color(hex: "#0A6B5C")
+      : Color(hex: "#6EEBD8"))
   }
 
   func setScreenSize(_ size: CGSize) {
@@ -59,6 +63,7 @@ final class ClockMotionEngine {
   func setMotionActive(_ active: Bool) {
     guard active != isMotionActive else { return }
     isMotionActive = active
+    if !active { clearTrail() }
     restartMotionTimerIfNeeded()
   }
 
@@ -179,6 +184,10 @@ final class ClockMotionEngine {
     guard quantized != lastRenderedOffset else { return }
     lastRenderedOffset = quantized
     renderer?.setTranslation(quantized)
+  }
+
+  func clearTrail() {
+    trailSamples = []
   }
 
   deinit {

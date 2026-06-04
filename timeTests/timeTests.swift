@@ -75,6 +75,15 @@ struct TimeRolloverTests {
     #expect(fields.contains(.minuteTens))
   }
 
+  @Test func secondPrecisionTicksEverySecond() {
+    var f = format
+    f.displayPrecision = .second
+    let at = date(2024, 6, 4, 16, 12, 25)
+    let fields = TimeProvider.fieldsChangingAtNextTick(from: at, format: f)
+    #expect(fields.contains(.secondOnes))
+    #expect(!fields.contains(.minuteTens))
+  }
+
   @Test func minuteOnesOnlyWhenNoCarry() {
     let at = date(2024, 6, 4, 16, 3)
     let fields = TimeProvider.fieldsChangingAtNextMinute(from: at, format: format)

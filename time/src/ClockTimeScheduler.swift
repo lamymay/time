@@ -1,6 +1,8 @@
 import Foundation
+import Observation
 
 /// 按显示精度调度；tick 直推 NativeClockTickTarget，不经过 SwiftUI
+@Observable
 final class ClockTimeScheduler {
   private(set) var segments = TimeSegments()
 
@@ -25,15 +27,20 @@ final class ClockTimeScheduler {
         segments: segments,
         changedFields: Set(TimeSegmentField.allCases)
       )
+      if isActive { reschedule() }
+    } else {
+      cancelSchedule()
     }
   }
 
   func setFormat(_ format: ClockFormatOptions) {
-    guard self.format != format else { return }
+    let formatChanged = self.format != format
     self.format = format
     calendar = TimeProvider.makeCalendar(for: format.timeZoneIdentifier)
     refreshIfNeeded(at: Date(), force: true)
-    reschedule()
+    if isActive, formatChanged || tickTarget != nil {
+      reschedule()
+    }
   }
 
   func setActive(_ active: Bool) {
