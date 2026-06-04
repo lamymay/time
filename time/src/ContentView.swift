@@ -243,6 +243,7 @@ struct ContentView: View {
           fontCatalog = nil
         }
       }
+      .clockKeyboardShortcuts()
     }
   }
 
