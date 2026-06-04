@@ -40,6 +40,8 @@ struct SettingsPanelView: View {
   #if os(iOS)
     @State private var iosFontSizeDraft: Double?
     @State private var iosFontSizeThrottle = SettingsChangeThrottle()
+    /// 首帧先出面板骨架，下一帧再建色条，避免长按打开时主线程卡死
+    @State private var iosColorPickersReady = false
   #endif
 
   #if os(iOS)
@@ -118,7 +120,23 @@ struct SettingsPanelView: View {
         }
       #endif
     }
-    .onAppear { syncFontSizeToLimits() }
+    .onAppear {
+      syncFontSizeToLimits()
+      #if os(iOS)
+        if isIOSSheet, !iosColorPickersReady {
+          Task { @MainActor in
+            iosColorPickersReady = true
+          }
+        } else {
+          iosColorPickersReady = true
+        }
+      #endif
+    }
+    #if os(iOS)
+      .onDisappear {
+        iosColorPickersReady = false
+      }
+    #endif
     .onChange(of: screenSize) { _, _ in syncFontSizeToLimits() }
     .onChange(of: clockDisplayStyleRaw) { _, raw in
       if ClockDisplayStyle(rawValue: raw) == .flip {
@@ -275,24 +293,10 @@ struct SettingsPanelView: View {
       .pickerStyle(.segmented)
       .labelsHidden()
 
-      ColorPlanePickerHints()
-
-      ColorPlanePicker(
-        title: L10n.text("settings.background_color"),
-        colorHex: $backgroundColorHex
-      )
-      backgroundPureBlackShortcut
-      ColorPlanePicker(
-        title: L10n.text("settings.font_color"),
-        colorHex: $fontColorHex,
-        saturation: 0.82
-      )
-      if displayStyle == .flip {
-        ColorPlanePicker(
-          title: L10n.text("settings.clock_color"),
-          colorHex: $flipCardColorHex,
-          saturation: 0.35
-        )
+      if iosColorPickerSectionReady {
+        colorPickerSection
+      } else {
+        colorPickerSectionPlaceholder
       }
 
       if displayStyle == .flip {
@@ -356,6 +360,44 @@ struct SettingsPanelView: View {
           .foregroundStyle(SettingsTheme.secondaryText)
       }
     }
+  }
+
+  private var iosColorPickerSectionReady: Bool {
+    #if os(iOS)
+      if isIOSSheet { return iosColorPickersReady }
+    #endif
+    return true
+  }
+
+  @ViewBuilder
+  private var colorPickerSection: some View {
+    ColorPlanePickerHints()
+    ColorPlanePicker(
+      title: L10n.text("settings.background_color"),
+      colorHex: $backgroundColorHex
+    )
+    backgroundPureBlackShortcut
+    ColorPlanePicker(
+      title: L10n.text("settings.font_color"),
+      colorHex: $fontColorHex,
+      saturation: 0.82
+    )
+    if displayStyle == .flip {
+      ColorPlanePicker(
+        title: L10n.text("settings.clock_color"),
+        colorHex: $flipCardColorHex,
+        saturation: 0.35
+      )
+    }
+  }
+
+  private var colorPickerSectionPlaceholder: some View {
+    RoundedRectangle(cornerRadius: 8, style: .continuous)
+      .fill(Color.white.opacity(0.06))
+      .frame(height: isIOSSheet ? 168 : 280)
+      .overlay {
+        ProgressView()
+      }
   }
 
   private var backgroundPureBlackShortcut: some View {

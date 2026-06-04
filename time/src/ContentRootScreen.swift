@@ -157,12 +157,6 @@ struct ContentRootScreen: View {
       Color.clear
         .ignoresSafeArea()
         .contentShape(Rectangle())
-        .onTapGesture {
-          withAnimation {
-            showSettings = false
-            showFontPicker = false
-          }
-        }
         .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 32) {
           toggleSettings()
         }
@@ -275,7 +269,7 @@ struct ContentRootScreen: View {
         backgroundColorHex: backgroundColorHex,
         flipCardColorHex: flipCardColorHex,
         fontColorHex: fontColorHex,
-        isActive: scenePhase == .active
+        isActive: scenePhase == .active && !isPaused
       )
       .ignoresSafeArea()
     }
@@ -296,6 +290,18 @@ struct ContentRootScreen: View {
 
   // MARK: - Overlays
 
+  private var settingsDismissBackdrop: some View {
+    Color.clear
+      .contentShape(Rectangle())
+      .ignoresSafeArea()
+      .accessibilityIdentifier(TimeAccessibilityID.settingsBackdrop)
+      .onTapGesture {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+          showSettings = false
+        }
+      }
+  }
+
   private func settingsTransition(isWide: Bool) -> AnyTransition {
     if isWide {
       return .move(edge: .trailing).combined(with: .opacity)
@@ -306,16 +312,14 @@ struct ContentRootScreen: View {
   @ViewBuilder
   private func settingsOverlay(size: CGSize, isWide: Bool) -> some View {
     ZStack(alignment: isWide ? .trailing : .bottom) {
-      // 透明点击区：不关底层颜色，便于在菜单里预览背景/字体色
-      Color.clear
-        .contentShape(Rectangle())
-        .ignoresSafeArea()
-        .accessibilityIdentifier(TimeAccessibilityID.settingsBackdrop)
-        .onTapGesture {
-          withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-            showSettings = false
-          }
+      // iOS 底部 sheet：遮罩不响应点击，避免长按抬手被当成「点空白关闭」
+      #if os(iOS)
+        if isWide {
+          settingsDismissBackdrop
         }
+      #else
+        settingsDismissBackdrop
+      #endif
 
       settingsPanel(in: size, isWide: isWide)
     }

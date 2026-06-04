@@ -82,8 +82,9 @@ struct ColorPlanePicker: View {
     .frame(height: planeHeight)
   }
 
+  @ViewBuilder
   private var colorField: some View {
-    ZStack {
+    let field = ZStack {
       LinearGradient(
         colors: hueStops,
         startPoint: .leading,
@@ -96,7 +97,15 @@ struct ColorPlanePicker: View {
       )
       .blendMode(.multiply)
     }
-    .drawingGroup(opaque: false, colorMode: .linear)
+    #if os(iOS)
+      if compactLayout {
+        field
+      } else {
+        field.drawingGroup(opaque: false, colorMode: .linear)
+      }
+    #else
+      field.drawingGroup(opaque: false, colorMode: .linear)
+    #endif
   }
 
   private var hueStops: [Color] {
