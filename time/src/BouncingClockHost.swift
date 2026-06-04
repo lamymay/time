@@ -5,6 +5,8 @@ struct BouncingClockHost: View {
   let scheduler: ClockTimeScheduler
   let motion: ClockMotionEngine
   let styleStamp: ClockStyleStamp
+  /// SwiftUI 分配的全屏区域（横屏时应与窗口一致）
+  let playfieldSize: CGSize
   let moveSpeed: Double
   let isActive: Bool
   let isPaused: Bool
@@ -15,6 +17,7 @@ struct BouncingClockHost: View {
         scheduler: scheduler,
         motion: motion,
         styleStamp: styleStamp,
+        playfieldSize: playfieldSize,
         moveSpeed: moveSpeed,
         isActive: isActive,
         isPaused: isPaused
@@ -24,6 +27,7 @@ struct BouncingClockHost: View {
         scheduler: scheduler,
         motion: motion,
         styleStamp: styleStamp,
+        playfieldSize: playfieldSize,
         moveSpeed: moveSpeed,
         isActive: isActive,
         isPaused: isPaused
@@ -32,12 +36,33 @@ struct BouncingClockHost: View {
   }
 }
 
+private func resolvedBouncePlayfield(containerSize: CGSize, playfieldSize: CGSize) -> CGSize {
+  let w = max(containerSize.width, playfieldSize.width)
+  let h = max(containerSize.height, playfieldSize.height)
+  guard w > 1, h > 1 else { return .zero }
+  return CGSize(width: w, height: h)
+}
+
+private func applyPlayfieldSize(
+  containerSize: CGSize,
+  playfieldSize: CGSize,
+  to motion: ClockMotionEngine?
+) {
+  let size = resolvedBouncePlayfield(
+    containerSize: containerSize,
+    playfieldSize: playfieldSize
+  )
+  guard size.width > 1, size.height > 1 else { return }
+  motion?.setScreenSize(size)
+}
+
 #if os(macOS)
 
   private struct MacBouncingClockHost: NSViewRepresentable {
     let scheduler: ClockTimeScheduler
     let motion: ClockMotionEngine
     let styleStamp: ClockStyleStamp
+    let playfieldSize: CGSize
     let moveSpeed: Double
     let isActive: Bool
     let isPaused: Bool
@@ -48,9 +73,6 @@ struct BouncingClockHost: View {
 
     func makeNSView(context: Context) -> BounceContainerNSView {
       let container = BounceContainerNSView()
-      container.onBoundsSizeChange = { [motion] size in
-        motion.setScreenSize(size)
-      }
       let clock = NativeClockNSView()
       container.install(clock: clock)
       clock.applyStyle(styleStamp)
@@ -59,6 +81,10 @@ struct BouncingClockHost: View {
       context.coordinator.container = container
       context.coordinator.clock = clock
       context.coordinator.styleStamp = styleStamp
+      container.playfieldSize = playfieldSize
+      container.onBoundsSizeChange = { [weak motion] containerSize, playfield in
+        applyPlayfieldSize(containerSize: containerSize, playfieldSize: playfield, to: motion)
+      }
       clock.sizeDelegate = context.coordinator
       motion.setRenderer(context.coordinator)
       scheduler.setTickTarget(clock)
@@ -67,6 +93,7 @@ struct BouncingClockHost: View {
 
     func updateNSView(_ container: BounceContainerNSView, context: Context) {
       guard let clock = context.coordinator.clock else { return }
+      container.playfieldSize = playfieldSize
       if context.coordinator.styleStamp != styleStamp {
         clock.applyStyle(styleStamp)
         context.coordinator.styleStamp = styleStamp
@@ -76,18 +103,17 @@ struct BouncingClockHost: View {
     }
 
     private func syncMotionRuntime(container: BounceContainerNSView, context: Context) {
-      applyBoundsSize(container.bounds.size, to: context.coordinator.motion)
+      applyPlayfieldSize(
+        containerSize: container.bounds.size,
+        playfieldSize: playfieldSize,
+        to: context.coordinator.motion
+      )
       context.coordinator.motion?.setMoveSpeed(moveSpeed)
       context.coordinator.motion?.setMotionActive(isActive)
       context.coordinator.motion?.setPaused(isPaused)
       if !isPaused, isActive, moveSpeed > 0 {
         context.coordinator.motion?.ensureBounceReady()
       }
-    }
-
-    private func applyBoundsSize(_ size: CGSize, to motion: ClockMotionEngine?) {
-      guard size.width > 1, size.height > 1 else { return }
-      motion?.setScreenSize(size)
     }
 
     static func dismantleNSView(_: BounceContainerNSView, coordinator: Coordinator) {
@@ -106,6 +132,10 @@ struct BouncingClockHost: View {
         container?.setTranslation(offset)
       }
 
+      func setClockDisplayColor(_ color: Color) {
+        clock?.setDisplayColor(color)
+      }
+
       func nativeClock(didMeasure size: CGSize) {
         guard let motion, motion.totalSize != size else { return }
         motion.totalSize = size
@@ -117,7 +147,8 @@ struct BouncingClockHost: View {
   private final class BounceContainerNSView: NSView {
     private weak var clock: NativeClockNSView?
     private var translation: CGSize = .zero
-    var onBoundsSizeChange: ((CGSize) -> Void)?
+    var playfieldSize: CGSize = .zero
+    var onBoundsSizeChange: ((CGSize, CGSize) -> Void)?
     private var lastReportedBounds: CGSize = .zero
 
     override var intrinsicContentSize: NSSize {
@@ -160,7 +191,7 @@ struct BouncingClockHost: View {
       let size = bounds.size
       guard size.width > 1, size.height > 1, size != lastReportedBounds else { return }
       lastReportedBounds = size
-      onBoundsSizeChange?(size)
+      onBoundsSizeChange?(size, playfieldSize)
     }
   }
 
@@ -170,6 +201,7 @@ struct BouncingClockHost: View {
     let scheduler: ClockTimeScheduler
     let motion: ClockMotionEngine
     let styleStamp: ClockStyleStamp
+    let playfieldSize: CGSize
     let moveSpeed: Double
     let isActive: Bool
     let isPaused: Bool
@@ -180,9 +212,7 @@ struct BouncingClockHost: View {
 
     func makeUIView(context: Context) -> BounceContainerUIView {
       let container = BounceContainerUIView()
-      container.onBoundsSizeChange = { [motion] size in
-        motion.setScreenSize(size)
-      }
+      container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
       let clock = NativeClockUIView()
       container.install(clock: clock)
       clock.applyStyle(styleStamp)
@@ -191,6 +221,10 @@ struct BouncingClockHost: View {
       context.coordinator.container = container
       context.coordinator.clock = clock
       context.coordinator.styleStamp = styleStamp
+      container.playfieldSize = playfieldSize
+      container.onBoundsSizeChange = { [weak motion] containerSize, playfield in
+        applyPlayfieldSize(containerSize: containerSize, playfieldSize: playfield, to: motion)
+      }
       clock.sizeDelegate = context.coordinator
       motion.setRenderer(context.coordinator)
       scheduler.setTickTarget(clock)
@@ -199,6 +233,7 @@ struct BouncingClockHost: View {
 
     func updateUIView(_ container: BounceContainerUIView, context: Context) {
       guard let clock = context.coordinator.clock else { return }
+      container.playfieldSize = playfieldSize
       if context.coordinator.styleStamp != styleStamp {
         clock.applyStyle(styleStamp)
         context.coordinator.styleStamp = styleStamp
@@ -207,19 +242,29 @@ struct BouncingClockHost: View {
       syncMotionRuntime(container: container, context: context)
     }
 
+    static func sizeThatFits(
+      _ proposal: ProposedViewSize,
+      uiView: BounceContainerUIView,
+      context: Context
+    ) -> CGSize? {
+      let width = proposal.width ?? uiView.bounds.width
+      let height = proposal.height ?? uiView.bounds.height
+      guard width > 1, height > 1 else { return nil }
+      return CGSize(width: width, height: height)
+    }
+
     private func syncMotionRuntime(container: BounceContainerUIView, context: Context) {
-      applyBoundsSize(container.bounds.size, to: context.coordinator.motion)
+      applyPlayfieldSize(
+        containerSize: container.bounds.size,
+        playfieldSize: playfieldSize,
+        to: context.coordinator.motion
+      )
       context.coordinator.motion?.setMoveSpeed(moveSpeed)
       context.coordinator.motion?.setMotionActive(isActive)
       context.coordinator.motion?.setPaused(isPaused)
       if !isPaused, isActive, moveSpeed > 0 {
         context.coordinator.motion?.ensureBounceReady()
       }
-    }
-
-    private func applyBoundsSize(_ size: CGSize, to motion: ClockMotionEngine?) {
-      guard size.width > 1, size.height > 1 else { return }
-      motion?.setScreenSize(size)
     }
 
     static func dismantleUIView(_: BounceContainerUIView, coordinator: Coordinator) {
@@ -238,6 +283,10 @@ struct BouncingClockHost: View {
         container?.setTranslation(offset)
       }
 
+      func setClockDisplayColor(_ color: Color) {
+        clock?.setDisplayColor(color)
+      }
+
       func nativeClock(didMeasure size: CGSize) {
         guard let motion, motion.totalSize != size else { return }
         motion.totalSize = size
@@ -249,7 +298,8 @@ struct BouncingClockHost: View {
   private final class BounceContainerUIView: UIView {
     private weak var clock: NativeClockUIView?
     private var translation: CGSize = .zero
-    var onBoundsSizeChange: ((CGSize) -> Void)?
+    var playfieldSize: CGSize = .zero
+    var onBoundsSizeChange: ((CGSize, CGSize) -> Void)?
     private var lastReportedBounds: CGSize = .zero
 
     override var intrinsicContentSize: CGSize {
@@ -294,7 +344,7 @@ struct BouncingClockHost: View {
       let size = bounds.size
       guard size.width > 1, size.height > 1, size != lastReportedBounds else { return }
       lastReportedBounds = size
-      onBoundsSizeChange?(size)
+      onBoundsSizeChange?(size, playfieldSize)
     }
   }
 

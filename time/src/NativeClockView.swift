@@ -67,6 +67,13 @@ private enum NativeClockLayoutHelper {
       refreshLayers(needsLayout: true)
     }
 
+    func setDisplayColor(_ color: Color) {
+      guard var stamp = styleStamp else { return }
+      stamp.color = color
+      styleStamp = stamp
+      refreshLayers(needsLayout: false)
+    }
+
     func applyTick(segments: TimeSegments, changedFields: Set<TimeSegmentField>) {
       self.segments = segments
       let layoutNeeded = !changedFields.isSubset(of: [.secondTens, .secondOnes])
@@ -195,6 +202,13 @@ private enum NativeClockLayoutHelper {
       styleStamp = stamp
       fonts = NativeClockFonts.make(style: stamp.style)
       refreshLayers(needsLayout: true)
+    }
+
+    func setDisplayColor(_ color: Color) {
+      guard var stamp = styleStamp else { return }
+      stamp.color = color
+      styleStamp = stamp
+      refreshLayers(needsLayout: false)
     }
 
     func applyTick(segments: TimeSegments, changedFields: Set<TimeSegmentField>) {

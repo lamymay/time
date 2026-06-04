@@ -15,6 +15,8 @@ final class FlipClockTickBridge: NativeClockTickTarget {
   }
 
   func applyStyle(_: ClockStyleStamp) {}
+
+  func setDisplayColor(_: Color) {}
 }
 
 /// 与 scheduler tick 同步；子视图只观察此结构，避免 changedFields 在 onChange 里过期。

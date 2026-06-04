@@ -49,21 +49,30 @@ struct MotionClockContent: View {
       style: style,
       precision: precision,
       timeZoneTopGap: timeZoneTopGap,
-      color: motion.clockColor,
+      color: Color(hex: ColorPickerCodec.normalizedHex(fontColorHex)),
       showTimeZoneText: showTimeZoneText
     )
   }
 
   var body: some View {
-    BouncingClockHost(
-      scheduler: scheduler,
-      motion: motion,
-      styleStamp: styleStamp,
-      moveSpeed: moveSpeed,
-      isActive: isActive,
-      isPaused: isPaused
-    )
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    GeometryReader { geo in
+      BouncingClockHost(
+        scheduler: scheduler,
+        motion: motion,
+        styleStamp: styleStamp,
+        playfieldSize: geo.size,
+        moveSpeed: moveSpeed,
+        isActive: isActive,
+        isPaused: isPaused
+      )
+      .frame(width: geo.size.width, height: geo.size.height)
+      .onAppear {
+        motion.setScreenSize(geo.size)
+      }
+      .onChange(of: geo.size) { _, size in
+        motion.setScreenSize(size)
+      }
+    }
     .onAppear {
       motion.setMoveSpeed(moveSpeed)
       motion.setPaused(isPaused)

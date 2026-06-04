@@ -28,6 +28,7 @@ final class ClockMotionEngine {
     self.renderer = renderer
     if renderer != nil {
       pushOffsetToRenderer()
+      renderer?.setClockDisplayColor(clockColor)
     }
   }
 
@@ -41,6 +42,7 @@ final class ClockMotionEngine {
   func applyUserClockColor(hex: String) {
     userClockColorHex = ColorPickerCodec.normalizedHex(hex)
     clockColor = Color(hex: userClockColorHex ?? hex)
+    renderer?.setClockDisplayColor(clockColor)
   }
 
   private func applyResolvedClockColor(preset: BackgroundColorPreset?, background: Color) {
@@ -171,6 +173,14 @@ final class ClockMotionEngine {
     let minY = totalSize.height / 2
     let maxY = effectiveHeight - (totalSize.height / 2)
 
+    guard maxX >= minX, maxY >= minY else {
+      if position != screenCenter {
+        position = screenCenter
+        pushOffsetToRenderer()
+      }
+      return
+    }
+
     let step = CGFloat(MoveSpeedLimits.pixelsPerSecondFactor * moveSpeed) * CGFloat(delta)
     var newX = currentPos.x + direction.dx * step
     var newY = currentPos.y + direction.dy * step
@@ -199,6 +209,7 @@ final class ClockMotionEngine {
     let newPosition = CGPoint(x: newX, y: newY)
     if didCollide {
       clockColor = BackgroundColorPreset.randomCollisionColor(lightBackground: lightBackground)
+      renderer?.setClockDisplayColor(clockColor)
     }
 
     if position != newPosition {

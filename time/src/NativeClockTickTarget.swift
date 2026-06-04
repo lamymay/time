@@ -5,6 +5,7 @@ import SwiftUI
 protocol NativeClockTickTarget: AnyObject {
   func applyTick(segments: TimeSegments, changedFields: Set<TimeSegmentField>)
   func applyStyle(_ stamp: ClockStyleStamp)
+  func setDisplayColor(_ color: Color)
 }
 
 /// 样式/颜色（不含 segments）；仅设置变化时经 SwiftUI 更新
