@@ -1,5 +1,115 @@
-import Combine
 import SwiftUI
+
+struct ClockDisplayConfig: Equatable {
+  var fontSize: Double
+  var padZero: Bool
+  var is24Hour: Bool
+  var showAMPM: Bool
+  var ampmScale: Double
+  var ampmSide: String
+  var selectedTimeZone: String
+  var showTimeZoneText: Bool
+  var selectedFontName: String
+  var displayPrecision: TimeDisplayPrecision
+
+  var formatOptions: ClockFormatOptions {
+    ClockFormatOptions(
+      is24Hour: is24Hour,
+      padZero: padZero,
+      showAMPM: showAMPM,
+      ampmSide: ampmSide,
+      showTimeZoneText: showTimeZoneText,
+      timeZoneIdentifier: selectedTimeZone,
+      displayPrecision: displayPrecision
+    )
+  }
+}
+
+/// 屏保级：原生 CATextLayer + layer transform 弹跳；无 NSHostingView
+struct MotionClockScene: View {
+  @State private var motion = ClockMotionEngine()
+  let segments: TimeSegments
+  let style: NativeClockStyle
+  let precision: TimeDisplayPrecision
+  let timeZoneTopGap: CGFloat
+  let showTimeZoneText: Bool
+  let screenSize: CGSize
+  let moveSpeed: Double
+  let isActive: Bool
+  let isPaused: Bool
+  let backgroundColorHex: String
+
+  var body: some View {
+    MotionClockContent(
+      motion: motion,
+      segments: segments,
+      style: style,
+      precision: precision,
+      timeZoneTopGap: timeZoneTopGap,
+      showTimeZoneText: showTimeZoneText,
+      screenSize: screenSize,
+      moveSpeed: moveSpeed,
+      isActive: isActive,
+      isPaused: isPaused,
+      backgroundColorHex: backgroundColorHex
+    )
+  }
+}
+
+/// 使用 @Bindable 传入 engine；弹跳位移不再暴露 offset 属性
+private struct MotionClockContent: View {
+  @Bindable var motion: ClockMotionEngine
+  let segments: TimeSegments
+  let style: NativeClockStyle
+  let precision: TimeDisplayPrecision
+  let timeZoneTopGap: CGFloat
+  let showTimeZoneText: Bool
+  let screenSize: CGSize
+  let moveSpeed: Double
+  let isActive: Bool
+  let isPaused: Bool
+  let backgroundColorHex: String
+
+  private var bounceStamp: ClockBounceStamp {
+    ClockBounceStamp(
+      segments: segments,
+      style: style,
+      precision: precision,
+      timeZoneTopGap: timeZoneTopGap,
+      color: motion.clockColor,
+      showTimeZoneText: showTimeZoneText
+    )
+  }
+
+  var body: some View {
+    BouncingClockHost(motion: motion, stamp: bounceStamp)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .onAppear {
+      motion.setScreenSize(screenSize)
+      motion.setMoveSpeed(moveSpeed)
+      motion.setPaused(isPaused)
+      motion.setMotionActive(isActive)
+      motion.applyBackground(hex: backgroundColorHex)
+    }
+    .onChange(of: backgroundColorHex) { _, hex in
+      motion.applyBackground(hex: hex)
+    }
+    .onChange(of: screenSize) { _, newSize in
+      motion.setScreenSize(newSize)
+    }
+    .onChange(of: moveSpeed) { _, newSpeed in
+      motion.setMoveSpeed(newSpeed)
+    }
+    .onChange(of: isActive) { _, active in
+      motion.setMotionActive(active)
+    }
+    .onChange(of: isPaused) { _, paused in
+      motion.setPaused(paused)
+    }
+  }
+}
+
+// MARK: - 根视图
 
 struct ContentView: View {
   @AppStorage("moveSpeed") private var moveSpeed: Double = 0.09
@@ -13,22 +123,49 @@ struct ContentView: View {
   @AppStorage("showTimeZoneText") private var showTimeZoneText: Bool = true
   @AppStorage("selectedFontName") private var selectedFontName: String = "System Monospaced"
   @AppStorage("showDebugInfo") private var showDebugInfo: Bool = false
+  @AppStorage("backgroundColorHex") private var backgroundColorHex: String = BackgroundColorPreset.black
+    .rawValue
+  @AppStorage("timeDisplayPrecision") private var timeDisplayPrecisionRaw: String =
+    TimeDisplayPrecision.minute.rawValue
+  @AppStorage("keepDisplayAwake") private var keepDisplayAwake = true
 
-  @StateObject private var vm = ClockViewModel()
+  @State private var timeScheduler = ClockTimeScheduler()
   @State private var showSettings = false
   @State private var showFontPicker = false
-  @State private var permanentOffset: CGSize = .zero
-  @State private var allFonts: [String] = []
+  @State private var fontCatalog: [String]?
+  @State private var settingsPanelOffset: CGSize = .zero
+  @Environment(\.scenePhase) private var scenePhase
 
-  let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-  private var effectiveShowAMPM: Bool { is24Hour ? false : showAMPM }
+  private var timeDisplayPrecision: TimeDisplayPrecision {
+    TimeDisplayPrecision(rawValue: timeDisplayPrecisionRaw) ?? .minute
+  }
+
+  private var clockConfig: ClockDisplayConfig {
+    ClockDisplayConfig(
+      fontSize: fontSize,
+      padZero: padZero,
+      is24Hour: is24Hour,
+      showAMPM: showAMPM,
+      ampmScale: ampmScale,
+      ampmSide: ampmSide,
+      selectedTimeZone: selectedTimeZone,
+      showTimeZoneText: showTimeZoneText,
+      selectedFontName: selectedFontName,
+      displayPrecision: timeDisplayPrecision
+    )
+  }
+
+  private var clockStyle: NativeClockStyle {
+    NativeClockStyle.resolve(fontSize: fontSize, ampmScale: ampmScale, fontName: selectedFontName)
+  }
 
   var body: some View {
     GeometryReader { screenGeo in
       let uiSidePanelWidth: CGFloat = screenGeo.size.width > 600 ? 300 : screenGeo.size.width * 0.7
 
       ZStack(alignment: .topLeading) {
-        Color.black.ignoresSafeArea()
+        Color(hex: backgroundColorHex)
+          .ignoresSafeArea()
           .contentShape(Rectangle())
           .onTapGesture {
             withAnimation {
@@ -49,138 +186,167 @@ struct ContentView: View {
             }
           #endif
 
-        // 1. 时钟主体
-        VStack(alignment: .center, spacing: 10) {
-          HStack(alignment: .lastTextBaseline, spacing: fontSize * 0.06) {
-            let ampm = TimeProvider.getAMPMString(
-              from: vm.currentTime, is24Hour: is24Hour, timeZoneIdentifier: selectedTimeZone)
-            if ampmSide == "Leading" && effectiveShowAMPM && !ampm.isEmpty {
-              Text(ampm).font(getCustomFont(size: fontSize * ampmScale))
-            }
-            Text(
-              TimeProvider.getTimeString(
-                from: vm.currentTime, is24Hour: is24Hour, padZero: padZero,
-                timeZoneIdentifier: selectedTimeZone)
-            )
-            .font(getCustomFont(size: fontSize))
-            .id("\(selectedFontName)-\(is24Hour)-\(padZero)")
-            if ampmSide == "Trailing" && effectiveShowAMPM && !ampm.isEmpty {
-              Text(ampm).font(getCustomFont(size: fontSize * ampmScale))
-            }
-          }
-          .drawingGroup()
-
-          if showTimeZoneText {
-            Text(TimeProvider.getTimeZoneString(for: selectedTimeZone, date: vm.currentTime))
-              .font(getCustomFont(size: fontSize * 0.22))
-          }
-        }
-        .foregroundColor(vm.clockColor)
-        .background(
-          GeometryReader { geo in
-            Color.clear
-              .onAppear { vm.totalSize = geo.size }
-              .onChange(of: geo.size) { _, newSize in vm.totalSize = newSize }
-          }
+        MotionClockScene(
+          segments: timeScheduler.segments,
+          style: clockStyle,
+          precision: timeDisplayPrecision,
+          timeZoneTopGap: -fontSize * 0.062,
+          showTimeZoneText: showTimeZoneText,
+          screenSize: screenGeo.size,
+          moveSpeed: moveSpeed,
+          isActive: scenePhase == .active,
+          isPaused: showSettings || showFontPicker,
+          backgroundColorHex: backgroundColorHex
         )
-        .position(vm.position ?? CGPoint(x: screenGeo.size.width / 2, y: screenGeo.size.height / 2))
 
-        // 2. Debug 面板
         if showDebugInfo {
           debugOverlayView
         }
 
-        // 3. 设置面板 (居中悬浮)
         if showSettings {
-          SettingsPanelView(
-            moveSpeed: $moveSpeed,
-            fontSize: $fontSize,
-            padZero: $padZero,
-            is24Hour: $is24Hour,
-            showAMPM: $showAMPM,
-            ampmScale: $ampmScale,
-            ampmSide: $ampmSide,
-            showTimeZoneText: $showTimeZoneText,
-            selectedTimeZone: $selectedTimeZone,
-            showSettings: $showSettings,
-            showFontPicker: $showFontPicker,
-            permanentOffset: $permanentOffset,
-            showDebugInfo: $showDebugInfo,
-            selectedFontName: $selectedFontName,  // --- 确保传入这个绑定 ---
-            onSpeedChange: { vm.updateVelocity(speed: moveSpeed) }
-          )
-          .zIndex(100)
-          .transition(.scale.combined(with: .opacity))
+          settingsOverlay(size: screenGeo.size)
+            .zIndex(100)
+            .transition(settingsTransition(isWide: screenGeo.size.width > 600))
         }
 
-        // 4. 字体侧边栏 (右侧滑入)
         if showFontPicker {
-          HStack(spacing: 0) {
-            Spacer()
-            SideFontPickerView(
-              isPresented: $showFontPicker,
-              selectedFontName: $selectedFontName,
-              allFonts: allFonts
-            )
-            .frame(width: uiSidePanelWidth)
-            .transition(.move(edge: .trailing))
-          }
-          .zIndex(200)  // 确保在最上层
+          fontPickerOverlay(size: screenGeo.size, panelWidth: uiSidePanelWidth)
+            .zIndex(200)
+            .transition(.move(edge: .trailing).combined(with: .opacity))
         }
 
         Button(action: toggleSettings) { Color.clear.frame(width: 1, height: 1) }
           .keyboardShortcut(",", modifiers: .command)
           .buttonStyle(.plain)
       }
-      .onReceive(timer) { input in
-        vm.currentTime = input
-        vm.updatePosition(in: screenGeo.size, isPickerOpen: false, pickerWidth: 0, speed: moveSpeed)
+      .onAppear {
+        syncTimeScheduler()
+        timeScheduler.setActive(scenePhase == .active)
+        DisplayKeepAwake.setEnabled(keepDisplayAwake)
       }
-      .onAppear { setupApp() }
+      .onChange(of: scenePhase) { _, phase in
+        timeScheduler.setActive(phase == .active)
+      }
+      .onChange(of: keepDisplayAwake) { _, enabled in
+        DisplayKeepAwake.setEnabled(enabled)
+      }
+      .onChange(of: clockConfig) { _, _ in
+        syncTimeScheduler()
+      }
+      .onChange(of: showFontPicker) { _, show in
+        if show {
+          if fontCatalog == nil { fontCatalog = FontCatalog.load() }
+        } else {
+          fontCatalog = nil
+        }
+      }
     }
   }
 
-  private var debugOverlayView: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text("[SYSTEM] \(TimeProvider.getFullSystemTime(from: vm.currentTime))")
-      Text("[LOGIC] is24H:\(String(is24Hour)) | Font: \(selectedFontName)")
+  private func syncTimeScheduler() {
+    timeScheduler.setFormat(clockConfig.formatOptions)
+  }
+
+  private func settingsTransition(isWide: Bool) -> AnyTransition {
+    if isWide {
+      return .move(edge: .trailing).combined(with: .opacity)
     }
-    .font(.system(size: 10, design: .monospaced))
-    .foregroundColor(.green.opacity(0.9))
-    .padding(10).background(Color.black.opacity(0.4)).padding(10).zIndex(50)
+    return .move(edge: .bottom).combined(with: .opacity)
+  }
+
+  @ViewBuilder
+  private func settingsOverlay(size: CGSize) -> some View {
+    let isWide = size.width > 600
+
+    ZStack(alignment: isWide ? .trailing : .bottom) {
+      Color.black.opacity(0.48)
+        .ignoresSafeArea()
+        .onTapGesture {
+          withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            showSettings = false
+          }
+        }
+
+      settingsPanelView(layout: isWide ? .sidePanel : .bottomSheet)
+        .frame(
+          width: isWide ? min(400, size.width * 0.38) : nil,
+          height: isWide ? nil : min(size.height * 0.88, 720)
+        )
+        .frame(maxWidth: isWide ? nil : .infinity)
+        .padding(isWide ? EdgeInsets(top: 20, leading: 0, bottom: 20, trailing: 20) : EdgeInsets(top: 0, leading: 12, bottom: 12, trailing: 12))
+    }
+  }
+
+  @ViewBuilder
+  private func fontPickerOverlay(size: CGSize, panelWidth: CGFloat) -> some View {
+    ZStack(alignment: .trailing) {
+      Color.black.opacity(0.48)
+        .ignoresSafeArea()
+        .onTapGesture {
+          withAnimation { showFontPicker = false }
+        }
+
+      Group {
+        if let fontCatalog {
+          SideFontPickerView(
+            isPresented: $showFontPicker,
+            selectedFontName: $selectedFontName,
+            allFonts: fontCatalog
+          )
+        } else {
+          ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .task { fontCatalog = FontCatalog.load() }
+        }
+      }
+      .frame(width: panelWidth)
+      .padding(.vertical, 20)
+      .padding(.trailing, 20)
+    }
+  }
+
+  private func settingsPanelView(layout: SettingsPanelLayout) -> some View {
+    SettingsPanelView(
+      moveSpeed: $moveSpeed,
+      fontSize: $fontSize,
+      padZero: $padZero,
+      is24Hour: $is24Hour,
+      showAMPM: $showAMPM,
+      ampmScale: $ampmScale,
+      ampmSide: $ampmSide,
+      showTimeZoneText: $showTimeZoneText,
+      selectedTimeZone: $selectedTimeZone,
+      showSettings: $showSettings,
+      showFontPicker: $showFontPicker,
+      showDebugInfo: $showDebugInfo,
+      selectedFontName: $selectedFontName,
+      backgroundColorHex: $backgroundColorHex,
+      timeDisplayPrecisionRaw: $timeDisplayPrecisionRaw,
+      keepDisplayAwake: $keepDisplayAwake,
+      layout: layout,
+      panelOffset: $settingsPanelOffset,
+      onSpeedChange: {}
+    )
+  }
+
+  private var debugOverlayView: some View {
+    TimelineView(.periodic(from: .now, by: timeDisplayPrecision.debugTimelineInterval)) { timeline in
+      VStack(alignment: .leading, spacing: 4) {
+        Text(
+          "[SYSTEM] \(TimeProvider.formatSystemTime(from: timeline.date, precision: timeDisplayPrecision))"
+        )
+        Text("[LOGIC] is24H:\(String(is24Hour)) | Font: \(selectedFontName)")
+      }
+      .font(.system(size: 10, design: .monospaced))
+      .foregroundColor(.green.opacity(0.9))
+      .padding(10).background(Color.black.opacity(0.4)).padding(10).zIndex(50)
+    }
   }
 
   private func toggleSettings() {
     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
       showSettings.toggle()
       if showSettings { showFontPicker = false }
-    }
-  }
-
-  private func setupApp() {
-    self.allFonts = ["System Default", "System Monospaced", "System Rounded", "System Serif"]
-    DispatchQueue.global(qos: .userInitiated).async {
-      var loadedFonts: [String] = []
-      #if os(iOS)
-        loadedFonts = UIFont.familyNames.sorted()
-      #elseif os(macOS)
-        loadedFonts = NSFontManager.shared.availableFontFamilies.sorted()
-      #endif
-      DispatchQueue.main.async {
-        let combined = (self.allFonts + loadedFonts)
-        self.allFonts = Array(NSOrderedSet(array: combined)) as? [String] ?? combined
-      }
-    }
-    vm.updateVelocity(speed: moveSpeed)
-  }
-
-  private func getCustomFont(size: CGFloat) -> Font {
-    switch selectedFontName {
-    case "System Default": return .system(size: size, weight: .bold)
-    case "System Monospaced": return .system(size: size, weight: .bold, design: .monospaced)
-    case "System Rounded": return .system(size: size, weight: .bold, design: .rounded)
-    case "System Serif": return .system(size: size, weight: .bold, design: .serif)
-    default: return .custom(selectedFontName, size: size).weight(.bold)
     }
   }
 }

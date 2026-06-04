@@ -8,25 +8,28 @@ struct SideFontPickerView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      // 顶部栏
       HStack {
-        Text("字体样式").font(.headline)
+        Text("字体")
+          .font(.title2.weight(.semibold))
         Spacer()
         Button(action: { withAnimation { isPresented = false } }) {
           Image(systemName: "xmark.circle.fill")
             .font(.title2)
-            .foregroundColor(.gray)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(.secondary)
         }
+        .buttonStyle(.plain)
       }
-      .padding()
-      .background(Color.white.opacity(0.05))
+      .padding(.horizontal, 18)
+      .padding(.top, 16)
+      .padding(.bottom, 12)
 
-      // 搜索框
-      TextField("搜索字体...", text: $searchText)
-        .padding(8)
-        .background(Color.white.opacity(0.1))
-        .cornerRadius(8)
-        .padding()
+      Divider().overlay(SettingsTheme.separator)
+
+      TextField("搜索字体", text: $searchText)
+        .textFieldStyle(.roundedBorder)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
 
       ScrollView {
         LazyVStack(spacing: 0) {
@@ -35,34 +38,50 @@ struct SideFontPickerView: View {
           }
 
           ForEach(filtered, id: \.self) { fontName in
-            Button(action: {
-              Task { @MainActor in
-                selectedFontName = fontName
-              }
-            }) {
+            Button {
+              selectedFontName = fontName
+            } label: {
               HStack {
                 Text(fontName)
                   .font(previewFont(fontName))
-                  .foregroundColor(.white)
+                  .foregroundStyle(.white)
                 Spacer()
                 if selectedFontName == fontName {
-                  Image(systemName: "checkmark.circle.fill").foregroundColor(.blue)
+                  Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(SettingsTheme.accent)
                 }
               }
-              .padding(.horizontal)
+              .padding(.horizontal, 18)
               .padding(.vertical, 12)
               .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .background(selectedFontName == fontName ? Color.blue.opacity(0.2) : Color.clear)
+            .background(
+              selectedFontName == fontName
+                ? SettingsTheme.accent.opacity(0.15) : Color.clear
+            )
 
-            Divider().background(Color.white.opacity(0.1))
+            Divider().overlay(SettingsTheme.separator).padding(.leading, 18)
           }
         }
       }
     }
-    .frame(maxHeight: .infinity)  // 确保撑满屏幕高度
-    .background(.ultraThinMaterial)
+    .foregroundStyle(.white)
+    .frame(maxHeight: .infinity)
+    .background(
+      ZStack {
+        RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous)
+          .fill(.ultraThinMaterial)
+        RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous)
+          .fill(SettingsTheme.panelBackground.opacity(0.92))
+      }
+    )
+    .clipShape(RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous))
+    .overlay(
+      RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous)
+        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+    )
+    .shadow(color: .black.opacity(0.45), radius: 24, y: 8)
     .environment(\.colorScheme, .dark)
   }
 
