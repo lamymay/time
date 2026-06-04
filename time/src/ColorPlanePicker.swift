@@ -7,7 +7,6 @@ struct ColorPlanePicker: View {
   var saturation: Double = ColorPickerCodec.defaultSaturation
 
   private let planeHeight: CGFloat = 128
-  private let previewSize: CGFloat = 44
   private let inset: CGFloat = 10
 
   @State private var liveHue: Double?
@@ -32,39 +31,14 @@ struct ColorPlanePicker: View {
     liveBrightness ?? Color(hex: normalizedHex).pickerBrightness
   }
 
-  private var previewColor: Color {
-    Color(hex: normalizedHex)
-  }
-
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
+    VStack(alignment: .leading, spacing: 8) {
       Text(title)
         .font(.subheadline)
         .foregroundStyle(SettingsTheme.secondaryText)
 
-      HStack(alignment: .center, spacing: 12) {
-        colorPlane
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
-          .fill(previewColor)
-          .frame(width: previewSize, height: planeHeight)
-          .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-              .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
-          }
-      }
-
-      HStack(spacing: 16) {
-        hintLabel(L10n.text("color.picker_hue"), systemImage: "arrow.left.and.right")
-        hintLabel(L10n.text("color.picker_brightness"), systemImage: "arrow.up.and.down")
-      }
-      .font(.caption2)
-      .foregroundStyle(SettingsTheme.secondaryText)
+      colorPlane
     }
-  }
-
-  private func hintLabel(_ text: String, systemImage: String) -> some View {
-    Label(text, systemImage: systemImage)
-      .labelStyle(.titleAndIcon)
   }
 
   private var colorPlane: some View {
@@ -95,6 +69,7 @@ struct ColorPlanePicker: View {
           }
       )
     }
+    .frame(maxWidth: .infinity)
     .frame(height: planeHeight)
   }
 
@@ -171,6 +146,19 @@ struct ColorPlanePicker: View {
       brightness: brightness,
       saturation: saturation
     )
+  }
+}
+
+/// 色条操作说明（设置里整组颜色只显示一次）
+struct ColorPlanePickerHints: View {
+  var body: some View {
+    HStack(spacing: 16) {
+      Label(L10n.text("color.picker_hue"), systemImage: "arrow.left.and.right")
+      Label(L10n.text("color.picker_brightness"), systemImage: "arrow.up.and.down")
+    }
+    .font(.caption2)
+    .foregroundStyle(SettingsTheme.secondaryText)
+    .labelStyle(.titleAndIcon)
   }
 }
 

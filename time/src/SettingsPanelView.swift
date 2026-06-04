@@ -277,6 +277,8 @@ struct SettingsPanelView: View {
         fontColorHex: fontColorHex
       )
 
+      ColorPlanePickerHints()
+
       ColorPlanePicker(
         title: L10n.text("settings.background_color"),
         colorHex: $backgroundColorHex
