@@ -143,25 +143,10 @@ struct ContentRootScreen: View {
     ZStack(alignment: .topLeading) {
       backgroundLayer
       clockLayer
-      #if os(iOS)
-        iosScreenGestureLayer
-      #endif
       overlayStack
       settingsShortcutButton
     }
   }
-
-  #if os(iOS)
-    /// 盖在时钟之上、菜单之下，避免翻页/弹跳视图挡住长按
-    private var iosScreenGestureLayer: some View {
-      Color.clear
-        .ignoresSafeArea()
-        .contentShape(Rectangle())
-        .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 32) {
-          toggleSettings()
-        }
-    }
-  #endif
 
   private var fontSizeShortcutButtons: some View {
     Group {
@@ -188,6 +173,7 @@ struct ContentRootScreen: View {
 
   private var clockLayer: some View {
     clockScene(isPaused: clockPaused)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
       .accessibilityIdentifier(TimeAccessibilityID.clockScene)
       .accessibilityElement(children: .contain)
       .oledPixelShift(
@@ -196,6 +182,13 @@ struct ContentRootScreen: View {
         isActive: oledShiftActive,
         screenSize: screenSize
       )
+      #if os(iOS)
+        .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 32) {
+          if clockDisplayStyle == .flip {
+            toggleSettings()
+          }
+        }
+      #endif
   }
 
   @ViewBuilder
@@ -256,6 +249,7 @@ struct ContentRootScreen: View {
         precision: timeDisplayPrecision,
         timeZoneTopGap: -style.timeZoneSize * 0.12,
         showTimeZoneText: showTimeZoneText,
+        playfieldSize: screenSize,
         moveSpeed: moveSpeed,
         isActive: scenePhase == .active,
         isPaused: isPaused,

@@ -8,6 +8,7 @@ struct MotionClockScene: View {
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
   let showTimeZoneText: Bool
+  let playfieldSize: CGSize
   let moveSpeed: Double
   let isActive: Bool
   let isPaused: Bool
@@ -22,6 +23,7 @@ struct MotionClockScene: View {
       precision: precision,
       timeZoneTopGap: timeZoneTopGap,
       showTimeZoneText: showTimeZoneText,
+      playfieldSize: playfieldSize,
       moveSpeed: moveSpeed,
       isActive: isActive,
       isPaused: isPaused,
@@ -38,6 +40,7 @@ struct MotionClockContent: View {
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
   let showTimeZoneText: Bool
+  let playfieldSize: CGSize
   let moveSpeed: Double
   let isActive: Bool
   let isPaused: Bool
@@ -55,31 +58,27 @@ struct MotionClockContent: View {
   }
 
   var body: some View {
-    GeometryReader { geo in
-      BouncingClockHost(
-        scheduler: scheduler,
-        motion: motion,
-        styleStamp: styleStamp,
-        playfieldSize: geo.size,
-        moveSpeed: moveSpeed,
-        isActive: isActive,
-        isPaused: isPaused
-      )
-      .frame(width: geo.size.width, height: geo.size.height)
-      .onAppear {
-        motion.setScreenSize(geo.size)
-      }
-      .onChange(of: geo.size) { _, size in
-        motion.setScreenSize(size)
-      }
-    }
+    BouncingClockHost(
+      scheduler: scheduler,
+      motion: motion,
+      styleStamp: styleStamp,
+      playfieldSize: playfieldSize,
+      moveSpeed: moveSpeed,
+      isActive: isActive,
+      isPaused: isPaused
+    )
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onAppear {
+      applyPlayfieldToMotion()
       motion.setMoveSpeed(moveSpeed)
       motion.setPaused(isPaused)
       motion.setMotionActive(isActive)
       motion.applyBackground(hex: backgroundColorHex)
       motion.applyUserClockColor(hex: fontColorHex)
       motion.clearTrail()
+    }
+    .onChange(of: playfieldSize) { _, _ in
+      applyPlayfieldToMotion()
     }
     .onChange(of: scheduler.segments) { _, _ in
       motion.clearTrail()
@@ -111,5 +110,10 @@ struct MotionClockContent: View {
           }
         }
       }
+  }
+
+  private func applyPlayfieldToMotion() {
+    guard playfieldSize.width > 1, playfieldSize.height > 1 else { return }
+    motion.setScreenSize(playfieldSize)
   }
 }

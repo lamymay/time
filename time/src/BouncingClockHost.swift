@@ -36,25 +36,17 @@ struct BouncingClockHost: View {
   }
 }
 
-private func resolvedBouncePlayfield(containerSize: CGSize, playfieldSize: CGSize) -> CGSize {
-  let w = max(containerSize.width, playfieldSize.width)
-  let h = max(containerSize.height, playfieldSize.height)
-  guard w > 1, h > 1 else { return .zero }
-  return CGSize(width: w, height: h)
+/// 仅使用根视图 GeometryReader 的 screenSize，避免 UIKit 容器 bounds 误报为小时钟框
+private func applyPlayfieldSize(playfieldSize: CGSize, to motion: ClockMotionEngine?) {
+  guard playfieldSize.width > 1, playfieldSize.height > 1 else { return }
+  motion?.setScreenSize(playfieldSize)
 }
 
-private func applyPlayfieldSize(
-  containerSize: CGSize,
-  playfieldSize: CGSize,
-  to motion: ClockMotionEngine?
-) {
-  let size = resolvedBouncePlayfield(
-    containerSize: containerSize,
-    playfieldSize: playfieldSize
-  )
-  guard size.width > 1, size.height > 1 else { return }
-  motion?.setScreenSize(size)
-}
+#if os(iOS)
+  private enum BounceClockGesture {
+    static let openSettings = NSNotification.Name("ShowSettingsUI")
+  }
+#endif
 
 #if os(macOS)
 
@@ -81,10 +73,6 @@ private func applyPlayfieldSize(
       context.coordinator.container = container
       context.coordinator.clock = clock
       context.coordinator.styleStamp = styleStamp
-      container.playfieldSize = playfieldSize
-      container.onBoundsSizeChange = { [weak motion] containerSize, playfield in
-        applyPlayfieldSize(containerSize: containerSize, playfieldSize: playfield, to: motion)
-      }
       clock.sizeDelegate = context.coordinator
       motion.setRenderer(context.coordinator)
       scheduler.setTickTarget(clock)
@@ -93,7 +81,6 @@ private func applyPlayfieldSize(
 
     func updateNSView(_ container: BounceContainerNSView, context: Context) {
       guard let clock = context.coordinator.clock else { return }
-      container.playfieldSize = playfieldSize
       if context.coordinator.styleStamp != styleStamp {
         clock.applyStyle(styleStamp)
         context.coordinator.styleStamp = styleStamp
@@ -103,11 +90,7 @@ private func applyPlayfieldSize(
     }
 
     private func syncMotionRuntime(container: BounceContainerNSView, context: Context) {
-      applyPlayfieldSize(
-        containerSize: container.bounds.size,
-        playfieldSize: playfieldSize,
-        to: context.coordinator.motion
-      )
+      applyPlayfieldSize(playfieldSize: playfieldSize, to: context.coordinator.motion)
       context.coordinator.motion?.setMoveSpeed(moveSpeed)
       context.coordinator.motion?.setMotionActive(isActive)
       context.coordinator.motion?.setPaused(isPaused)
@@ -147,9 +130,6 @@ private func applyPlayfieldSize(
   private final class BounceContainerNSView: NSView {
     private weak var clock: NativeClockNSView?
     private var translation: CGSize = .zero
-    var playfieldSize: CGSize = .zero
-    var onBoundsSizeChange: ((CGSize, CGSize) -> Void)?
-    private var lastReportedBounds: CGSize = .zero
 
     override var intrinsicContentSize: NSSize {
       NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
@@ -177,7 +157,6 @@ private func applyPlayfieldSize(
         height: max(size.height, 1)
       )
       applyTranslation()
-      reportBoundsIfNeeded()
     }
 
     private func applyTranslation() {
@@ -185,13 +164,6 @@ private func applyPlayfieldSize(
       var transform = CATransform3DIdentity
       transform = CATransform3DTranslate(transform, translation.width, translation.height, 0)
       clock.layer?.transform = transform
-    }
-
-    private func reportBoundsIfNeeded() {
-      let size = bounds.size
-      guard size.width > 1, size.height > 1, size != lastReportedBounds else { return }
-      lastReportedBounds = size
-      onBoundsSizeChange?(size, playfieldSize)
     }
   }
 
@@ -221,19 +193,26 @@ private func applyPlayfieldSize(
       context.coordinator.container = container
       context.coordinator.clock = clock
       context.coordinator.styleStamp = styleStamp
-      container.playfieldSize = playfieldSize
-      container.onBoundsSizeChange = { [weak motion] containerSize, playfield in
-        applyPlayfieldSize(containerSize: containerSize, playfieldSize: playfield, to: motion)
-      }
       clock.sizeDelegate = context.coordinator
       motion.setRenderer(context.coordinator)
       scheduler.setTickTarget(clock)
+      let longPress = UILongPressGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleOpenSettingsLongPress(_:))
+      )
+      longPress.minimumPressDuration = 0.35
+      longPress.cancelsTouchesInView = false
+      container.addGestureRecognizer(longPress)
       return container
     }
 
     func updateUIView(_ container: BounceContainerUIView, context: Context) {
       guard let clock = context.coordinator.clock else { return }
-      container.playfieldSize = playfieldSize
+      if playfieldSize.width > 1, playfieldSize.height > 1,
+        container.bounds.size != playfieldSize
+      {
+        container.bounds = CGRect(origin: .zero, size: playfieldSize)
+      }
       if context.coordinator.styleStamp != styleStamp {
         clock.applyStyle(styleStamp)
         context.coordinator.styleStamp = styleStamp
@@ -254,11 +233,7 @@ private func applyPlayfieldSize(
     }
 
     private func syncMotionRuntime(container: BounceContainerUIView, context: Context) {
-      applyPlayfieldSize(
-        containerSize: container.bounds.size,
-        playfieldSize: playfieldSize,
-        to: context.coordinator.motion
-      )
+      applyPlayfieldSize(playfieldSize: playfieldSize, to: context.coordinator.motion)
       context.coordinator.motion?.setMoveSpeed(moveSpeed)
       context.coordinator.motion?.setMotionActive(isActive)
       context.coordinator.motion?.setPaused(isPaused)
@@ -292,15 +267,17 @@ private func applyPlayfieldSize(
         motion.totalSize = size
         motion.ensureBounceReady()
       }
+
+      @objc func handleOpenSettingsLongPress(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        NotificationCenter.default.post(name: BounceClockGesture.openSettings, object: nil)
+      }
     }
   }
 
   private final class BounceContainerUIView: UIView {
     private weak var clock: NativeClockUIView?
     private var translation: CGSize = .zero
-    var playfieldSize: CGSize = .zero
-    var onBoundsSizeChange: ((CGSize, CGSize) -> Void)?
-    private var lastReportedBounds: CGSize = .zero
 
     override var intrinsicContentSize: CGSize {
       CGSize(width: UIView.noIntrinsicMetric, height: UIView.noIntrinsicMetric)
@@ -332,19 +309,11 @@ private func applyPlayfieldSize(
         height: max(size.height, 1)
       )
       applyTranslation()
-      reportBoundsIfNeeded()
     }
 
     private func applyTranslation() {
       guard let clock else { return }
       clock.transform = CGAffineTransform(translationX: translation.width, y: translation.height)
-    }
-
-    private func reportBoundsIfNeeded() {
-      let size = bounds.size
-      guard size.width > 1, size.height > 1, size != lastReportedBounds else { return }
-      lastReportedBounds = size
-      onBoundsSizeChange?(size, playfieldSize)
     }
   }
 
