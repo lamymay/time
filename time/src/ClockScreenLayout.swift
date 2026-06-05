@@ -16,15 +16,22 @@ enum ClockScreenLayout {
     #endif
   }
 
-  /// 时钟层应忽略的安全区边：默认仅左/右/底；刘海机开启「避让顶部」时保留顶部
-  static func clockBleedEdges(avoidTopSafeAreaOnNotch: Bool) -> Edge.Set {
+  /// 左 / 右 / 底始终铺满；顶部由 `resolvedTopClockInset` 单独处理，避免与 SwiftUI 安全区叠算
+  static func clockSidesBleedEdges() -> Edge.Set {
     #if os(iOS)
-      if hasNotchDisplay(), avoidTopSafeAreaOnNotch {
-        return [.leading, .trailing, .bottom]
-      }
-      return .all
+      [.leading, .trailing, .bottom]
     #else
-      return .all
+      .all
+    #endif
+  }
+
+  /// 刘海机开启避让时，顶距取 UIKit 窗口 inset（贴灵动岛 / 刘海下缘），只应用一次
+  static func resolvedTopClockInset(avoidTopSafeAreaOnNotch: Bool) -> CGFloat {
+    #if os(iOS)
+      guard hasNotchDisplay(), avoidTopSafeAreaOnNotch else { return 0 }
+      return keyWindowSafeAreaInsets.top
+    #else
+      return 0
     #endif
   }
 

@@ -48,11 +48,25 @@ extension View {
     #endif
   }
 
-  /// 时钟铺满物理屏幕；刘海机可通过 `avoidTopSafeAreaOnNotch` 选择是否避让顶部，其余三边始终铺满
+  /// 根布局铺满物理屏幕（供 GeometryReader 取全屏尺寸）
   @ViewBuilder
-  func fullScreenClockBleedIfAvailable(avoidTopSafeAreaOnNotch: Bool = false) -> some View {
+  func fullScreenClockBleedIfAvailable() -> some View {
     #if os(iOS)
-      let edges = ClockScreenLayout.clockBleedEdges(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
+      if #available(iOS 17.0, *) {
+        ignoresSafeArea(.container, edges: .all)
+      } else {
+        ignoresSafeArea(edges: .all)
+      }
+    #else
+      self
+    #endif
+  }
+
+  /// 时钟层左 / 右 / 底铺满；顶部由 `padding(.top, resolvedTopClockInset)` 控制
+  @ViewBuilder
+  func clockSidesBleedIfAvailable() -> some View {
+    #if os(iOS)
+      let edges = ClockScreenLayout.clockSidesBleedEdges()
       if #available(iOS 17.0, *) {
         ignoresSafeArea(.container, edges: edges)
       } else {

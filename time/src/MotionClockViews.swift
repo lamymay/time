@@ -14,7 +14,6 @@ struct MotionClockScene: View {
   let isPaused: Bool
   let backgroundColorHex: String
   let fontColorHex: String
-  let avoidTopSafeAreaOnNotch: Bool
 
   var body: some View {
     MotionClockContent(
@@ -29,8 +28,7 @@ struct MotionClockScene: View {
       isActive: isActive,
       isPaused: isPaused,
       backgroundColorHex: backgroundColorHex,
-      fontColorHex: fontColorHex,
-      avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch
+      fontColorHex: fontColorHex
     )
   }
 }
@@ -49,7 +47,6 @@ struct MotionClockContent: View {
   let isPaused: Bool
   let backgroundColorHex: String
   let fontColorHex: String
-  let avoidTopSafeAreaOnNotch: Bool
 
   private var layoutField: CGSize {
     ClockScreenBounds.bouncePlayfield(swiftUISize: playfieldSize)
@@ -76,7 +73,7 @@ struct MotionClockContent: View {
       isPaused: isPaused
     )
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .fullScreenClockBleedIfAvailable(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
+    .clockSidesBleedIfAvailable()
     .onAppear {
       motion.setMoveSpeed(moveSpeed)
       motion.setPaused(isPaused)

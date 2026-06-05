@@ -64,7 +64,15 @@ struct ContentRootScreen: View {
     ClockDisplayStyle(rawValue: clockDisplayStyleRaw) ?? .classic
   }
 
-  private var layoutSize: CGSize { clockLayoutSize(in: screenSize) }
+  private var clockTopInset: CGFloat {
+    ClockScreenLayout.resolvedTopClockInset(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
+  }
+
+  private var clockPlayfieldSize: CGSize {
+    CGSize(width: screenSize.width, height: max(screenSize.height - clockTopInset, 1))
+  }
+
+  private var layoutSize: CGSize { clockLayoutSize(in: clockPlayfieldSize) }
   private var isWideLayout: Bool { ClockScreenLayout.usesSideSettingsPanel(screen: screenSize) }
   private var sidePanelWidth: CGFloat { ClockScreenLayout.sidePanelWidth(screen: screenSize) }
   private var clockPaused: Bool { showSettings || showFontPicker }
@@ -207,27 +215,29 @@ struct ContentRootScreen: View {
 
   private var clockLayer: some View {
     clockScene(isPaused: clockPaused)
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .fullScreenClockBleedIfAvailable(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+      .padding(.top, clockTopInset)
+      .clockSidesBleedIfAvailable()
       .accessibilityIdentifier(TimeAccessibilityID.clockScene)
       .accessibilityElement(children: .contain)
       .oledPixelShift(
         engine: oledPixelShift,
         isEnabled: oledShiftEnabledForClock,
         isActive: oledShiftActive,
-        screenSize: screenSize
+        screenSize: clockPlayfieldSize
       )
   }
 
   @ViewBuilder
   private var overlayStack: some View {
     if DVDCollisionDebug.isEnabled, clockDisplayStyle == .classic, !dvdCollisionDebugEdges.isEmpty {
-      let playfield = ClockScreenBounds.bouncePlayfield(swiftUISize: screenSize)
+      let playfield = ClockScreenBounds.bouncePlayfield(swiftUISize: clockPlayfieldSize)
       DVDCollisionDebugOverlay(
         playfieldSize: playfield,
         edges: dvdCollisionDebugEdges
       )
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      .padding(.top, clockTopInset)
       .ignoresSafeArea()
       .allowsHitTesting(false)
       .zIndex(40)
@@ -295,13 +305,12 @@ struct ContentRootScreen: View {
         precision: timeDisplayPrecision,
         timeZoneTopGap: -style.timeZoneSize * 0.12,
         showTimeZoneText: showTimeZoneText,
-        playfieldSize: screenSize,
+        playfieldSize: clockPlayfieldSize,
         moveSpeed: moveSpeed,
         isActive: scenePhase == .active,
         isPaused: isPaused,
         backgroundColorHex: backgroundColorHex,
-        fontColorHex: fontColorHex,
-        avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch
+        fontColorHex: fontColorHex
       )
     case .flip:
       FlipClockScene(
@@ -558,7 +567,7 @@ struct ContentRootScreen: View {
 
   private func clampFontSizeToScreen() {
     let limitScreen =
-      clockDisplayStyle == .flip ? screenSize : clockLayoutSize(in: screenSize)
+      clockDisplayStyle == .flip ? clockPlayfieldSize : clockLayoutSize(in: clockPlayfieldSize)
     ClockFontSizeLimits.clampStoredFontSize(
       &fontSize,
       style: clockDisplayStyle,
@@ -587,7 +596,7 @@ struct ContentRootScreen: View {
     showFontPicker = false
     ClockFontSizeLimits.applyFlipMaximumFontSize(
       &fontSize,
-      screen: screenSize,
+      screen: clockPlayfieldSize,
       config: clockConfig
     )
     enterLaunchFullscreenIfNeeded()

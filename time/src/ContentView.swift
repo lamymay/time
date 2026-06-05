@@ -142,7 +142,7 @@ struct ContentView: View {
       }
       .onAppear { migrateLegacyClockColorIfNeeded() }
     }
-    .fullScreenClockBleedIfAvailable(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
+    .fullScreenClockBleedIfAvailable()
   }
 
   private static let colorKeysMigratedKey = "colorKeysMigratedV2"
@@ -159,7 +159,8 @@ struct ContentView: View {
   }
 
   private func clampFontSize(for screen: CGSize) {
-    let layout = layoutSize(for: screen)
+    let clockScreen = clockPlayfieldSize(for: screen)
+    let layout = layoutSize(for: clockScreen)
     let precision = TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
     let style = ClockDisplayStyle(rawValue: clockDisplayStyleRaw) ?? .classic
     let config = ClockDisplayConfig(
@@ -176,13 +177,18 @@ struct ContentView: View {
       flipFormat: FlipClockFormat.resolved(fromRaw: flipClockFormatRaw),
       flipCompactDetachedSeconds: flipCompactDetachedSeconds
     )
-    let limitScreen = style == .flip ? screen : layout
+    let limitScreen = style == .flip ? clockScreen : layout
     ClockFontSizeLimits.clampStoredFontSize(
       &fontSize,
       style: style,
       screen: limitScreen,
       config: config.applyingDisplayStyle(style)
     )
+  }
+
+  private func clockPlayfieldSize(for screen: CGSize) -> CGSize {
+    let top = ClockScreenLayout.resolvedTopClockInset(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
+    return CGSize(width: screen.width, height: max(screen.height - top, 1))
   }
 
   private func layoutSize(for screen: CGSize) -> CGSize {
