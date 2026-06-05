@@ -454,19 +454,6 @@ struct SettingsPanelView: View {
           subtitle: L10n.text("settings.oled_pixel_shift_hint"),
           isOn: $oledPixelShiftEnabled
         )
-      }
-    }
-  }
-
-  private var clockAppearanceSection: some View {
-    SettingsSection(title: L10n.text("settings.clock_appearance"), systemImage: "paintpalette") {
-      if iosColorPickerSectionReady {
-        colorPickerSection
-      } else {
-        colorPickerSectionPlaceholder
-      }
-
-      if displayStyle == .flip {
         labeledPickerRow(title: L10n.text("settings.flip_format")) {
           Picker(L10n.text("settings.flip_format"), selection: $flipClockFormatRaw) {
             ForEach(FlipClockFormat.allCases) { format in
@@ -479,7 +466,6 @@ struct SettingsPanelView: View {
         Text(FlipClockFormat.resolved(fromRaw: flipClockFormatRaw).subtitle)
           .font(.caption)
           .foregroundStyle(SettingsTheme.secondaryText)
-
         if FlipClockFormat.resolved(fromRaw: flipClockFormatRaw) == .compactPanels,
           precision.includesSeconds
         {
@@ -489,6 +475,16 @@ struct SettingsPanelView: View {
             isOn: $flipCompactDetachedSeconds
           )
         }
+      }
+    }
+  }
+
+  private var clockAppearanceSection: some View {
+    SettingsSection(title: L10n.text("settings.clock_appearance"), systemImage: "paintpalette") {
+      if iosColorPickerSectionReady {
+        colorPickerSection
+      } else {
+        colorPickerSectionPlaceholder
       }
 
       labeledPickerRow(title: L10n.text("settings.time_precision")) {
