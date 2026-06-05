@@ -214,7 +214,7 @@ struct ContentRootScreen: View {
     clockScene(isPaused: clockPaused)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
       .padding(.top, clockTopInset)
-      .clockSidesBleedIfAvailable()
+      .clockLayoutBleedIfAvailable()
       .accessibilityIdentifier(TimeAccessibilityID.clockScene)
       .accessibilityElement(children: .contain)
       .oledPixelShift(

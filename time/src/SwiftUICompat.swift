@@ -62,15 +62,14 @@ extension View {
     #endif
   }
 
-  /// 时钟层左 / 右 / 底铺满；顶部由 `padding(.top, resolvedTopClockInset)` 控制
+  /// 时钟层铺满；顶部仅用 `padding(.top, resolvedTopClockInset)`，须忽略 SwiftUI 安全区以免叠算
   @ViewBuilder
-  func clockSidesBleedIfAvailable() -> some View {
+  func clockLayoutBleedIfAvailable() -> some View {
     #if os(iOS)
-      let edges = ClockScreenLayout.clockSidesBleedEdges()
       if #available(iOS 17.0, *) {
-        ignoresSafeArea(.container, edges: edges)
+        ignoresSafeArea(.container, edges: .all)
       } else {
-        ignoresSafeArea(edges: edges)
+        ignoresSafeArea(edges: .all)
       }
     #else
       self

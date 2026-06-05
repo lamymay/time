@@ -73,7 +73,6 @@ struct MotionClockContent: View {
       isPaused: isPaused
     )
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .clockSidesBleedIfAvailable()
     .onAppear {
       motion.setMoveSpeed(moveSpeed)
       motion.setPaused(isPaused)

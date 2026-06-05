@@ -10,38 +10,45 @@ enum ClockScreenLayout {
   static func hasNotchDisplay() -> Bool {
     #if os(iOS)
       guard UIDevice.current.userInterfaceIdiom == .phone else { return false }
-      return keyWindowSafeAreaInsets.top > 20
+      return (keyWindow?.safeAreaInsets.top ?? 0) > 20
     #else
       return false
     #endif
   }
 
-  /// 左 / 右 / 底始终铺满；顶部由 `resolvedTopClockInset` 单独处理，避免与 SwiftUI 安全区叠算
-  static func clockSidesBleedEdges() -> Edge.Set {
-    #if os(iOS)
-      [.leading, .trailing, .bottom]
-    #else
-      .all
-    #endif
-  }
-
-  /// 刘海机开启避让时，顶距取 UIKit 窗口 inset（贴灵动岛 / 刘海下缘），只应用一次
+  /// 刘海机开启避让时，顶距贴灵动岛 / 刘海下缘（只应用一次，不与 SwiftUI 安全区叠算）
   static func resolvedTopClockInset(avoidTopSafeAreaOnNotch: Bool) -> CGFloat {
     #if os(iOS)
       guard hasNotchDisplay(), avoidTopSafeAreaOnNotch else { return 0 }
-      return keyWindowSafeAreaInsets.top
+      return notchAwareTopInset(for: keyWindow)
     #else
       return 0
     #endif
   }
 
   #if os(iOS)
-    private static var keyWindowSafeAreaInsets: UIEdgeInsets {
+    /// `safeAreaInsets.top` 常含灵动岛下额外留白；刘海机改用状态栏高度贴齐下缘
+    private static func notchAwareTopInset(for window: UIWindow?) -> CGFloat {
+      guard let window else { return 0 }
+      let safeTop = window.safeAreaInsets.top
+      guard safeTop > 0 else { return 0 }
+      if let statusH = window.windowScene?.statusBarManager?.statusBarFrame.height,
+        statusH > 20
+      {
+        return statusH
+      }
+      return safeTop
+    }
+
+    private static var keyWindow: UIWindow? {
       UIApplication.shared.connectedScenes
         .compactMap { $0 as? UIWindowScene }
-        .flatMap(\.windows)
-        .first { $0.isKeyWindow }?
-        .safeAreaInsets ?? .zero
+        .first { $0.activationState == .foregroundActive }
+        .flatMap { scene in scene.windows.first { $0.isKeyWindow } }
+        ?? UIApplication.shared.connectedScenes
+          .compactMap { $0 as? UIWindowScene }
+          .flatMap(\.windows)
+          .first { $0.isKeyWindow }
     }
   #endif
 
