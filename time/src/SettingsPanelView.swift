@@ -592,31 +592,28 @@ struct SettingsPanelView: View {
         SettingsToggleRow(title: L10n.text("settings.show_ampm"), isOn: $showAMPM)
         if showAMPM {
           if displayStyle == .classic {
-            labeledPickerRow(title: L10n.text("settings.ampm_horizontal")) {
-              Picker(L10n.text("settings.ampm_horizontal"), selection: $ampmSide) {
-                Text(L10n.text("format.ampm_before")).tag("Leading")
-                Text(L10n.text("format.ampm_after")).tag("Trailing")
-              }
-              .pickerStyle(.segmented)
-              .labelsHidden()
+            SettingsInlinePickerRow(
+              title: L10n.text("settings.ampm_horizontal"),
+              selection: $ampmSide
+            ) {
+              Text(L10n.text("format.ampm_before")).tag("Leading")
+              Text(L10n.text("format.ampm_after")).tag("Trailing")
             }
           }
-          labeledPickerRow(title: L10n.text("settings.ampm_vertical")) {
-            Picker(L10n.text("settings.ampm_vertical"), selection: $ampmVertical) {
-              Text(L10n.text("format.ampm_top")).tag("Top")
-              Text(L10n.text("format.ampm_bottom")).tag("Bottom")
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+          SettingsInlinePickerRow(
+            title: L10n.text("settings.ampm_vertical"),
+            selection: $ampmVertical
+          ) {
+            Text(L10n.text("format.ampm_top")).tag("Top")
+            Text(L10n.text("format.ampm_bottom")).tag("Bottom")
           }
-          labeledPickerRow(title: L10n.text("settings.ampm_scale")) {
-            Picker(L10n.text("settings.ampm_scale"), selection: $ampmScale) {
-              Text(L10n.text("format.ampm_quarter")).tag(0.25)
-              Text(L10n.text("format.ampm_half")).tag(0.5)
-              Text(L10n.text("format.ampm_equal")).tag(1.0)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+          SettingsInlinePickerRow(
+            title: L10n.text("settings.ampm_scale"),
+            selection: $ampmScale
+          ) {
+            Text(L10n.text("format.ampm_quarter")).tag(0.25)
+            Text(L10n.text("format.ampm_half")).tag(0.5)
+            Text(L10n.text("format.ampm_equal")).tag(1.0)
           }
         }
       }
@@ -903,6 +900,29 @@ private struct SettingsInlineSection<Content: View>: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(SettingsTheme.cardBackground)
     .clipShape(RoundedRectangle(cornerRadius: compactLayout ? 10 : 12, style: .continuous))
+  }
+}
+
+/// 标题与分段选择同一行（AM/PM 等紧凑行）
+private struct SettingsInlinePickerRow<Selection: Hashable, Content: View>: View {
+  @Environment(\.settingsCompactLayout) private var compactLayout
+  let title: String
+  @Binding var selection: Selection
+  @ViewBuilder let content: () -> Content
+
+  var body: some View {
+    HStack(alignment: .center, spacing: compactLayout ? 8 : 10) {
+      Text(title)
+        .font(SettingsTheme.rowLabelFont(compact: compactLayout))
+        .foregroundStyle(SettingsTheme.secondaryText)
+        .lineLimit(2)
+        .minimumScaleFactor(0.85)
+        .frame(width: compactLayout ? 92 : 108, alignment: .leading)
+      Picker(title, selection: $selection, content: content)
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(maxWidth: .infinity)
+    }
   }
 }
 
