@@ -87,6 +87,8 @@ struct ContentView: View {
   @AppStorage("flipClockFormat") private var flipClockFormatRaw: String =
     FlipClockFormat.compactPanels.rawValue
   @AppStorage("flipCompactDetachedSeconds") private var flipCompactDetachedSeconds = true
+  /// 刘海屏是否避让顶部安全区（左/右/底始终铺满）
+  @AppStorage("avoidTopSafeAreaOnNotch") private var avoidTopSafeAreaOnNotch = false
 
   @StateObject private var timeScheduler = ClockTimeScheduler()
   @State private var showSettings = false
@@ -124,6 +126,7 @@ struct ContentView: View {
         flipCardColorHex: $flipCardColorHex,
         keepDisplayAwake: $keepDisplayAwake,
         oledPixelShiftEnabled: $oledPixelShiftEnabled,
+        avoidTopSafeAreaOnNotch: $avoidTopSafeAreaOnNotch,
         settingsPanelOffset: $settingsPanelOffset,
         settingsSheetWidth: $settingsSheetWidth,
         fontCatalog: $fontCatalog,
@@ -139,7 +142,7 @@ struct ContentView: View {
       }
       .onAppear { migrateLegacyClockColorIfNeeded() }
     }
-    .fullScreenClockBleedIfAvailable()
+    .fullScreenClockBleedIfAvailable(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
   }
 
   private static let colorKeysMigratedKey = "colorKeysMigratedV2"

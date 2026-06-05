@@ -48,14 +48,15 @@ extension View {
     #endif
   }
 
-  /// 时钟铺满物理屏幕（含状态栏与 Home 指示条区域），设置面板等 overlay 仍各自遵守安全区
+  /// 时钟铺满物理屏幕；刘海机可通过 `avoidTopSafeAreaOnNotch` 选择是否避让顶部，其余三边始终铺满
   @ViewBuilder
-  func fullScreenClockBleedIfAvailable() -> some View {
+  func fullScreenClockBleedIfAvailable(avoidTopSafeAreaOnNotch: Bool = false) -> some View {
     #if os(iOS)
+      let edges = ClockScreenLayout.clockBleedEdges(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
       if #available(iOS 17.0, *) {
-        ignoresSafeArea(.container, edges: .all)
+        ignoresSafeArea(.container, edges: edges)
       } else {
-        ignoresSafeArea(edges: .all)
+        ignoresSafeArea(edges: edges)
       }
     #else
       self

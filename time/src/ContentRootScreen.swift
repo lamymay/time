@@ -26,6 +26,7 @@ struct ContentRootScreen: View {
   @Binding var flipCardColorHex: String
   @Binding var keepDisplayAwake: Bool
   @Binding var oledPixelShiftEnabled: Bool
+  @Binding var avoidTopSafeAreaOnNotch: Bool
   @Binding var settingsPanelOffset: CGSize
   @Binding var settingsSheetWidth: Double
   @Binding var fontCatalog: [String]?
@@ -116,6 +117,7 @@ struct ContentRootScreen: View {
       .onChangeCompat(of: timeDisplayPrecisionRaw) { _, _ in reactConfigChange() }
       .onChangeCompat(of: flipClockFormatRaw) { _, _ in reactConfigChange() }
       .onChangeCompat(of: flipCompactDetachedSeconds) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: avoidTopSafeAreaOnNotch) { _, _ in clampFontSizeToScreen() }
   }
 
   private var sceneLifecycleLayer: some View {
@@ -164,7 +166,6 @@ struct ContentRootScreen: View {
       overlayStack
       settingsShortcutButton
     }
-    .fullScreenClockBleedIfAvailable()
   }
 
   #if os(iOS)
@@ -207,7 +208,7 @@ struct ContentRootScreen: View {
   private var clockLayer: some View {
     clockScene(isPaused: clockPaused)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .fullScreenClockBleedIfAvailable()
+      .fullScreenClockBleedIfAvailable(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
       .accessibilityIdentifier(TimeAccessibilityID.clockScene)
       .accessibilityElement(children: .contain)
       .oledPixelShift(
@@ -299,7 +300,8 @@ struct ContentRootScreen: View {
         isActive: scenePhase == .active,
         isPaused: isPaused,
         backgroundColorHex: backgroundColorHex,
-        fontColorHex: fontColorHex
+        fontColorHex: fontColorHex,
+        avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch
       )
     case .flip:
       FlipClockScene(
@@ -396,6 +398,7 @@ struct ContentRootScreen: View {
       flipCardColorHex: $flipCardColorHex,
       keepDisplayAwake: $keepDisplayAwake,
       oledPixelShiftEnabled: $oledPixelShiftEnabled,
+      avoidTopSafeAreaOnNotch: $avoidTopSafeAreaOnNotch,
       layout: isWide ? .sidePanel : .bottomSheet,
       panelOffset: $settingsPanelOffset,
       settingsSheetWidth: $settingsSheetWidth,

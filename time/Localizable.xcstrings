@@ -1071,6 +1071,62 @@
         }
       }
     },
+    "settings.avoid_top_safe_area" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avoid top safe area"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上部セーフエリアを避ける"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "避让顶部安全区"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "避讓頂部安全區"
+          }
+        }
+      }
+    },
+    "settings.avoid_top_safe_area_hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep clock below notch and status bar"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノッチ端末で時計をステータスバー下に収める"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刘海屏将时钟限制在状态栏下方"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "瀏海螢幕將時鐘限制在狀態列下方"
+          }
+        }
+      }
+    },
     "settings.background_color" : {
       "localizations" : {
         "en" : {
@@ -1887,6 +1943,7 @@
       }
     },
     "settings.resize_panel_width" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

@@ -29,6 +29,7 @@ struct SettingsPanelView: View {
   @Binding var flipCardColorHex: String
   @Binding var keepDisplayAwake: Bool
   @Binding var oledPixelShiftEnabled: Bool
+  @Binding var avoidTopSafeAreaOnNotch: Bool
 
   let layout: SettingsPanelLayout
   @Binding var panelOffset: CGSize
@@ -484,6 +485,15 @@ struct SettingsPanelView: View {
         subtitle: L10n.text("settings.oled_pixel_shift_hint"),
         isOn: $oledPixelShiftEnabled
       )
+      #if os(iOS)
+        if ClockScreenLayout.hasNotchDisplay() {
+          SettingsToggleRow(
+            title: L10n.text("settings.avoid_top_safe_area"),
+            subtitle: L10n.text("settings.avoid_top_safe_area_hint"),
+            isOn: $avoidTopSafeAreaOnNotch
+          )
+        }
+      #endif
     }
   }
 
