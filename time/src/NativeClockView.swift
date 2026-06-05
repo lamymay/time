@@ -17,6 +17,30 @@ private enum NativeClockLayoutHelper {
   }
 }
 
+/// CATextLayer 实际绘制常略宽于排版估算，碰撞盒取 layer 并集并加少量边距
+private enum NativeClockCollisionMeasure {
+  /// CATextLayer 绘制常超出 frame；水平方向（尤其秒数字）再留余量
+  static let minBleedPadding: CGFloat = 8
+
+  static func size(layoutTotal: CGSize, layerUnion: CGRect) -> CGSize {
+    var widthBox = CGRect(origin: .zero, size: layoutTotal)
+    if !layerUnion.isNull {
+      widthBox = widthBox.union(layerUnion)
+    }
+    let padX = max(minBleedPadding, layoutTotal.width * 0.06)
+    widthBox = widthBox.insetBy(dx: -padX, dy: 0)
+
+    let heightSource = layerUnion.isNull ? CGRect(origin: .zero, size: layoutTotal) : layerUnion
+    let padY = max(4, layoutTotal.height * 0.015)
+    let heightBox = heightSource.insetBy(dx: 0, dy: -padY)
+
+    return CGSize(
+      width: max(ceil(widthBox.width), 1),
+      height: max(ceil(heightBox.height), 1)
+    )
+  }
+}
+
 // MARK: - macOS
 
 #if os(macOS)
@@ -134,15 +158,6 @@ private enum NativeClockLayoutHelper {
         showTimeZone: stamp.showTimeZoneText,
         timeZoneTopGap: stamp.timeZoneTopGap
       )
-      measuredSize = layout.totalSize
-
-      rootLayer.frame = CGRect(
-        x: (bounds.width - layout.totalSize.width) / 2,
-        y: (bounds.height - layout.totalSize.height) / 2,
-        width: layout.totalSize.width,
-        height: layout.totalSize.height
-      )
-
       timeZoneLayer.frame = layout.timeZone
       timeLayer.frame = layout.time
       if let ampm = layout.ampm {
@@ -152,11 +167,27 @@ private enum NativeClockLayoutHelper {
         ampmLayer.isHidden = true
       }
 
+      measuredSize = updateCollisionSize(layout: layout)
+
+      rootLayer.frame = CGRect(
+        x: (bounds.width - measuredSize.width) / 2,
+        y: (bounds.height - measuredSize.height) / 2,
+        width: measuredSize.width,
+        height: measuredSize.height
+      )
       reportMeasuredSizeIfNeeded()
     }
 
     func fittingSize() -> CGSize {
       measuredSize == .zero ? CGSize(width: 1, height: 1) : measuredSize
+    }
+
+    private func updateCollisionSize(layout: NativeClockLayerFrames) -> CGSize {
+      var union = CGRect.null
+      if !timeZoneLayer.isHidden { union = union.union(timeZoneLayer.frame) }
+      union = union.union(timeLayer.frame)
+      if !ampmLayer.isHidden { union = union.union(ampmLayer.frame) }
+      return NativeClockCollisionMeasure.size(layoutTotal: layout.totalSize, layerUnion: union)
     }
 
     private func reportMeasuredSizeIfNeeded() {
@@ -277,8 +308,6 @@ private enum NativeClockLayoutHelper {
         showTimeZone: stamp.showTimeZoneText,
         timeZoneTopGap: stamp.timeZoneTopGap
       )
-      measuredSize = layout.totalSize
-
       let originX = (bounds.width - layout.totalSize.width) / 2
       let originY = (bounds.height - layout.totalSize.height) / 2
 
@@ -291,11 +320,20 @@ private enum NativeClockLayoutHelper {
         ampmLayer.isHidden = true
       }
 
+      measuredSize = updateCollisionSize(layout: layout)
       reportMeasuredSizeIfNeeded()
     }
 
     func fittingSize() -> CGSize {
       measuredSize == .zero ? CGSize(width: 1, height: 1) : measuredSize
+    }
+
+    private func updateCollisionSize(layout: NativeClockLayerFrames) -> CGSize {
+      var union = CGRect.null
+      if !timeZoneLayer.isHidden { union = union.union(timeZoneLayer.frame) }
+      union = union.union(timeLayer.frame)
+      if !ampmLayer.isHidden { union = union.union(ampmLayer.frame) }
+      return NativeClockCollisionMeasure.size(layoutTotal: layout.totalSize, layerUnion: union)
     }
 
     private func reportMeasuredSizeIfNeeded() {

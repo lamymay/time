@@ -6,6 +6,8 @@ final class ClockMotionEngine {
   var position: CGPoint?
   var clockColor: Color = BackgroundColorPreset.black.defaultClockColor
   var totalSize: CGSize = .zero
+  /// 容器内实际占位（≥ totalSize，含 glyph 溢出边距）
+  private(set) var collisionExtent: CGSize = .zero
   var trailSamples: [MotionTrailSample] = []
 
   private var direction = CGVector(dx: 1, dy: 1)
@@ -72,12 +74,29 @@ final class ClockMotionEngine {
     pushPositionToRenderer()
   }
 
+  func setCollisionExtent(_ size: CGSize) {
+    guard size.width > 1, size.height > 1 else { return }
+    guard collisionExtent != size else { return }
+    collisionExtent = size
+    if let position {
+      self.position = clampedPosition(position)
+      pushPositionToRenderer()
+    }
+  }
+
+  private var collisionHalfSize: CGSize {
+    let w = max(collisionExtent.width, totalSize.width)
+    let h = max(collisionExtent.height, totalSize.height)
+    return CGSize(width: w, height: h)
+  }
+
   private func clampedPosition(_ point: CGPoint) -> CGPoint {
-    guard totalSize.width > 0, totalSize.height > 0 else { return screenCenter }
-    let minX = totalSize.width / 2
-    let maxX = screenSize.width - totalSize.width / 2
-    let minY = totalSize.height / 2
-    let maxY = screenSize.height - totalSize.height / 2
+    let half = collisionHalfSize
+    guard half.width > 0, half.height > 0 else { return screenCenter }
+    let minX = half.width / 2
+    let maxX = screenSize.width - half.width / 2
+    let minY = half.height / 2
+    let maxY = screenSize.height - half.height / 2
     return CGPoint(
       x: min(max(point.x, minX), maxX),
       y: min(max(point.y, minY), maxY)
@@ -163,7 +182,8 @@ final class ClockMotionEngine {
     let effectiveHeight = screenSize.height
     guard effectiveWidth > 0, effectiveHeight > 0 else { return }
 
-    guard totalSize.width > 0 else {
+    let half = collisionHalfSize
+    guard half.width > 0, half.height > 0 else {
       let center = screenCenter
       if position != center {
         position = center
@@ -174,10 +194,10 @@ final class ClockMotionEngine {
 
     let currentPos = position ?? screenCenter
 
-    let minX = totalSize.width / 2
-    let maxX = effectiveWidth - (totalSize.width / 2)
-    let minY = totalSize.height / 2
-    let maxY = effectiveHeight - (totalSize.height / 2)
+    let minX = half.width / 2
+    let maxX = effectiveWidth - (half.width / 2)
+    let minY = half.height / 2
+    let maxY = effectiveHeight - (half.height / 2)
 
     let spanX = maxX - minX
     let spanY = maxY - minY
@@ -234,7 +254,7 @@ final class ClockMotionEngine {
         edges: edges,
         playfieldSize: screenSize,
         clockCenter: center,
-        clockSize: totalSize
+        clockSize: collisionHalfSize
       )
     )
     stopMotionTimer()

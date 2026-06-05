@@ -1,10 +1,9 @@
+import Combine
 import Foundation
-import Observation
 
 /// 按显示精度调度；tick 直推 NativeClockTickTarget，不经过 SwiftUI
-@Observable
-final class ClockTimeScheduler {
-  private(set) var segments = TimeSegments()
+final class ClockTimeScheduler: ObservableObject {
+  @Published private(set) var segments = TimeSegments()
 
   private weak var tickTarget: NativeClockTickTarget?
   private var format = ClockFormatOptions(

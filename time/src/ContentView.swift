@@ -88,7 +88,7 @@ struct ContentView: View {
     FlipClockFormat.compactPanels.rawValue
   @AppStorage("flipCompactDetachedSeconds") private var flipCompactDetachedSeconds = true
 
-  @State private var timeScheduler = ClockTimeScheduler()
+  @StateObject private var timeScheduler = ClockTimeScheduler()
   @State private var showSettings = false
   @State private var showFontPicker = false
   @State private var fontCatalog: [String]?
@@ -131,10 +131,10 @@ struct ContentView: View {
         timeScheduler: timeScheduler,
         scenePhase: scenePhase
       )
-      .onChange(of: geo.size.width) { _, _ in
+      .onChangeCompat(of: geo.size.width) { _, _ in
         clampFontSize(for: geo.size)
       }
-      .onChange(of: geo.size.height) { _, _ in
+      .onChangeCompat(of: geo.size.height) { _, _ in
         clampFontSize(for: geo.size)
       }
       .onAppear { migrateLegacyClockColorIfNeeded() }

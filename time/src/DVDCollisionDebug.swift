@@ -1,11 +1,13 @@
 import CoreGraphics
 import Foundation
 
-/// 临时调试：碰撞日志、边框高亮、撞墙后暂停 5s。截图完成后将 `isEnabled` 设为 `false`。
+/// 临时调试：碰撞日志、边框高亮、绿底、撞墙后暂停 3s。截图完成后将 `isEnabled` 设为 `false`。
 enum DVDCollisionDebug {
   static var isEnabled = true
-  static let pauseDuration: TimeInterval = 5
+  static let pauseDuration: TimeInterval = 3
   static let highlightLineWidth: CGFloat = 6
+  /// 碰撞瞬间背景高亮色
+  static let hitBackgroundHex = "#1B8F3A"
 
   static let collisionNotification = Notification.Name("DVDCollisionDebugDidHit")
 
@@ -35,12 +37,15 @@ enum DVDCollisionDebug {
   static func logCollision(_ event: Event) {
     guard isEnabled else { return }
     let edgeText = event.edges.sorted { $0.rawValue < $1.rawValue }.map(\.logLabel).joined(separator: " + ")
+    let right = event.clockCenter.x + event.clockSize.width / 2
+    let bottom = event.clockCenter.y + event.clockSize.height / 2
     print(
       """
       [DVD Collision] \(edgeText)
         playfield: \(Int(event.playfieldSize.width))×\(Int(event.playfieldSize.height))
         clock center: (\(Int(event.clockCenter.x)), \(Int(event.clockCenter.y)))
-        clock size: \(Int(event.clockSize.width))×\(Int(event.clockSize.height))
+        collision box: \(Int(event.clockSize.width))×\(Int(event.clockSize.height))
+        extents: right=\(Int(right)) bottom=\(Int(bottom)) (limit w=\(Int(event.playfieldSize.width)) h=\(Int(event.playfieldSize.height)))
         pause \(Int(pauseDuration))s
       """
     )

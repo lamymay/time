@@ -3,9 +3,7 @@ import SwiftUI
 /// 屏保级：原生 CATextLayer + layer transform 弹跳；无 NSHostingView
 struct MotionClockScene: View {
   @State private var motion = ClockMotionEngine()
-  @State private var collisionDebugEdges: Set<DVDCollisionDebug.Edge> = []
-  @State private var collisionDebugPlayfield: CGSize = .zero
-  let scheduler: ClockTimeScheduler
+  @ObservedObject var scheduler: ClockTimeScheduler
   let style: NativeClockStyle
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
@@ -32,33 +30,11 @@ struct MotionClockScene: View {
       backgroundColorHex: backgroundColorHex,
       fontColorHex: fontColorHex
     )
-    .overlay {
-      if DVDCollisionDebug.isEnabled, !collisionDebugEdges.isEmpty {
-        DVDCollisionDebugOverlay(
-          playfieldSize: collisionDebugPlayfield,
-          edges: collisionDebugEdges
-        )
-      }
-    }
-    .onReceive(NotificationCenter.default.publisher(for: DVDCollisionDebug.collisionNotification)) { note in
-      guard DVDCollisionDebug.isEnabled else { return }
-      let names = note.userInfo?["edgeNames"] as? [String] ?? []
-      let edges = Set(names.compactMap(DVDCollisionDebug.Edge.init(rawValue:)))
-      guard !edges.isEmpty else { return }
-      let w = note.userInfo?["playfieldWidth"] as? CGFloat ?? 0
-      let h = note.userInfo?["playfieldHeight"] as? CGFloat ?? 0
-      collisionDebugEdges = edges
-      collisionDebugPlayfield = CGSize(width: w, height: h)
-      Task { @MainActor in
-        try? await Task.sleep(for: .seconds(DVDCollisionDebug.pauseDuration))
-        collisionDebugEdges = []
-      }
-    }
   }
 }
 
 struct MotionClockContent: View {
-  let scheduler: ClockTimeScheduler
+  @ObservedObject var scheduler: ClockTimeScheduler
   /// 勿用 @Binding：引擎每帧更新 position 会拖垮 SwiftUI（主线程 9000ms+ 卡顿）
   let motion: ClockMotionEngine
   let style: NativeClockStyle
@@ -96,7 +72,6 @@ struct MotionClockContent: View {
       isActive: isActive,
       isPaused: isPaused
     )
-    .frame(width: layoutField.width, height: layoutField.height)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onAppear {
       motion.setMoveSpeed(moveSpeed)
@@ -106,26 +81,26 @@ struct MotionClockContent: View {
       motion.applyUserClockColor(hex: fontColorHex)
       motion.clearTrail()
     }
-    .onChange(of: scheduler.segments) { _, _ in
+    .onChangeCompat(of: scheduler.segments) { _, _ in
       motion.clearTrail()
     }
-    .onChange(of: backgroundColorHex) { _, hex in
+    .onChangeCompat(of: backgroundColorHex) { _, hex in
       motion.applyBackground(hex: hex)
       motion.applyUserClockColor(hex: fontColorHex)
     }
-    .onChange(of: fontColorHex) { _, hex in
+    .onChangeCompat(of: fontColorHex) { _, hex in
       motion.applyUserClockColor(hex: hex)
     }
-    .onChange(of: moveSpeed) { _, newSpeed in
+    .onChangeCompat(of: moveSpeed) { _, newSpeed in
       motion.setMoveSpeed(newSpeed)
       if newSpeed > 0, !isPaused, isActive {
         motion.ensureBounceReady()
       }
     }
-    .onChange(of: isActive) { _, active in
+    .onChangeCompat(of: isActive) { _, active in
       motion.setMotionActive(active)
     }
-    .onChange(of: isPaused) { _, paused in
+    .onChangeCompat(of: isPaused) { _, paused in
       motion.setPaused(paused)
       if paused {
         motion.clearTrail()

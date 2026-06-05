@@ -63,6 +63,9 @@ struct BouncingClockHost: View {
       container.onPlayfieldSizeChange = { [weak motion] size in
         motion?.setScreenSize(size)
       }
+      container.onClockLaidOut = { [weak motion] size in
+        motion?.setCollisionExtent(size)
+      }
       motion.setRenderer(context.coordinator)
       scheduler.setTickTarget(clock)
       return container
@@ -105,10 +108,12 @@ struct BouncingClockHost: View {
       }
 
       func nativeClock(didMeasure size: CGSize) {
-        guard let motion, motion.totalSize != size else { return }
-        motion.totalSize = size
+        guard let motion else { return }
+        if motion.totalSize != size { motion.totalSize = size }
+        motion.setCollisionExtent(size)
         motion.ensureBounceReady()
       }
+
     }
   }
 
@@ -117,6 +122,7 @@ struct BouncingClockHost: View {
     private var clockCenter: CGPoint?
     private var lastReportedBounds: CGSize = .zero
     var onPlayfieldSizeChange: ((CGSize) -> Void)?
+    var onClockLaidOut: ((CGSize) -> Void)?
 
     override var intrinsicContentSize: NSSize {
       NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
@@ -147,6 +153,7 @@ struct BouncingClockHost: View {
         height: max(size.height, 1)
       )
       clock.layer?.transform = CATransform3DIdentity
+      onClockLaidOut?(size)
     }
 
     private func reportPlayfieldIfNeeded() {
@@ -187,6 +194,9 @@ struct BouncingClockHost: View {
       container.onPlayfieldSizeChange = { [weak motion] size in
         motion?.setScreenSize(size)
       }
+      container.onClockLaidOut = { [weak motion] size in
+        motion?.setCollisionExtent(size)
+      }
       motion.setRenderer(context.coordinator)
       scheduler.setTickTarget(clock)
       return container
@@ -200,17 +210,6 @@ struct BouncingClockHost: View {
         container.setNeedsLayout()
       }
       syncMotionRuntime(context: context)
-    }
-
-    static func sizeThatFits(
-      _ proposal: ProposedViewSize,
-      uiView: BounceContainerUIView,
-      context: Context
-    ) -> CGSize? {
-      let width = proposal.width ?? uiView.bounds.width
-      let height = proposal.height ?? uiView.bounds.height
-      guard width > 1, height > 1 else { return nil }
-      return CGSize(width: width, height: height)
     }
 
     private func syncMotionRuntime(context: Context) {
@@ -240,8 +239,9 @@ struct BouncingClockHost: View {
       }
 
       func nativeClock(didMeasure size: CGSize) {
-        guard let motion, motion.totalSize != size else { return }
-        motion.totalSize = size
+        guard let motion else { return }
+        if motion.totalSize != size { motion.totalSize = size }
+        motion.setCollisionExtent(size)
         motion.ensureBounceReady()
       }
     }
@@ -252,6 +252,7 @@ struct BouncingClockHost: View {
     private var clockCenter: CGPoint?
     private var lastReportedBounds: CGSize = .zero
     var onPlayfieldSizeChange: ((CGSize) -> Void)?
+    var onClockLaidOut: ((CGSize) -> Void)?
 
     override var intrinsicContentSize: CGSize {
       CGSize(width: UIView.noIntrinsicMetric, height: UIView.noIntrinsicMetric)
@@ -282,6 +283,7 @@ struct BouncingClockHost: View {
         height: max(size.height, 1)
       )
       clock.transform = .identity
+      onClockLaidOut?(size)
     }
 
     private func reportPlayfieldIfNeeded() {

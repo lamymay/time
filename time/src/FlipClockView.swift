@@ -28,7 +28,7 @@ private struct FlipTickStamp: Equatable {
 // MARK: - Scene
 
 struct FlipClockScene: View {
-  let scheduler: ClockTimeScheduler
+  @ObservedObject var scheduler: ClockTimeScheduler
   let config: ClockDisplayConfig
   let backgroundColorHex: String
   let flipCardColorHex: String
@@ -92,11 +92,11 @@ struct FlipClockScene: View {
     .onDisappear {
       scheduler.setTickTarget(nil)
     }
-    .onChange(of: isActive) { _, active in
+    .onChangeCompat(of: isActive) { _, active in
       scheduler.setActive(active)
       if active { attachScheduler() }
     }
-    .onChange(of: config) { _, _ in
+    .onChangeCompat(of: config) { _, _ in
       scheduler.setFormat(config.schedulerFormatOptions(for: .flip))
       attachScheduler()
     }
@@ -577,7 +577,7 @@ private struct FlipDigitView: View {
     .onAppear {
       applyDigit(target, animated: false)
     }
-    .onChange(of: stamp) { _, _ in
+    .onChangeCompat(of: stamp) { _, _ in
       requestFlipIfNeeded(target)
     }
   }
@@ -820,7 +820,7 @@ private struct FlipPanelView: View {
     .onAppear {
       applyText(target, animated: false)
     }
-    .onChange(of: stamp) { _, _ in
+    .onChangeCompat(of: stamp) { _, _ in
       requestFlipIfNeeded(target)
     }
   }

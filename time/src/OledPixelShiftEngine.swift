@@ -1,14 +1,13 @@
+import Combine
 import CoreGraphics
 import Foundation
-import Observation
 
 /// 屏保烧屏优化：每分钟约 1px 的 DVD 式贴边漂移（翻页 / 弹跳共用）
-@Observable
-final class OledPixelShiftEngine {
+final class OledPixelShiftEngine: ObservableObject {
   static let stepPixels: CGFloat = 1
   static let tickInterval: TimeInterval = 60
 
-  private(set) var offset: CGSize = .zero
+  @Published private(set) var offset: CGSize = .zero
 
   private var direction = CGVector(dx: 1, dy: 1)
   private var screenSize: CGSize = .zero

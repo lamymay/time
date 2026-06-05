@@ -113,7 +113,7 @@ struct SettingsPanelView: View {
         .padding(.vertical, isIOSSheet ? 10 : 16)
         .padding(.bottom, layout == .bottomSheet ? 4 : 16)
       }
-      .scrollBounceBehavior(.basedOnSize)
+      .scrollBounceBasedOnSizeIfAvailable()
       #if os(iOS)
         if layout == .bottomSheet {
           footerDoneButton
@@ -137,20 +137,20 @@ struct SettingsPanelView: View {
         iosColorPickersReady = false
       }
     #endif
-    .onChange(of: screenSize) { _, _ in syncFontSizeToLimits() }
-    .onChange(of: clockDisplayStyleRaw) { _, raw in
+    .onChangeCompat(of: screenSize) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: clockDisplayStyleRaw) { _, raw in
       if ClockDisplayStyle(rawValue: raw) == .flip {
         showTimeZoneText = false
       }
       syncFontSizeToLimits()
     }
-    .onChange(of: flipClockFormatRaw) { _, _ in syncFontSizeToLimits() }
-    .onChange(of: flipCompactDetachedSeconds) { _, _ in syncFontSizeToLimits() }
-    .onChange(of: selectedFontName) { _, _ in syncFontSizeToLimits() }
-    .onChange(of: padZero) { _, _ in syncFontSizeToLimits() }
-    .onChange(of: is24Hour) { _, _ in syncFontSizeToLimits() }
-    .onChange(of: showAMPM) { _, _ in syncFontSizeToLimits() }
-    .onChange(of: timeDisplayPrecisionRaw) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: flipClockFormatRaw) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: flipCompactDetachedSeconds) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: selectedFontName) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: padZero) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: is24Hour) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: showAMPM) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: timeDisplayPrecisionRaw) { _, _ in syncFontSizeToLimits() }
     .environment(\.settingsCompactLayout, isIOSSheet)
     .foregroundStyle(.white)
     .background(panelBackground)
@@ -632,7 +632,7 @@ struct SettingsPanelView: View {
           .foregroundStyle(SettingsTheme.accent)
       }
       Slider(value: value, in: range)
-        .onChange(of: value.wrappedValue) { _, _ in
+        .onChangeCompat(of: value.wrappedValue) { _, _ in
           onEdit?()
         }
     }

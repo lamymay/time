@@ -15,7 +15,7 @@ struct TimeApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
-        .persistentSystemOverlays(.hidden)
+        .hidePersistentSystemOverlaysIfAvailable()
         .onReceive(openSettingsNotification) { _ in
           NotificationCenter.default.post(name: NSNotification.Name("ShowSettingsUI"), object: nil)
         }

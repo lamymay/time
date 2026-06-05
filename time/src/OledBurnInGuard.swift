@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 将 `OledPixelShiftEngine` 的位移应用到时钟视图（DVD / 翻页共用）
 struct OledPixelShiftModifier: ViewModifier {
-  var engine: OledPixelShiftEngine
+  @ObservedObject var engine: OledPixelShiftEngine
   var isEnabled: Bool
   var isActive: Bool
   var screenSize: CGSize
@@ -24,7 +24,7 @@ struct OledPixelShiftModifier: ViewModifier {
         engine.setEnabled(isEnabled)
         engine.setActive(isActive)
       }
-      .onChange(of: screenSize) { _, size in
+      .onChangeCompat(of: screenSize) { _, size in
         engine.setScreenSize(size)
         let estimated = CGSize(
           width: min(size.width * 0.72, size.width - 32),
@@ -32,10 +32,10 @@ struct OledPixelShiftModifier: ViewModifier {
         )
         engine.setContentSize(estimated)
       }
-      .onChange(of: isEnabled) { _, enabled in
+      .onChangeCompat(of: isEnabled) { _, enabled in
         engine.setEnabled(enabled)
       }
-      .onChange(of: isActive) { _, active in
+      .onChangeCompat(of: isActive) { _, active in
         engine.setActive(active)
       }
   }

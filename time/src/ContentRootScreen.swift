@@ -31,10 +31,12 @@ struct ContentRootScreen: View {
   @Binding var fontCatalog: [String]?
   @Binding var flipLaunchPresentationApplied: Bool
 
-  var timeScheduler: ClockTimeScheduler
+  @ObservedObject var timeScheduler: ClockTimeScheduler
   var scenePhase: ScenePhase
 
-  @State private var oledPixelShift = OledPixelShiftEngine()
+  @StateObject private var oledPixelShift = OledPixelShiftEngine()
+  @State private var dvdCollisionDebugEdges: Set<DVDCollisionDebug.Edge> = []
+  @State private var dvdCollisionDebugHit = false
 
   private var timeDisplayPrecision: TimeDisplayPrecision {
     TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
@@ -83,46 +85,46 @@ struct ContentRootScreen: View {
 
   private var panelClampLayer: some View {
     styleChangeLayer
-      .onChange(of: screenSize) { _, _ in
+      .onChangeCompat(of: screenSize) { _, _ in
         clampFontSizeToScreen()
         oledPixelShift.setScreenSize(screenSize)
       }
-      .onChange(of: showSettings) { _, isOpen in
+      .onChangeCompat(of: showSettings) { _, isOpen in
         #if os(iOS)
           if isOpen { return }
         #endif
         clampFontSizeToScreen()
       }
-      .onChange(of: showFontPicker) { _, _ in clampFontSizeToScreen() }
+      .onChangeCompat(of: showFontPicker) { _, _ in clampFontSizeToScreen() }
   }
 
   private var styleChangeLayer: some View {
     configChangeLayer
-      .onChange(of: clockDisplayStyleRaw) { _, _ in reactStyleChange() }
+      .onChangeCompat(of: clockDisplayStyleRaw) { _, _ in reactStyleChange() }
   }
 
   private var configChangeLayer: some View {
     sceneLifecycleLayer
-      .onChange(of: fontSize) { _, _ in reactConfigChange() }
-      .onChange(of: padZero) { _, _ in reactConfigChange() }
-      .onChange(of: is24Hour) { _, _ in reactConfigChange() }
-      .onChange(of: showAMPM) { _, _ in reactConfigChange() }
-      .onChange(of: ampmSide) { _, _ in reactConfigChange() }
-      .onChange(of: selectedTimeZone) { _, _ in reactConfigChange() }
-      .onChange(of: showTimeZoneText) { _, _ in reactConfigChange() }
-      .onChange(of: selectedFontName) { _, _ in reactConfigChange() }
-      .onChange(of: timeDisplayPrecisionRaw) { _, _ in reactConfigChange() }
-      .onChange(of: flipClockFormatRaw) { _, _ in reactConfigChange() }
-      .onChange(of: flipCompactDetachedSeconds) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: fontSize) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: padZero) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: is24Hour) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: showAMPM) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: ampmSide) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: selectedTimeZone) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: showTimeZoneText) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: selectedFontName) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: timeDisplayPrecisionRaw) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: flipClockFormatRaw) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: flipCompactDetachedSeconds) { _, _ in reactConfigChange() }
   }
 
   private var sceneLifecycleLayer: some View {
     coreStack
       .onAppear(perform: handleAppear)
-      .onChange(of: scenePhase) { _, phase in
+      .onChangeCompat(of: scenePhase) { _, phase in
         timeScheduler.setActive(phase == .active)
       }
-      .onChange(of: keepDisplayAwake) { _, enabled in
+      .onChangeCompat(of: keepDisplayAwake) { _, enabled in
         DisplayKeepAwake.setEnabled(enabled)
       }
       .clockKeyboardShortcuts()
@@ -135,6 +137,19 @@ struct ContentRootScreen: View {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
           showSettings = true
           showFontPicker = false
+        }
+      }
+      .onReceive(NotificationCenter.default.publisher(for: DVDCollisionDebug.collisionNotification)) { note in
+        guard DVDCollisionDebug.isEnabled, clockDisplayStyle == .classic else { return }
+        let names = note.userInfo?["edgeNames"] as? [String] ?? []
+        let edges = Set(names.compactMap(DVDCollisionDebug.Edge.init(rawValue:)))
+        guard !edges.isEmpty else { return }
+        dvdCollisionDebugEdges = edges
+        dvdCollisionDebugHit = true
+        Task { @MainActor in
+          try? await Task.sleep(nanoseconds: UInt64(DVDCollisionDebug.pauseDuration * 1_000_000_000))
+          dvdCollisionDebugEdges = []
+          dvdCollisionDebugHit = false
         }
       }
   }
@@ -203,6 +218,16 @@ struct ContentRootScreen: View {
 
   @ViewBuilder
   private var overlayStack: some View {
+    if DVDCollisionDebug.isEnabled, clockDisplayStyle == .classic, !dvdCollisionDebugEdges.isEmpty {
+      DVDCollisionDebugOverlay(
+        playfieldSize: screenSize,
+        edges: dvdCollisionDebugEdges
+      )
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      .ignoresSafeArea()
+      .allowsHitTesting(false)
+      .zIndex(40)
+    }
     if showDebugInfo {
       debugOverlay
     }
@@ -220,8 +245,15 @@ struct ContentRootScreen: View {
 
   // MARK: - Layers
 
+  private var effectiveBackgroundHex: String {
+    if DVDCollisionDebug.isEnabled, dvdCollisionDebugHit, clockDisplayStyle == .classic {
+      return DVDCollisionDebug.hitBackgroundHex
+    }
+    return backgroundColorHex
+  }
+
   private var backgroundLayer: some View {
-    Color(hex: backgroundColorHex)
+    Color(hex: effectiveBackgroundHex)
       .ignoresSafeArea()
       .contentShape(Rectangle())
       #if os(macOS)
