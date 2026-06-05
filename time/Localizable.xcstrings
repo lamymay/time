@@ -1127,6 +1127,62 @@
         }
       }
     },
+    "settings.notch_top_inset_tighten" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top trim (pt)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上部余白 (pt)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顶部收紧 (pt)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頂部收緊 (pt)"
+          }
+        }
+      }
+    },
+    "settings.notch_top_inset_tighten_hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixels to move playfield up below the notch"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノッチ下の余白を上に詰める pt 数"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在状态栏基准上再上移的像素，越大越贴近灵动岛"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在狀態列基準上再上移的像素，越大越貼近靈動島"
+          }
+        }
+      }
+    },
     "settings.background_color" : {
       "localizations" : {
         "en" : {
@@ -1329,25 +1385,25 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pause animation on edge hit; 0 = no pause"
+            "value" : "Seconds to pause on edge hit (one decimal); 0 = no pause"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "端に当たったらアニメーションを停止（0 で停止なし）"
+            "value" : "端に当たったら停止する秒数（小数1桁）、0 で停止なし"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "碰边时暂停动画，0 表示不暂停"
+            "value" : "碰边暂停秒数，支持一位小数；0 表示不暂停"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "碰邊時暫停動畫，0 表示不暫停"
+            "value" : "碰邊暫停秒數，支援一位小數；0 表示不暫停"
           }
         }
       }

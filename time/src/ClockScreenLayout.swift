@@ -16,15 +16,30 @@ enum ClockScreenLayout {
     #endif
   }
 
-  /// 在状态栏基准上再收紧的顶距（pt），使弹跳区更贴近灵动岛下缘
-  static let notchTopInsetTighten: CGFloat = 20
+  static let notchTopInsetTightenKey = "notchTopInsetTighten"
+  static let defaultNotchTopInsetTighten: CGFloat = 20
+  static let notchTopInsetTightenRange: ClosedRange<Double> = 0...100
+
+  static func resolvedTopInsetTighten() -> CGFloat {
+    #if os(iOS)
+      guard UserDefaults.standard.object(forKey: notchTopInsetTightenKey) != nil else {
+        return defaultNotchTopInsetTighten
+      }
+      let stored = UserDefaults.standard.double(forKey: notchTopInsetTightenKey)
+      return CGFloat(
+        min(max(stored, notchTopInsetTightenRange.lowerBound), notchTopInsetTightenRange.upperBound)
+      )
+    #else
+      return 0
+    #endif
+  }
 
   /// 刘海机开启避让时，顶距贴灵动岛 / 刘海下缘（只应用一次，不与 SwiftUI 安全区叠算）
   static func resolvedTopClockInset(avoidTopSafeAreaOnNotch: Bool) -> CGFloat {
     #if os(iOS)
       guard hasNotchDisplay(), avoidTopSafeAreaOnNotch else { return 0 }
       let base = notchAwareTopInset(for: keyWindow)
-      return max(0, base - notchTopInsetTighten)
+      return max(0, base - resolvedTopInsetTighten())
     #else
       return 0
     #endif

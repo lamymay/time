@@ -28,6 +28,7 @@ struct ContentRootScreen: View {
   @Binding var keepDisplayAwake: Bool
   @Binding var oledPixelShiftEnabled: Bool
   @Binding var avoidTopSafeAreaOnNotch: Bool
+  @Binding var notchTopInsetTighten: Double
   @Binding var settingsPanelOffset: CGSize
   @Binding var settingsSheetWidth: Double
   @Binding var fontCatalog: [String]?
@@ -126,6 +127,7 @@ struct ContentRootScreen: View {
       .onChangeCompat(of: flipClockFormatRaw) { _, _ in reactConfigChange() }
       .onChangeCompat(of: flipCompactDetachedSeconds) { _, _ in reactConfigChange() }
       .onChangeCompat(of: avoidTopSafeAreaOnNotch) { _, _ in clampFontSizeToScreen() }
+      .onChangeCompat(of: notchTopInsetTighten) { _, _ in clampFontSizeToScreen() }
   }
 
   private var sceneLifecycleLayer: some View {
@@ -394,6 +396,7 @@ struct ContentRootScreen: View {
       keepDisplayAwake: $keepDisplayAwake,
       oledPixelShiftEnabled: $oledPixelShiftEnabled,
       avoidTopSafeAreaOnNotch: $avoidTopSafeAreaOnNotch,
+      notchTopInsetTighten: $notchTopInsetTighten,
       layout: isWide ? .sidePanel : .bottomSheet,
       panelOffset: $settingsPanelOffset,
       settingsSheetWidth: $settingsSheetWidth,

@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if os(iOS)
+  import UIKit
+#endif
+
 enum SettingsPanelLayout {
   case sidePanel
   case bottomSheet
@@ -31,6 +35,7 @@ struct SettingsPanelView: View {
   @Binding var keepDisplayAwake: Bool
   @Binding var oledPixelShiftEnabled: Bool
   @Binding var avoidTopSafeAreaOnNotch: Bool
+  @Binding var notchTopInsetTighten: Double
 
   let layout: SettingsPanelLayout
   @Binding var panelOffset: CGSize
@@ -170,6 +175,21 @@ struct SettingsPanelView: View {
       .frame(minWidth: SettingsPanelMetrics.macMinWidth, idealWidth: SettingsPanelMetrics.macIdealWidth)
     #endif
     .accessibilityIdentifier(TimeAccessibilityID.settingsPanel)
+    #if os(iOS)
+      .toolbar {
+        ToolbarItemGroup(placement: .keyboard) {
+          Spacer()
+          Button(L10n.text("settings.done")) {
+            UIApplication.shared.sendAction(
+              #selector(UIResponder.resignFirstResponder),
+              to: nil,
+              from: nil,
+              for: nil
+            )
+          }
+        }
+      }
+    #endif
     .alert(L10n.text("feedback.copy_title"), isPresented: $showEmailCopiedAlert) {
       Button(L10n.text("settings.done"), role: .cancel) {}
     } message: {
@@ -493,6 +513,15 @@ struct SettingsPanelView: View {
             subtitle: L10n.text("settings.avoid_top_safe_area_hint"),
             isOn: $avoidTopSafeAreaOnNotch
           )
+          if avoidTopSafeAreaOnNotch {
+            SettingsDeferredNumericField(
+              title: L10n.text("settings.notch_top_inset_tighten"),
+              hint: L10n.text("settings.notch_top_inset_tighten_hint"),
+              range: ClockScreenLayout.notchTopInsetTightenRange,
+              decimalPlaces: 0,
+              value: $notchTopInsetTighten
+            )
+          }
         }
       #endif
     }
@@ -553,21 +582,15 @@ struct SettingsPanelView: View {
     SettingsSection(title: L10n.text("settings.advanced"), systemImage: "gearshape") {
       SettingsToggleRow(title: L10n.text("settings.debug"), isOn: $showDebugInfo)
       if showDebugInfo {
-        settingSlider(
+        SettingsDeferredNumericField(
           title: L10n.text("settings.debug_collision_pause"),
-          value: $dvdCollisionDebugPauseSeconds,
+          hint: L10n.text("settings.debug_collision_pause_hint"),
           range: DVDCollisionDebug.pauseSecondsRange,
-          label: debugCollisionPauseLabel
+          decimalPlaces: 1,
+          value: $dvdCollisionDebugPauseSeconds
         )
-        Text(L10n.text("settings.debug_collision_pause_hint"))
-          .font(SettingsTheme.rowLabelFont(compact: isIOSSheet))
-          .foregroundStyle(SettingsTheme.secondaryText)
       }
     }
-  }
-
-  private var debugCollisionPauseLabel: String {
-    String(format: "%.1f s", dvdCollisionDebugPauseSeconds)
   }
 
   // MARK: - Components

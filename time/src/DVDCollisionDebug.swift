@@ -30,7 +30,8 @@ enum DVDCollisionDebug {
       return defaultPauseSeconds
     }
     let stored = UserDefaults.standard.double(forKey: pauseSecondsKey)
-    return min(max(stored, pauseSecondsRange.lowerBound), pauseSecondsRange.upperBound)
+    let bounded = min(max(stored, pauseSecondsRange.lowerBound), pauseSecondsRange.upperBound)
+    return (bounded * 10).rounded() / 10
   }
 
   static var borderCGColor: CGColor {
