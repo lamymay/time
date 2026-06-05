@@ -71,14 +71,23 @@ enum ClockScreenLayout {
     }
   #endif
 
-  /// iPhone 横屏宽度常 > 600，但仍应按手机布局；仅 iPad 宽屏用侧边设置栏
+  /// iOS 横屏：右侧贴边设置栏；macOS / iPad 宽屏：侧边栏
   static func usesSideSettingsPanel(screen: CGSize) -> Bool {
     #if os(iOS)
-      return UIDevice.current.userInterfaceIdiom == .pad && screen.width > 600
+      return screen.width > screen.height
     #else
       return screen.width > 600
     #endif
   }
+
+  #if os(iOS)
+    /// 竖屏底部 sheet 高度比例
+    static let iosPortraitSheetHeightRatio: CGFloat = 2 / 5
+
+    static func iosPortraitSheetHeight(screen: CGSize) -> CGFloat {
+      max(120, screen.height * iosPortraitSheetHeightRatio)
+    }
+  #endif
 
   static func sidePanelWidth(screen: CGSize) -> CGFloat {
     usesSideSettingsPanel(screen: screen) ? 300 : screen.width * 0.7

@@ -98,6 +98,11 @@ struct ContentRootScreen: View {
       .onChangeCompat(of: screenSize) { _, _ in
         clampFontSizeToScreen()
         oledPixelShift.setScreenSize(screenSize)
+        #if os(iOS)
+          if showSettings {
+            settingsPanelOffset = .zero
+          }
+        #endif
       }
       .onChangeCompat(of: showSettings) { _, isOpen in
         #if os(iOS)
@@ -348,7 +353,6 @@ struct ContentRootScreen: View {
   @ViewBuilder
   private func settingsOverlay(size: CGSize, isWide: Bool) -> some View {
     ZStack(alignment: isWide ? .trailing : .bottom) {
-      // iOS 底部 sheet：遮罩不响应点击，避免长按抬手被当成「点空白关闭」
       #if os(iOS)
         if isWide {
           settingsDismissBackdrop
@@ -359,6 +363,7 @@ struct ContentRootScreen: View {
 
       settingsPanel(in: size, isWide: isWide)
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     #if os(macOS)
       .onExitCommand {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
@@ -402,31 +407,35 @@ struct ContentRootScreen: View {
       settingsSheetWidth: $settingsSheetWidth,
         onSpeedChange: {}
     )
-    let sheetHeight: CGFloat = {
-      #if os(iOS)
-        if !isWide { return min(size.height * 0.78, 560) }
-      #endif
-      return min(size.height * 0.88, 720)
-    }()
-
     if isWide {
-      panel
-        .frame(width: min(400, size.width * 0.38))
-        .padding(EdgeInsets(top: 20, leading: 0, bottom: 20, trailing: 20))
+      #if os(iOS)
+        let sheetW = SettingsPanelMetrics.resolvedIOSSheetWidth(
+          stored: settingsSheetWidth,
+          screen: size
+        )
+        panel
+          .frame(width: sheetW, height: size.height)
+      #else
+        let sheetHeight = min(size.height * 0.88, 720)
+        panel
+          .frame(width: min(400, size.width * 0.38), height: sheetHeight)
+          .padding(EdgeInsets(top: 20, leading: 0, bottom: 20, trailing: 20))
+      #endif
     } else {
       #if os(iOS)
         let sheetW = SettingsPanelMetrics.resolvedIOSSheetWidth(
           stored: settingsSheetWidth,
           screen: size
         )
+        let sheetHeight = ClockScreenLayout.iosPortraitSheetHeight(screen: size)
         HStack(alignment: .bottom, spacing: 0) {
           Spacer(minLength: 0)
           panel
             .frame(width: sheetW, height: sheetHeight)
           Spacer(minLength: 0)
         }
-        .padding(.bottom, 12)
       #else
+        let sheetHeight = min(size.height * 0.88, 720)
         panel
           .frame(height: sheetHeight)
           .frame(maxWidth: .infinity)

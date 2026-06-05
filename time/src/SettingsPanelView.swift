@@ -166,6 +166,7 @@ struct SettingsPanelView: View {
       RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous)
         .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
     )
+    .overlay(alignment: .leading) { iosSidePanelDragStrip }
     .shadow(color: .black.opacity(0.45), radius: 24, y: 8)
     .offset(
       x: panelOffset.width + dragOffset.width,
@@ -206,7 +207,9 @@ struct SettingsPanelView: View {
       HStack(alignment: .center) {
         Text(L10n.text("settings.title"))
           .font(isIOSSheet ? .headline.weight(.semibold) : .title2.weight(.semibold))
-        Spacer()
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(Rectangle())
+          .gesture(panelDragGesture)
         Button(action: closePanel) {
           Image(systemName: "xmark.circle.fill")
             .font(isIOSSheet ? .title3 : .title2)
@@ -226,10 +229,6 @@ struct SettingsPanelView: View {
 
       Divider().overlay(SettingsTheme.separator)
     }
-    #if os(macOS)
-      .contentShape(Rectangle())
-      .gesture(panelDragGesture)
-    #endif
   }
 
   private var dragHandle: some View {
@@ -243,6 +242,7 @@ struct SettingsPanelView: View {
     .padding(.top, layout == .bottomSheet ? 6 : 12)
     .padding(.bottom, layout == .bottomSheet ? 4 : 6)
     .accessibilityLabel(L10n.text("settings.drag_handle"))
+    .gesture(panelDragGesture)
   }
 
   private var panelDragGesture: some Gesture {
@@ -255,6 +255,22 @@ struct SettingsPanelView: View {
         panelOffset.height += value.translation.height
       }
   }
+
+  #if os(iOS)
+    @ViewBuilder
+    private var iosSidePanelDragStrip: some View {
+      if layout == .sidePanel {
+        Color.clear
+          .frame(width: 32)
+          .frame(maxHeight: .infinity)
+          .contentShape(Rectangle())
+          .gesture(panelDragGesture)
+      }
+    }
+  #else
+    @ViewBuilder
+    private var iosSidePanelDragStrip: some View { EmptyView() }
+  #endif
 
   // MARK: - Sections
 
@@ -618,15 +634,21 @@ struct SettingsPanelView: View {
 
   #if os(iOS)
     private var footerDoneButton: some View {
-      Button(action: closePanel) {
-        Text(L10n.text("settings.done"))
-          .font(.subheadline.weight(.semibold))
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, 10)
+      VStack(spacing: 0) {
+        Color.clear
+          .frame(height: 10)
+          .contentShape(Rectangle())
+          .gesture(panelDragGesture)
+        Button(action: closePanel) {
+          Text(L10n.text("settings.done"))
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.small)
+        .accessibilityIdentifier(TimeAccessibilityID.settingsDoneButton)
       }
-      .buttonStyle(.borderedProminent)
-      .controlSize(.small)
-      .accessibilityIdentifier(TimeAccessibilityID.settingsDoneButton)
       .padding(.horizontal, SettingsTheme.contentPadding(compact: true))
       .padding(.bottom, 10)
       .padding(.top, 4)
