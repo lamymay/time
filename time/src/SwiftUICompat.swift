@@ -88,6 +88,16 @@ extension View {
       self
     #endif
   }
+
+  /// 隐藏顶栏状态（时间/信号/Wi‑Fi/电量），减轻 OLED 固定像素烧屏
+  @ViewBuilder
+  func hideStatusBarForClockIfAvailable() -> some View {
+    #if os(iOS)
+      statusBar(hidden: true)
+    #else
+      self
+    #endif
+  }
 }
 
 private struct LegacyOnChangeModifier<V: Equatable>: ViewModifier {

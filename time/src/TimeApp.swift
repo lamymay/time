@@ -16,6 +16,7 @@ struct TimeApp: App {
     WindowGroup {
       ContentView()
         .hidePersistentSystemOverlaysIfAvailable()
+        .hideStatusBarForClockIfAvailable()
         .onReceive(openSettingsNotification) { _ in
           NotificationCenter.default.post(name: NSNotification.Name("ShowSettingsUI"), object: nil)
         }
