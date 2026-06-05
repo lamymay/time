@@ -73,6 +73,7 @@ struct MotionClockContent: View {
       isPaused: isPaused
     )
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .fullScreenClockBleedIfAvailable()
     .onAppear {
       motion.setMoveSpeed(moveSpeed)
       motion.setPaused(isPaused)

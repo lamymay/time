@@ -164,6 +164,7 @@ struct ContentRootScreen: View {
       overlayStack
       settingsShortcutButton
     }
+    .fullScreenClockBleedIfAvailable()
   }
 
   #if os(iOS)
@@ -206,9 +207,7 @@ struct ContentRootScreen: View {
   private var clockLayer: some View {
     clockScene(isPaused: clockPaused)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      #if os(iOS)
-        .ignoresSafeArea()
-      #endif
+      .fullScreenClockBleedIfAvailable()
       .accessibilityIdentifier(TimeAccessibilityID.clockScene)
       .accessibilityElement(children: .contain)
       .oledPixelShift(

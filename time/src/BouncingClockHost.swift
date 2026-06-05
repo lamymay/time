@@ -178,6 +178,8 @@ struct BouncingClockHost: View {
     func makeUIView(context: Context) -> BounceContainerUIView {
       let container = BounceContainerUIView()
       container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+      container.insetsLayoutMarginsFromSafeArea = false
+      container.preservesSuperviewLayoutMargins = false
       let clock = NativeClockUIView()
       container.install(clock: clock)
       clock.applyStyle(styleStamp)

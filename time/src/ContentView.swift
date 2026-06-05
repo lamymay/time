@@ -139,9 +139,7 @@ struct ContentView: View {
       }
       .onAppear { migrateLegacyClockColorIfNeeded() }
     }
-    #if os(iOS)
-      .ignoresSafeArea()
-    #endif
+    .fullScreenClockBleedIfAvailable()
   }
 
   private static let colorKeysMigratedKey = "colorKeysMigratedV2"
