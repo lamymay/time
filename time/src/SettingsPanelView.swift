@@ -431,6 +431,24 @@ struct SettingsPanelView: View {
       }
       .pickerStyle(.segmented)
       .labelsHidden()
+
+      if displayStyle == .classic {
+        settingSlider(
+          title: L10n.text("settings.move_speed"),
+          value: $moveSpeed,
+          range: MoveSpeedLimits.min...MoveSpeedLimits.max,
+          label: MoveSpeedLimits.displayLabel(for: moveSpeed)
+        ) { onSpeedChange() }
+        Text(L10n.text("settings.motion_hint"))
+          .font(.caption)
+          .foregroundStyle(SettingsTheme.secondaryText)
+      } else {
+        SettingsToggleRow(
+          title: L10n.text("settings.oled_pixel_shift"),
+          subtitle: L10n.text("settings.oled_pixel_shift_hint"),
+          isOn: $oledPixelShiftEnabled
+        )
+      }
     }
   }
 
@@ -489,18 +507,6 @@ struct SettingsPanelView: View {
 
       if displayStyle == .classic {
         SettingsToggleRow(title: L10n.text("settings.show_timezone"), isOn: $showTimeZoneText)
-      }
-
-      if displayStyle == .classic {
-        settingSlider(
-          title: L10n.text("settings.move_speed"),
-          value: $moveSpeed,
-          range: MoveSpeedLimits.min...MoveSpeedLimits.max,
-          label: MoveSpeedLimits.displayLabel(for: moveSpeed)
-        ) { onSpeedChange() }
-        Text(L10n.text("settings.motion_hint"))
-          .font(.caption)
-          .foregroundStyle(SettingsTheme.secondaryText)
       }
     }
   }
@@ -627,11 +633,13 @@ struct SettingsPanelView: View {
         subtitle: L10n.text("settings.keep_awake_hint"),
         isOn: $keepDisplayAwake
       )
-      SettingsToggleRow(
-        title: L10n.text("settings.oled_pixel_shift"),
-        subtitle: L10n.text("settings.oled_pixel_shift_hint"),
-        isOn: $oledPixelShiftEnabled
-      )
+      if displayStyle == .classic {
+        SettingsToggleRow(
+          title: L10n.text("settings.oled_pixel_shift"),
+          subtitle: L10n.text("settings.oled_pixel_shift_hint"),
+          isOn: $oledPixelShiftEnabled
+        )
+      }
       #if os(iOS)
         if ClockScreenLayout.hasNotchDisplay() {
           SettingsToggleRow(
