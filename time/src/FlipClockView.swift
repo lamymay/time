@@ -116,6 +116,62 @@ struct FlipClockScene: View {
   }
 }
 
+/// 设置全屏预览：直接渲染 segments，不连接 scheduler tick target
+struct FlipClockPreview: View {
+  let segments: TimeSegments
+  let config: ClockDisplayConfig
+  let backgroundColorHex: String
+  let flipCardColorHex: String
+  let fontColorHex: String
+  let previewSize: CGSize
+
+  private var lightBackground: Bool {
+    BackgroundColorPreset.from(hex: backgroundColorHex)?.isLight ?? false
+  }
+
+  private var cardStyle: FlipCardStyle {
+    FlipCardStyle.resolve(faceHex: flipCardColorHex, lightBackground: lightBackground)
+  }
+
+  private var digitColor: Color {
+    let picked = Color(hex: ColorPickerCodec.normalizedHex(fontColorHex))
+    return FlipReadableColor.digitColor(preferred: picked, cardFace: cardStyle.face)
+  }
+
+  var body: some View {
+    GeometryReader { _ in
+      let layout = FlipClockLayout(segments: segments, config: config)
+      let digitSize = FlipClockMetrics.digitSize(
+        screen: previewSize,
+        configuredSize: config.fontSize,
+        config: config
+      )
+      VStack(spacing: digitSize * 0.12) {
+        FlipClockRow(
+          layout: layout,
+          digitSize: digitSize,
+          digitColor: digitColor,
+          cardStyle: cardStyle,
+          fontName: config.selectedFontName,
+          tickEpoch: 0
+        )
+        if config.showTimeZoneText, !segments.timeZoneLabel.isEmpty {
+          Text(segments.timeZoneLabel)
+            .font(
+              FlipClockFont.swiftUI(
+                size: digitSize * NativeClockStyle.timeZoneScale,
+                fontName: config.selectedFontName,
+                weight: .regular
+              )
+            )
+            .foregroundStyle(digitColor.opacity(0.55))
+        }
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+  }
+}
+
 // MARK: - Layout
 
 private struct FlipDigitSlot: Identifiable {

@@ -7,6 +7,7 @@ enum TimeAccessibilityID {
   static let settingsBackdrop = "time.settings.backdrop"
   static let settingsCloseButton = "time.settings.close"
   static let settingsDoneButton = "time.settings.done"
+  static let settingsExpandButton = "time.settings.expand"
 }
 
 enum AppUITestConfig {

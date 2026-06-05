@@ -41,6 +41,8 @@ struct SettingsPanelView: View {
   let layout: SettingsPanelLayout
   @Binding var panelOffset: CGSize
   @Binding var settingsSheetWidth: Double
+  @Binding var isExpanded: Bool
+  @ObservedObject var timeScheduler: ClockTimeScheduler
   var onSpeedChange: () -> Void
 
   @GestureState private var dragOffset: CGSize = .zero
@@ -110,8 +112,15 @@ struct SettingsPanelView: View {
     )
   }
 
+  private var previewHeight: CGFloat {
+    max(120, screenSize.height * SettingsPanelMetrics.iosExpandedPreviewHeightRatio)
+  }
+
   var body: some View {
     VStack(spacing: 0) {
+      if showsClockPreview {
+        clockPreviewSection
+      }
       header
       ScrollView {
         LazyVStack(alignment: .leading, spacing: SettingsTheme.stackSpacing(compact: isIOSSheet)) {
@@ -170,11 +179,18 @@ struct SettingsPanelView: View {
     .environment(\.settingsCompactLayout, isIOSSheet)
     .foregroundStyle(.white)
     .background(panelBackground)
-    .clipShape(RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous)
-        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+    .clipShape(
+      RoundedRectangle(
+        cornerRadius: isExpanded ? 0 : SettingsTheme.panelCornerRadius,
+        style: .continuous
+      )
     )
+    .overlay {
+      if !isExpanded {
+        RoundedRectangle(cornerRadius: SettingsTheme.panelCornerRadius, style: .continuous)
+          .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+      }
+    }
     .overlay(alignment: .leading) { iosSidePanelDragStrip }
     .shadow(color: .black.opacity(0.45), radius: 24, y: 8)
     .offset(
@@ -207,18 +223,48 @@ struct SettingsPanelView: View {
     }
   }
 
+  #if os(iOS)
+    private var showsClockPreview: Bool { isExpanded }
+    private var showsExpandToggle: Bool { true }
+  #else
+    private var showsClockPreview: Bool { false }
+    private var showsExpandToggle: Bool { false }
+  #endif
+
+  private var clockPreviewSection: some View {
+    SettingsClockPreview(
+      scheduler: timeScheduler,
+      displayStyle: displayStyle,
+      config: panelClockConfig,
+      backgroundColorHex: backgroundColorHex,
+      flipCardColorHex: flipCardColorHex,
+      fontColorHex: fontColorHex,
+      ampmVertical: ampmVertical,
+      showTimeZoneText: showTimeZoneText,
+      previewSize: CGSize(width: screenSize.width, height: previewHeight)
+    )
+    .overlay(alignment: .bottom) {
+      Divider().overlay(SettingsTheme.separator)
+    }
+  }
+
   // MARK: - Header
 
   private var header: some View {
     VStack(spacing: 0) {
-      dragHandle
+      if !isIOSSheet {
+        dragHandle
+      }
 
-      HStack(alignment: .center) {
+      HStack(alignment: .center, spacing: 8) {
         Text(L10n.text("settings.title"))
           .font(isIOSSheet ? .headline.weight(.semibold) : .title2.weight(.semibold))
           .frame(maxWidth: .infinity, alignment: .leading)
           .contentShape(Rectangle())
           .gesture(panelDragGesture)
+        if showsExpandToggle {
+          expandToggleButton
+        }
         Button(action: closePanel) {
           Image(systemName: "xmark.circle.fill")
             .font(isIOSSheet ? .title3 : .title2)
@@ -237,6 +283,32 @@ struct SettingsPanelView: View {
       .padding(.bottom, isIOSSheet ? 8 : 12)
 
       Divider().overlay(SettingsTheme.separator)
+    }
+  }
+
+  private var expandToggleButton: some View {
+    Button(action: toggleExpanded) {
+      Image(systemName: isExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+        .font(isIOSSheet ? .body.weight(.semibold) : .title3.weight(.semibold))
+        .symbolRenderingMode(.hierarchical)
+        .foregroundStyle(SettingsTheme.accent)
+        .padding(6)
+        .background(SettingsTheme.cardBackground.opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+    .buttonStyle(.plain)
+    .accessibilityIdentifier(TimeAccessibilityID.settingsExpandButton)
+    .accessibilityLabel(
+      isExpanded
+        ? L10n.text("settings.collapse_panel")
+        : L10n.text("settings.expand_panel")
+    )
+  }
+
+  private func toggleExpanded() {
+    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+      isExpanded.toggle()
+      panelOffset = .zero
     }
   }
 

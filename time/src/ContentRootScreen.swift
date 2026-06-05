@@ -32,6 +32,7 @@ struct ContentRootScreen: View {
   @Binding var notchTopContentInset: Double
   @Binding var settingsPanelOffset: CGSize
   @Binding var settingsSheetWidth: Double
+  @Binding var settingsPanelExpanded: Bool
   @Binding var fontCatalog: [String]?
   @Binding var flipLaunchPresentationApplied: Bool
 
@@ -410,24 +411,22 @@ struct ContentRootScreen: View {
       layout: isWide ? .sidePanel : .bottomSheet,
       panelOffset: $settingsPanelOffset,
       settingsSheetWidth: $settingsSheetWidth,
-        onSpeedChange: {}
+      isExpanded: $settingsPanelExpanded,
+      timeScheduler: timeScheduler,
+      onSpeedChange: {}
     )
-    if isWide {
-      #if os(iOS)
+    #if os(iOS)
+      if settingsPanelExpanded {
+        panel
+          .frame(width: size.width, height: size.height)
+      } else if isWide {
         let sheetW = SettingsPanelMetrics.resolvedIOSSheetWidth(
           stored: settingsSheetWidth,
           screen: size
         )
         panel
           .frame(width: sheetW, height: size.height)
-      #else
-        let sheetHeight = min(size.height * 0.88, 720)
-        panel
-          .frame(width: min(400, size.width * 0.38), height: sheetHeight)
-          .padding(EdgeInsets(top: 20, leading: 0, bottom: 20, trailing: 20))
-      #endif
-    } else {
-      #if os(iOS)
+      } else {
         let sheetW = SettingsPanelMetrics.resolvedIOSSheetWidth(
           stored: settingsSheetWidth,
           screen: size
@@ -439,14 +438,21 @@ struct ContentRootScreen: View {
             .frame(width: sheetW, height: sheetHeight)
           Spacer(minLength: 0)
         }
-      #else
+      }
+    #else
+      if isWide {
+        let sheetHeight = min(size.height * 0.88, 720)
+        panel
+          .frame(width: min(400, size.width * 0.38), height: sheetHeight)
+          .padding(EdgeInsets(top: 20, leading: 0, bottom: 20, trailing: 20))
+      } else {
         let sheetHeight = min(size.height * 0.88, 720)
         panel
           .frame(height: sheetHeight)
           .frame(maxWidth: .infinity)
           .padding(EdgeInsets(top: 0, leading: 12, bottom: 12, trailing: 12))
-      #endif
-    }
+      }
+    #endif
   }
 
   @ViewBuilder

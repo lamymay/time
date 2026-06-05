@@ -474,4 +474,38 @@ private final class NativeClockDebugBorderLayers {
     }
   }
 
+  struct NativeClockPreviewRepresentable: UIViewRepresentable {
+    let segments: TimeSegments
+    let styleStamp: ClockStyleStamp
+
+    func makeUIView(context: Context) -> NativeClockUIView {
+      let view = NativeClockUIView()
+      view.applyStyle(styleStamp)
+      return view
+    }
+
+    func updateUIView(_ view: NativeClockUIView, context: Context) {
+      view.applyStyle(styleStamp)
+      view.applyTick(segments: segments, changedFields: Set(TimeSegmentField.allCases))
+    }
+  }
+
+#endif
+
+#if os(macOS)
+  struct NativeClockPreviewRepresentable: NSViewRepresentable {
+    let segments: TimeSegments
+    let styleStamp: ClockStyleStamp
+
+    func makeNSView(context: Context) -> NativeClockNSView {
+      let view = NativeClockNSView()
+      view.applyStyle(styleStamp)
+      return view
+    }
+
+    func updateNSView(_ view: NativeClockNSView, context: Context) {
+      view.applyStyle(styleStamp)
+      view.applyTick(segments: segments, changedFields: Set(TimeSegmentField.allCases))
+    }
+  }
 #endif

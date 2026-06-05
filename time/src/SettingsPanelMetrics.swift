@@ -11,6 +11,9 @@ enum SettingsPanelMetrics {
   static let iosSheetMaxCap: CGFloat = 256
   static let iosSheetHorizontalInset: CGFloat = 20
 
+  /// 全屏设置顶栏时钟预览高度比例
+  static let iosExpandedPreviewHeightRatio: CGFloat = 0.34
+
   static func iosSheetAutoWidth(screen: CGSize) -> CGFloat {
     min(screen.width - iosSheetHorizontalInset * 2, iosSheetMaxCap)
   }
