@@ -41,29 +41,39 @@ private enum NativeClockLayoutHelper {
   }
 }
 
-/// CATextLayer 实际绘制常略宽于排版估算；水平留足边距，垂直按 layer 并集贴边
+/// CATextLayer 实际绘制常略宽于排版估算；按 layer 并集顶左对齐，右侧单独留 glyph 溢出
 private enum NativeClockCollisionMeasure {
-  static let minHorizontalBleed: CGFloat = 8
+  static let minHorizontalBleed: CGFloat = 4
   static let minVerticalBleed: CGFloat = 2
+
+  static func horizontalPadding(for layoutTotal: CGSize) -> CGFloat {
+    max(minHorizontalBleed, layoutTotal.width * 0.02)
+  }
+
+  static func verticalPadding(for layoutTotal: CGSize) -> CGFloat {
+    max(minVerticalBleed, layoutTotal.height * 0.008)
+  }
+
+  /// 秒数等 CATextLayer 右侧可能略超出 union
+  static func trailingGlyphSlop(for layoutTotal: CGSize) -> CGFloat {
+    max(6, layoutTotal.width * 0.035)
+  }
 
   static func measure(
     layoutTotal: CGSize,
     unionInView: CGRect
   ) -> NativeClockCollisionExtents {
-    let padX = max(minHorizontalBleed, layoutTotal.width * 0.06)
-    let padY = max(minVerticalBleed, layoutTotal.height * 0.008)
+    let padX = horizontalPadding(for: layoutTotal)
+    let padY = verticalPadding(for: layoutTotal)
+    let slopRight = trailingGlyphSlop(for: layoutTotal)
 
-    var widthBox = CGRect(origin: .zero, size: layoutTotal)
-    if !unionInView.isNull {
-      widthBox = widthBox.union(unionInView)
-    }
-    widthBox = widthBox.insetBy(dx: -padX, dy: 0)
-    let frameW = max(ceil(widthBox.width), 1)
-
+    let frameW: CGFloat
     let frameH: CGFloat
     if unionInView.isNull {
+      frameW = max(ceil(layoutTotal.width) + 2 * padX, 1)
       frameH = max(ceil(layoutTotal.height) + 2 * padY, 1)
     } else {
+      frameW = max(ceil(unionInView.width) + 2 * padX, 1)
       frameH = max(ceil(unionInView.height) + 2 * padY, 1)
     }
 
@@ -85,7 +95,7 @@ private enum NativeClockCollisionMeasure {
       centerInsetTop: max(cy - unionInView.minY, 1),
       centerInsetBottom: max(unionInView.maxY - cy, 1),
       centerInsetLeft: max(cx - unionInView.minX, 1),
-      centerInsetRight: max(unionInView.maxX - cx, 1)
+      centerInsetRight: max(unionInView.maxX - cx + slopRight, 1)
     )
   }
 }
@@ -216,17 +226,15 @@ private enum NativeClockCollisionMeasure {
         ampmLayer.isHidden = true
       }
 
-      let padY = max(
-        NativeClockCollisionMeasure.minVerticalBleed,
-        layout.totalSize.height * 0.008
-      )
+      let padX = NativeClockCollisionMeasure.horizontalPadding(for: layout.totalSize)
+      let padY = NativeClockCollisionMeasure.verticalPadding(for: layout.totalSize)
       let unionInRoot = layerUnionInRoot()
       measuredCollision = NativeClockCollisionMeasure.measure(
         layoutTotal: layout.totalSize,
-        unionInView: unionInRoot.offsetBy(dx: 0, dy: padY)
+        unionInView: unionInRoot.offsetBy(dx: padX, dy: padY)
       )
       rootLayer.frame = CGRect(
-        x: (bounds.width - measuredCollision.frameSize.width) / 2,
+        x: padX,
         y: padY,
         width: measuredCollision.frameSize.width,
         height: measuredCollision.frameSize.height
@@ -366,11 +374,9 @@ private enum NativeClockCollisionMeasure {
         showTimeZone: stamp.showTimeZoneText,
         timeZoneTopGap: stamp.timeZoneTopGap
       )
-      let padY = max(
-        NativeClockCollisionMeasure.minVerticalBleed,
-        layout.totalSize.height * 0.008
-      )
-      let originX = (bounds.width - layout.totalSize.width) / 2
+      let padX = NativeClockCollisionMeasure.horizontalPadding(for: layout.totalSize)
+      let padY = NativeClockCollisionMeasure.verticalPadding(for: layout.totalSize)
+      let originX = padX
       let originY = padY
 
       timeZoneLayer.frame = layout.timeZone.offsetBy(dx: originX, dy: originY)
