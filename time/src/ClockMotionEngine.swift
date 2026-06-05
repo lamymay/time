@@ -8,6 +8,7 @@ final class ClockMotionEngine {
   var totalSize: CGSize = .zero
   /// 容器内实际占位（≥ totalSize，含 glyph 溢出边距）
   private(set) var collisionExtent: CGSize = .zero
+  private var collisionInsets = NativeClockCollisionExtents.zero
   var trailSamples: [MotionTrailSample] = []
 
   private var direction = CGVector(dx: 1, dy: 1)
@@ -74,9 +75,11 @@ final class ClockMotionEngine {
     pushPositionToRenderer()
   }
 
-  func setCollisionExtent(_ size: CGSize) {
+  func setCollisionExtents(_ extents: NativeClockCollisionExtents) {
+    let size = extents.frameSize
     guard size.width > 1, size.height > 1 else { return }
-    guard collisionExtent != size else { return }
+    guard collisionInsets != extents else { return }
+    collisionInsets = extents
     collisionExtent = size
     if let position {
       self.position = clampedPosition(position)
@@ -84,19 +87,47 @@ final class ClockMotionEngine {
     }
   }
 
-  private var collisionHalfSize: CGSize {
+  func setCollisionExtent(_ size: CGSize) {
+    let halfW = size.width / 2
+    let halfH = size.height / 2
+    setCollisionExtents(
+      NativeClockCollisionExtents(
+        frameSize: size,
+        centerInsetTop: halfH,
+        centerInsetBottom: halfH,
+        centerInsetLeft: halfW,
+        centerInsetRight: halfW
+      )
+    )
+  }
+
+  private var collisionFootprint: CGSize {
+    let insets = collisionInsets
+    if insets.frameSize != .zero {
+      return insets.collisionFootprint
+    }
     let w = max(collisionExtent.width, totalSize.width)
     let h = max(collisionExtent.height, totalSize.height)
     return CGSize(width: w, height: h)
   }
 
   private func clampedPosition(_ point: CGPoint) -> CGPoint {
-    let half = collisionHalfSize
-    guard half.width > 0, half.height > 0 else { return screenCenter }
-    let minX = half.width / 2
-    let maxX = screenSize.width - half.width / 2
-    let minY = half.height / 2
-    let maxY = screenSize.height - half.height / 2
+    let footprint = collisionFootprint
+    guard footprint.width > 0, footprint.height > 0 else { return screenCenter }
+    let minX = collisionInsets.frameSize == .zero
+      ? footprint.width / 2
+      : collisionInsets.centerInsetLeft
+    let maxX = screenSize.width
+      - (collisionInsets.frameSize == .zero
+        ? footprint.width / 2
+        : collisionInsets.centerInsetRight)
+    let minY = collisionInsets.frameSize == .zero
+      ? footprint.height / 2
+      : collisionInsets.centerInsetTop
+    let maxY = screenSize.height
+      - (collisionInsets.frameSize == .zero
+        ? footprint.height / 2
+        : collisionInsets.centerInsetBottom)
     return CGPoint(
       x: min(max(point.x, minX), maxX),
       y: min(max(point.y, minY), maxY)
@@ -182,8 +213,8 @@ final class ClockMotionEngine {
     let effectiveHeight = screenSize.height
     guard effectiveWidth > 0, effectiveHeight > 0 else { return }
 
-    let half = collisionHalfSize
-    guard half.width > 0, half.height > 0 else {
+    let footprint = collisionFootprint
+    guard footprint.width > 0, footprint.height > 0 else {
       let center = screenCenter
       if position != center {
         position = center
@@ -194,10 +225,20 @@ final class ClockMotionEngine {
 
     let currentPos = position ?? screenCenter
 
-    let minX = half.width / 2
-    let maxX = effectiveWidth - (half.width / 2)
-    let minY = half.height / 2
-    let maxY = effectiveHeight - (half.height / 2)
+    let minX = collisionInsets.frameSize == .zero
+      ? footprint.width / 2
+      : collisionInsets.centerInsetLeft
+    let maxX = effectiveWidth
+      - (collisionInsets.frameSize == .zero
+        ? footprint.width / 2
+        : collisionInsets.centerInsetRight)
+    let minY = collisionInsets.frameSize == .zero
+      ? footprint.height / 2
+      : collisionInsets.centerInsetTop
+    let maxY = effectiveHeight
+      - (collisionInsets.frameSize == .zero
+        ? footprint.height / 2
+        : collisionInsets.centerInsetBottom)
 
     let spanX = maxX - minX
     let spanY = maxY - minY
@@ -254,7 +295,7 @@ final class ClockMotionEngine {
         edges: edges,
         playfieldSize: screenSize,
         clockCenter: center,
-        clockSize: collisionHalfSize
+        clockSize: collisionFootprint
       )
     )
     stopMotionTimer()

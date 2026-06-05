@@ -6,8 +6,32 @@ import SwiftUI
   import UIKit
 #endif
 
+/// 碰撞盒与从中心到四边「视觉边」的距离（避免框内垂直居中导致离屏边仍有大空隙）
+struct NativeClockCollisionExtents: Equatable {
+  let frameSize: CGSize
+  let centerInsetTop: CGFloat
+  let centerInsetBottom: CGFloat
+  let centerInsetLeft: CGFloat
+  let centerInsetRight: CGFloat
+
+  var collisionFootprint: CGSize {
+    CGSize(
+      width: centerInsetLeft + centerInsetRight,
+      height: centerInsetTop + centerInsetBottom
+    )
+  }
+
+  static let zero = NativeClockCollisionExtents(
+    frameSize: .zero,
+    centerInsetTop: 0,
+    centerInsetBottom: 0,
+    centerInsetLeft: 0,
+    centerInsetRight: 0
+  )
+}
+
 protocol NativeClockSizeDelegate: AnyObject {
-  func nativeClock(didMeasure size: CGSize)
+  func nativeClock(didMeasure collision: NativeClockCollisionExtents)
 }
 
 private enum NativeClockLayoutHelper {
@@ -17,26 +41,51 @@ private enum NativeClockLayoutHelper {
   }
 }
 
-/// CATextLayer 实际绘制常略宽于排版估算，碰撞盒取 layer 并集并加少量边距
+/// CATextLayer 实际绘制常略宽于排版估算；水平留足边距，垂直按 layer 并集贴边
 private enum NativeClockCollisionMeasure {
-  /// CATextLayer 绘制常超出 frame；水平方向（尤其秒数字）再留余量
-  static let minBleedPadding: CGFloat = 8
+  static let minHorizontalBleed: CGFloat = 8
+  static let minVerticalBleed: CGFloat = 2
 
-  static func size(layoutTotal: CGSize, layerUnion: CGRect) -> CGSize {
+  static func measure(
+    layoutTotal: CGSize,
+    unionInView: CGRect
+  ) -> NativeClockCollisionExtents {
+    let padX = max(minHorizontalBleed, layoutTotal.width * 0.06)
+    let padY = max(minVerticalBleed, layoutTotal.height * 0.008)
+
     var widthBox = CGRect(origin: .zero, size: layoutTotal)
-    if !layerUnion.isNull {
-      widthBox = widthBox.union(layerUnion)
+    if !unionInView.isNull {
+      widthBox = widthBox.union(unionInView)
     }
-    let padX = max(minBleedPadding, layoutTotal.width * 0.06)
     widthBox = widthBox.insetBy(dx: -padX, dy: 0)
+    let frameW = max(ceil(widthBox.width), 1)
 
-    let heightSource = layerUnion.isNull ? CGRect(origin: .zero, size: layoutTotal) : layerUnion
-    let padY = max(4, layoutTotal.height * 0.015)
-    let heightBox = heightSource.insetBy(dx: 0, dy: -padY)
+    let frameH: CGFloat
+    if unionInView.isNull {
+      frameH = max(ceil(layoutTotal.height) + 2 * padY, 1)
+    } else {
+      frameH = max(ceil(unionInView.height) + 2 * padY, 1)
+    }
 
-    return CGSize(
-      width: max(ceil(widthBox.width), 1),
-      height: max(ceil(heightBox.height), 1)
+    let cx = frameW / 2
+    let cy = frameH / 2
+
+    if unionInView.isNull {
+      return NativeClockCollisionExtents(
+        frameSize: CGSize(width: frameW, height: frameH),
+        centerInsetTop: cy,
+        centerInsetBottom: cy,
+        centerInsetLeft: cx,
+        centerInsetRight: cx
+      )
+    }
+
+    return NativeClockCollisionExtents(
+      frameSize: CGSize(width: frameW, height: frameH),
+      centerInsetTop: max(cy - unionInView.minY, 1),
+      centerInsetBottom: max(unionInView.maxY - cy, 1),
+      centerInsetLeft: max(cx - unionInView.minX, 1),
+      centerInsetRight: max(unionInView.maxX - cx, 1)
     )
   }
 }
@@ -56,8 +105,8 @@ private enum NativeClockCollisionMeasure {
     private var styleStamp: ClockStyleStamp?
     private var fonts: NativeClockFonts?
     private var segments = TimeSegments()
-    private var measuredSize: CGSize = .zero
-    private var lastReportedSize: CGSize = .zero
+    private var measuredCollision = NativeClockCollisionExtents.zero
+    private var lastReportedCollision = NativeClockCollisionExtents.zero
 
     override init(frame frameRect: NSRect) {
       super.init(frame: frameRect)
@@ -167,34 +216,43 @@ private enum NativeClockCollisionMeasure {
         ampmLayer.isHidden = true
       }
 
-      measuredSize = updateCollisionSize(layout: layout)
-
-      rootLayer.frame = CGRect(
-        x: (bounds.width - measuredSize.width) / 2,
-        y: (bounds.height - measuredSize.height) / 2,
-        width: measuredSize.width,
-        height: measuredSize.height
+      let padY = max(
+        NativeClockCollisionMeasure.minVerticalBleed,
+        layout.totalSize.height * 0.008
       )
-      reportMeasuredSizeIfNeeded()
+      let unionInRoot = layerUnionInRoot()
+      measuredCollision = NativeClockCollisionMeasure.measure(
+        layoutTotal: layout.totalSize,
+        unionInView: unionInRoot.offsetBy(dx: 0, dy: padY)
+      )
+      rootLayer.frame = CGRect(
+        x: (bounds.width - measuredCollision.frameSize.width) / 2,
+        y: padY,
+        width: measuredCollision.frameSize.width,
+        height: measuredCollision.frameSize.height
+      )
+      reportMeasuredCollisionIfNeeded()
     }
 
     func fittingSize() -> CGSize {
-      measuredSize == .zero ? CGSize(width: 1, height: 1) : measuredSize
+      let size = measuredCollision.frameSize
+      return size == .zero ? CGSize(width: 1, height: 1) : size
     }
 
-    private func updateCollisionSize(layout: NativeClockLayerFrames) -> CGSize {
+    private func layerUnionInRoot() -> CGRect {
       var union = CGRect.null
       if !timeZoneLayer.isHidden { union = union.union(timeZoneLayer.frame) }
       union = union.union(timeLayer.frame)
       if !ampmLayer.isHidden { union = union.union(ampmLayer.frame) }
-      return NativeClockCollisionMeasure.size(layoutTotal: layout.totalSize, layerUnion: union)
+      return union
     }
 
-    private func reportMeasuredSizeIfNeeded() {
-      guard measuredSize.width > 0, measuredSize.height > 0 else { return }
-      guard measuredSize != lastReportedSize else { return }
-      lastReportedSize = measuredSize
-      sizeDelegate?.nativeClock(didMeasure: measuredSize)
+    private func reportMeasuredCollisionIfNeeded() {
+      let size = measuredCollision.frameSize
+      guard size.width > 0, size.height > 0 else { return }
+      guard measuredCollision != lastReportedCollision else { return }
+      lastReportedCollision = measuredCollision
+      sizeDelegate?.nativeClock(didMeasure: measuredCollision)
     }
   }
 
@@ -214,8 +272,8 @@ private enum NativeClockCollisionMeasure {
     private var styleStamp: ClockStyleStamp?
     private var fonts: NativeClockFonts?
     private var segments = TimeSegments()
-    private var measuredSize: CGSize = .zero
-    private var lastReportedSize: CGSize = .zero
+    private var measuredCollision = NativeClockCollisionExtents.zero
+    private var lastReportedCollision = NativeClockCollisionExtents.zero
 
     override init(frame: CGRect) {
       super.init(frame: frame)
@@ -308,8 +366,12 @@ private enum NativeClockCollisionMeasure {
         showTimeZone: stamp.showTimeZoneText,
         timeZoneTopGap: stamp.timeZoneTopGap
       )
+      let padY = max(
+        NativeClockCollisionMeasure.minVerticalBleed,
+        layout.totalSize.height * 0.008
+      )
       let originX = (bounds.width - layout.totalSize.width) / 2
-      let originY = (bounds.height - layout.totalSize.height) / 2
+      let originY = padY
 
       timeZoneLayer.frame = layout.timeZone.offsetBy(dx: originX, dy: originY)
       timeLayer.frame = layout.time.offsetBy(dx: originX, dy: originY)
@@ -320,27 +382,32 @@ private enum NativeClockCollisionMeasure {
         ampmLayer.isHidden = true
       }
 
-      measuredSize = updateCollisionSize(layout: layout)
-      reportMeasuredSizeIfNeeded()
+      measuredCollision = NativeClockCollisionMeasure.measure(
+        layoutTotal: layout.totalSize,
+        unionInView: layerUnionInView()
+      )
+      reportMeasuredCollisionIfNeeded()
     }
 
     func fittingSize() -> CGSize {
-      measuredSize == .zero ? CGSize(width: 1, height: 1) : measuredSize
+      let size = measuredCollision.frameSize
+      return size == .zero ? CGSize(width: 1, height: 1) : size
     }
 
-    private func updateCollisionSize(layout: NativeClockLayerFrames) -> CGSize {
+    private func layerUnionInView() -> CGRect {
       var union = CGRect.null
       if !timeZoneLayer.isHidden { union = union.union(timeZoneLayer.frame) }
       union = union.union(timeLayer.frame)
       if !ampmLayer.isHidden { union = union.union(ampmLayer.frame) }
-      return NativeClockCollisionMeasure.size(layoutTotal: layout.totalSize, layerUnion: union)
+      return union
     }
 
-    private func reportMeasuredSizeIfNeeded() {
-      guard measuredSize.width > 0, measuredSize.height > 0 else { return }
-      guard measuredSize != lastReportedSize else { return }
-      lastReportedSize = measuredSize
-      sizeDelegate?.nativeClock(didMeasure: measuredSize)
+    private func reportMeasuredCollisionIfNeeded() {
+      let size = measuredCollision.frameSize
+      guard size.width > 0, size.height > 0 else { return }
+      guard measuredCollision != lastReportedCollision else { return }
+      lastReportedCollision = measuredCollision
+      sizeDelegate?.nativeClock(didMeasure: measuredCollision)
     }
   }
 
