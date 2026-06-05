@@ -92,6 +92,17 @@ struct ContentRootScreen: View {
     oledPixelShiftEnabled && !AppUITestConfig.isEnabled
   }
 
+  private func syncFlipBrightnessGuard() {
+    #if os(iOS)
+      OledFlipBrightnessGuard.sync(
+        flipMode: clockDisplayStyle == .flip,
+        burnInProtectionEnabled: oledPixelShiftEnabled,
+        appActive: scenePhase == .active,
+        settingsOpen: showSettings || showFontPicker
+      )
+    #endif
+  }
+
   var body: some View {
     panelClampLayer
   }
@@ -109,16 +120,23 @@ struct ContentRootScreen: View {
       }
       .onChangeCompat(of: showSettings) { _, isOpen in
         #if os(iOS)
+          syncFlipBrightnessGuard()
           if isOpen { return }
         #endif
         clampFontSizeToScreen()
       }
-      .onChangeCompat(of: showFontPicker) { _, _ in clampFontSizeToScreen() }
+      .onChangeCompat(of: showFontPicker) { _, _ in
+        syncFlipBrightnessGuard()
+        clampFontSizeToScreen()
+      }
   }
 
   private var styleChangeLayer: some View {
     configChangeLayer
-      .onChangeCompat(of: clockDisplayStyleRaw) { _, _ in reactStyleChange() }
+      .onChangeCompat(of: clockDisplayStyleRaw) { _, _ in
+        reactStyleChange()
+        syncFlipBrightnessGuard()
+      }
   }
 
   private var configChangeLayer: some View {
@@ -137,6 +155,7 @@ struct ContentRootScreen: View {
       .onChangeCompat(of: flipCompactDetachedSeconds) { _, _ in reactConfigChange() }
       .onChangeCompat(of: avoidTopSafeAreaOnNotch) { _, _ in clampFontSizeToScreen() }
       .onChangeCompat(of: notchTopContentInset) { _, _ in clampFontSizeToScreen() }
+      .onChangeCompat(of: oledPixelShiftEnabled) { _, _ in syncFlipBrightnessGuard() }
   }
 
   private var sceneLifecycleLayer: some View {
@@ -144,6 +163,7 @@ struct ContentRootScreen: View {
       .onAppear(perform: handleAppear)
       .onChangeCompat(of: scenePhase) { _, phase in
         timeScheduler.setActive(phase == .active)
+        syncFlipBrightnessGuard()
       }
       .onChangeCompat(of: keepDisplayAwake) { _, enabled in
         DisplayKeepAwake.setEnabled(enabled)
@@ -540,6 +560,7 @@ struct ContentRootScreen: View {
     } else {
       clampFontSizeToScreen()
     }
+    syncFlipBrightnessGuard()
   }
 
   /// 启动即全屏（DVD / 翻页均适用；UI 测试跳过）
