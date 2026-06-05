@@ -385,8 +385,14 @@ struct SettingsPanelView: View {
           .foregroundStyle(SettingsTheme.accent)
           .frame(minWidth: 40, alignment: .trailing)
       }
-      labeledPickerRow(title: L10n.text("settings.font")) {
+      HStack(alignment: .center, spacing: isIOSSheet ? 8 : 12) {
+        Text(L10n.text("settings.font"))
+          .font(SettingsTheme.rowLabelFont(compact: isIOSSheet))
+          .foregroundStyle(SettingsTheme.secondaryText)
+          .lineLimit(1)
+          .fixedSize(horizontal: true, vertical: false)
         fontPickerRow
+          .frame(maxWidth: .infinity, alignment: .trailing)
       }
     }
     #if os(iOS)
