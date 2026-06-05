@@ -118,10 +118,10 @@ struct SettingsPanelView: View {
 
   var body: some View {
     VStack(spacing: 0) {
+      header
       if showsClockPreview {
         clockPreviewSection
       }
-      header
       ScrollView {
         LazyVStack(alignment: .leading, spacing: SettingsTheme.stackSpacing(compact: isIOSSheet)) {
           fontSizeSection
@@ -178,6 +178,9 @@ struct SettingsPanelView: View {
     .onChangeCompat(of: timeDisplayPrecisionRaw) { _, _ in syncFontSizeToLimits() }
     .environment(\.settingsCompactLayout, isIOSSheet)
     .foregroundStyle(.white)
+    #if os(iOS)
+      .padding(.top, isExpanded ? SettingsPanelMetrics.iosSafeAreaTopInset : 0)
+    #endif
     .background(panelBackground)
     .clipShape(
       RoundedRectangle(
@@ -265,18 +268,7 @@ struct SettingsPanelView: View {
         if showsExpandToggle {
           expandToggleButton
         }
-        Button(action: closePanel) {
-          Image(systemName: "xmark.circle.fill")
-            .font(isIOSSheet ? .title3 : .title2)
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(.secondary)
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(TimeAccessibilityID.settingsCloseButton)
-        #if os(macOS)
-          .keyboardShortcut(.escape, modifiers: [])
-          .help(L10n.text("settings.close_help"))
-        #endif
+        closePanelButton
       }
       .padding(.horizontal, SettingsTheme.contentPadding(compact: isIOSSheet))
       .padding(.top, isIOSSheet ? 2 : 4)
@@ -288,13 +280,18 @@ struct SettingsPanelView: View {
 
   private var expandToggleButton: some View {
     Button(action: toggleExpanded) {
-      Image(systemName: isExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-        .font(isIOSSheet ? .body.weight(.semibold) : .title3.weight(.semibold))
-        .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(SettingsTheme.accent)
-        .padding(6)
-        .background(SettingsTheme.cardBackground.opacity(0.8))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      Image(
+        systemName: isExpanded
+          ? "arrow.down.right.and.arrow.up.left.circle.fill"
+          : "arrow.up.left.and.arrow.down.right.circle.fill"
+      )
+      .font(isIOSSheet ? .title3 : .title2)
+      .symbolRenderingMode(.hierarchical)
+      .foregroundStyle(SettingsTheme.accent)
+      .frame(
+        width: SettingsPanelMetrics.headerActionButtonSize,
+        height: SettingsPanelMetrics.headerActionButtonSize
+      )
     }
     .buttonStyle(.plain)
     .accessibilityIdentifier(TimeAccessibilityID.settingsExpandButton)
@@ -303,6 +300,25 @@ struct SettingsPanelView: View {
         ? L10n.text("settings.collapse_panel")
         : L10n.text("settings.expand_panel")
     )
+  }
+
+  private var closePanelButton: some View {
+    Button(action: closePanel) {
+      Image(systemName: "xmark.circle.fill")
+        .font(isIOSSheet ? .title3 : .title2)
+        .symbolRenderingMode(.hierarchical)
+        .foregroundStyle(.secondary)
+        .frame(
+          width: SettingsPanelMetrics.headerActionButtonSize,
+          height: SettingsPanelMetrics.headerActionButtonSize
+        )
+    }
+    .buttonStyle(.plain)
+    .accessibilityIdentifier(TimeAccessibilityID.settingsCloseButton)
+    #if os(macOS)
+      .keyboardShortcut(.escape, modifiers: [])
+      .help(L10n.text("settings.close_help"))
+    #endif
   }
 
   private func toggleExpanded() {

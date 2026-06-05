@@ -1,7 +1,27 @@
 import CoreGraphics
 
+#if canImport(UIKit)
+  import UIKit
+#endif
+
 /// 设置面板尺寸（iOS 底部 sheet 可收窄、可拖拽调宽）
 enum SettingsPanelMetrics {
+  static let headerActionButtonSize: CGFloat = 36
+
+  #if os(iOS)
+    static var iosSafeAreaTopInset: CGFloat {
+      guard let window = UIApplication.shared.connectedScenes
+        .compactMap({ $0 as? UIWindowScene })
+        .first(where: { $0.activationState == .foregroundActive })
+        .flatMap({ scene in scene.windows.first(where: \.isKeyWindow) })
+        ?? UIApplication.shared.connectedScenes
+          .compactMap({ $0 as? UIWindowScene })
+          .flatMap(\.windows)
+          .first(where: \.isKeyWindow)
+      else { return 0 }
+      return window.safeAreaInsets.top
+    }
+  #endif
   static let macMinWidth: CGFloat = 360
   static let macIdealWidth: CGFloat = 380
 
