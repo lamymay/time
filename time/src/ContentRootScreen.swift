@@ -206,6 +206,9 @@ struct ContentRootScreen: View {
   private var clockLayer: some View {
     clockScene(isPaused: clockPaused)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
+      #if os(iOS)
+        .ignoresSafeArea()
+      #endif
       .accessibilityIdentifier(TimeAccessibilityID.clockScene)
       .accessibilityElement(children: .contain)
       .oledPixelShift(
@@ -308,7 +311,6 @@ struct ContentRootScreen: View {
         fontColorHex: fontColorHex,
         isActive: scenePhase == .active && !isPaused
       )
-      .ignoresSafeArea()
     }
   }
 
