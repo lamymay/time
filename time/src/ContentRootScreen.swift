@@ -219,8 +219,9 @@ struct ContentRootScreen: View {
   @ViewBuilder
   private var overlayStack: some View {
     if DVDCollisionDebug.isEnabled, clockDisplayStyle == .classic, !dvdCollisionDebugEdges.isEmpty {
+      let playfield = ClockScreenBounds.bouncePlayfield(swiftUISize: screenSize)
       DVDCollisionDebugOverlay(
-        playfieldSize: screenSize,
+        playfieldSize: playfield,
         edges: dvdCollisionDebugEdges
       )
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

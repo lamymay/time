@@ -100,6 +100,49 @@ private enum NativeClockCollisionMeasure {
   }
 }
 
+#if canImport(UIKit)
+  import UIKit
+#else
+  import AppKit
+#endif
+
+/// 调试：紫框 = 字形 layer 并集，橙框 = 碰撞 UIView 边界
+private final class NativeClockDebugBorderLayers {
+  private let glyphLayer = CALayer()
+  private let frameLayer = CALayer()
+
+  init() {
+    glyphLayer.backgroundColor = PlatformColor.clear.cgColor
+    glyphLayer.borderWidth = DVDCollisionDebug.glyphBoundsBorderWidth
+    frameLayer.backgroundColor = PlatformColor.clear.cgColor
+    frameLayer.borderWidth = DVDCollisionDebug.collisionFrameBorderWidth
+    #if os(iOS)
+      glyphLayer.borderColor = UIColor.systemPurple.cgColor
+      frameLayer.borderColor = UIColor.systemOrange.cgColor
+    #else
+      glyphLayer.borderColor = NSColor.systemPurple.cgColor
+      frameLayer.borderColor = NSColor.systemOrange.cgColor
+    #endif
+  }
+
+  func install(on parent: CALayer) {
+    parent.insertSublayer(frameLayer, at: 0)
+    parent.insertSublayer(glyphLayer, at: 0)
+  }
+
+  func sync(glyphUnion: CGRect, collisionFrame: CGRect) {
+    guard DVDCollisionDebug.isEnabled else {
+      glyphLayer.isHidden = true
+      frameLayer.isHidden = true
+      return
+    }
+    glyphLayer.isHidden = glyphUnion.isNull
+    frameLayer.isHidden = false
+    glyphLayer.frame = glyphUnion
+    frameLayer.frame = collisionFrame
+  }
+}
+
 // MARK: - macOS
 
 #if os(macOS)
@@ -117,12 +160,16 @@ private enum NativeClockCollisionMeasure {
     private var segments = TimeSegments()
     private var measuredCollision = NativeClockCollisionExtents.zero
     private var lastReportedCollision = NativeClockCollisionExtents.zero
+    private let debugBorders = NativeClockDebugBorderLayers()
 
     override init(frame frameRect: NSRect) {
       super.init(frame: frameRect)
       wantsLayer = true
       layer?.masksToBounds = false
       configureLayers()
+      if let layer {
+        debugBorders.install(on: layer)
+      }
     }
 
     required init?(coder: NSCoder) {
@@ -239,6 +286,11 @@ private enum NativeClockCollisionMeasure {
         width: measuredCollision.frameSize.width,
         height: measuredCollision.frameSize.height
       )
+      let glyphUnion = unionInRoot.offsetBy(dx: padX, dy: padY)
+      debugBorders.sync(
+        glyphUnion: glyphUnion,
+        collisionFrame: CGRect(origin: .zero, size: measuredCollision.frameSize)
+      )
       reportMeasuredCollisionIfNeeded()
     }
 
@@ -282,10 +334,14 @@ private enum NativeClockCollisionMeasure {
     private var segments = TimeSegments()
     private var measuredCollision = NativeClockCollisionExtents.zero
     private var lastReportedCollision = NativeClockCollisionExtents.zero
+    private let debugBorders = NativeClockDebugBorderLayers()
 
     override init(frame: CGRect) {
       super.init(frame: frame)
       isUserInteractionEnabled = false
+      if let layer {
+        debugBorders.install(on: layer)
+      }
       layer.addSublayer(timeLayer)
       layer.addSublayer(timeZoneLayer)
       layer.addSublayer(ampmLayer)
@@ -388,9 +444,14 @@ private enum NativeClockCollisionMeasure {
         ampmLayer.isHidden = true
       }
 
+      let glyphUnion = layerUnionInView()
       measuredCollision = NativeClockCollisionMeasure.measure(
         layoutTotal: layout.totalSize,
-        unionInView: layerUnionInView()
+        unionInView: glyphUnion
+      )
+      debugBorders.sync(
+        glyphUnion: glyphUnion,
+        collisionFrame: CGRect(origin: .zero, size: measuredCollision.frameSize)
       )
       reportMeasuredCollisionIfNeeded()
     }

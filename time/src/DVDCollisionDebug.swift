@@ -8,6 +8,10 @@ enum DVDCollisionDebug {
   static let highlightLineWidth: CGFloat = 6
   /// 碰撞瞬间背景高亮色
   static let hitBackgroundHex = "#1B8F3A"
+  /// 紫框：CATextLayer 数字并集（可见字形区域）
+  static let glyphBoundsBorderWidth: CGFloat = 2
+  /// 橙框：碰撞用 UIView 整框（相对紫框多出的空白 = 不可见高度/宽度）
+  static let collisionFrameBorderWidth: CGFloat = 1.5
 
   static let collisionNotification = Notification.Name("DVDCollisionDebugDidHit")
 

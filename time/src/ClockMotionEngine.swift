@@ -290,6 +290,12 @@ final class ClockMotionEngine {
 
   private func handleCollisionDebug(edges: Set<DVDCollisionDebug.Edge>, at center: CGPoint) {
     guard DVDCollisionDebug.isEnabled else { return }
+    let insets = collisionInsets
+    print(
+      """
+      [DVD Collision] insets from center: top=\(Int(insets.centerInsetTop)) bottom=\(Int(insets.centerInsetBottom)) left=\(Int(insets.centerInsetLeft)) right=\(Int(insets.centerInsetRight)) frame=\(Int(insets.frameSize.width))×\(Int(insets.frameSize.height))
+      """
+    )
     DVDCollisionDebug.postCollision(
       DVDCollisionDebug.Event(
         edges: edges,

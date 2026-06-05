@@ -245,6 +245,8 @@ struct BouncingClockHost: View {
     private weak var clock: NativeClockUIView?
     private var clockCenter: CGPoint?
     private var lastReportedBounds: CGSize = .zero
+    private let debugPlayfieldBorder = CALayer()
+    private let debugClockPlacementBorder = CALayer()
     var onPlayfieldSizeChange: ((CGSize) -> Void)?
 
     override var intrinsicContentSize: CGSize {
@@ -255,6 +257,14 @@ struct BouncingClockHost: View {
       self.clock = clock
       clock.translatesAutoresizingMaskIntoConstraints = true
       addSubview(clock)
+      layer.addSublayer(debugPlayfieldBorder)
+      layer.addSublayer(debugClockPlacementBorder)
+      debugPlayfieldBorder.borderColor = UIColor.cyan.withAlphaComponent(0.85).cgColor
+      debugPlayfieldBorder.borderWidth = 1
+      debugPlayfieldBorder.backgroundColor = nil
+      debugClockPlacementBorder.borderColor = UIColor.systemGreen.cgColor
+      debugClockPlacementBorder.borderWidth = 1.5
+      debugClockPlacementBorder.backgroundColor = nil
     }
 
     func setClockCenter(_ center: CGPoint) {
@@ -276,6 +286,19 @@ struct BouncingClockHost: View {
         height: max(size.height, 1)
       )
       clock.transform = .identity
+      syncContainerDebugBorders(clockFrame: clock.frame)
+    }
+
+    private func syncContainerDebugBorders(clockFrame: CGRect) {
+      guard DVDCollisionDebug.isEnabled else {
+        debugPlayfieldBorder.isHidden = true
+        debugClockPlacementBorder.isHidden = true
+        return
+      }
+      debugPlayfieldBorder.isHidden = false
+      debugPlayfieldBorder.frame = bounds
+      debugClockPlacementBorder.isHidden = false
+      debugClockPlacementBorder.frame = clockFrame
     }
 
     private func reportPlayfieldIfNeeded() {
