@@ -45,6 +45,11 @@ struct SettingsPanelView: View {
 
   @GestureState private var dragOffset: CGSize = .zero
   @State private var showEmailCopiedAlert = false
+  @State private var versionUnlockTapCount = 0
+  @State private var versionUnlockLastTap = Date.distantPast
+
+  private let versionUnlockRequiredTaps = 5
+  private let versionUnlockTapWindow: TimeInterval = 2
   #if os(iOS)
     @State private var iosFontSizeDraft: Double?
     @State private var iosFontSizeThrottle = SettingsChangeThrottle()
@@ -116,7 +121,9 @@ struct SettingsPanelView: View {
           timeFormatSection
           systemSection
           supportSection
-          advancedSection
+          if showDebugInfo {
+            advancedSection
+          }
         }
         .padding(.horizontal, SettingsTheme.contentPadding(compact: isIOSSheet))
         .padding(.vertical, isIOSSheet ? 10 : 16)
@@ -590,7 +597,38 @@ struct SettingsPanelView: View {
           .accessibilityLabel(L10n.text("feedback.copy_button_hint"))
         #endif
       }
+
+      versionRow
     }
+  }
+
+  private var versionRow: some View {
+    Button(action: handleVersionTap) {
+      HStack(alignment: .firstTextBaseline, spacing: 8) {
+        Text(L10n.text("settings.version"))
+          .font(SettingsTheme.rowLabelFont(compact: isIOSSheet))
+          .foregroundStyle(SettingsTheme.secondaryText)
+        Spacer(minLength: 8)
+        Text(AppVersion.displayString)
+          .font(SettingsTheme.rowLabelFont(compact: isIOSSheet).monospacedDigit())
+          .foregroundStyle(SettingsTheme.secondaryText)
+      }
+      .padding(.vertical, 4)
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func handleVersionTap() {
+    let now = Date()
+    if now.timeIntervalSince(versionUnlockLastTap) > versionUnlockTapWindow {
+      versionUnlockTapCount = 1
+    } else {
+      versionUnlockTapCount += 1
+    }
+    versionUnlockLastTap = now
+    guard versionUnlockTapCount >= versionUnlockRequiredTaps else { return }
+    versionUnlockTapCount = 0
+    showDebugInfo = true
   }
 
   private func openFeedbackMail() {

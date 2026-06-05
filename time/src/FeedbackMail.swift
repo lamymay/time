@@ -12,6 +12,14 @@ enum FeedbackMailResult {
 }
 
 /// 打开系统邮件客户端；无可用邮箱客户端时复制地址到剪贴板
+enum AppVersion {
+  static var displayString: String {
+    let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+    return "\(short) (\(build))"
+  }
+}
+
 enum FeedbackMail {
   static let developerEmail = "arcraydev@gmail.com"
 
@@ -94,11 +102,7 @@ enum FeedbackMail {
     )
   }
 
-  private static var appVersion: String {
-    let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
-    return "\(short) (\(build))"
-  }
+  private static var appVersion: String { AppVersion.displayString }
 
   private static var platformDescription: String {
     #if os(macOS)
