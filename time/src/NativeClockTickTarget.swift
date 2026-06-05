@@ -15,4 +15,5 @@ struct ClockStyleStamp: Equatable {
   var timeZoneTopGap: CGFloat
   var color: Color
   var showTimeZoneText: Bool
+  var ampmVertical: String
 }

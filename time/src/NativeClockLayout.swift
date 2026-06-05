@@ -22,7 +22,16 @@ enum NativeClockAMPMPlacement: Equatable {
 
 enum NativeClockLayoutMetrics {
   static let ampmGapRatio: CGFloat = 0.05
-  static let ampmBottomInsetRatio: CGFloat = 0.08
+  static let ampmEdgeInsetRatio: CGFloat = 0.08
+}
+
+enum AMPMVerticalAlign: String, Equatable {
+  case top = "Top"
+  case bottom = "Bottom"
+
+  static func resolved(from raw: String) -> AMPMVerticalAlign {
+    raw == Self.bottom.rawValue ? .bottom : .top
+  }
 }
 
 struct NativeClockLayerFrames: Equatable {
@@ -39,7 +48,8 @@ enum NativeClockLayoutEngine {
     precision: TimeDisplayPrecision,
     color: PlatformColor,
     showTimeZone: Bool,
-    timeZoneTopGap: CGFloat
+    timeZoneTopGap: CGFloat,
+    ampmVertical: String = AMPMVerticalAlign.top.rawValue
   ) -> NativeClockLayerFrames {
     let timeString = NativeClockTextBuilder.timeAttributedString(
       segments: segments,
@@ -92,19 +102,27 @@ enum NativeClockLayoutEngine {
       ampmFrame = nil
     case .leading:
       timeX = rowX + ampmSize.width + ampmGap
-      let bottomInset = timeSize.height * NativeClockLayoutMetrics.ampmBottomInsetRatio
       ampmFrame = CGRect(
         x: rowX,
-        y: timeY + bottomInset,
+        y: ampmY(
+          vertical: AMPMVerticalAlign.resolved(from: ampmVertical),
+          timeY: timeY,
+          timeHeight: timeSize.height,
+          ampmHeight: ampmSize.height
+        ),
         width: ampmSize.width,
         height: ampmSize.height
       )
     case .trailing:
       timeX = rowX
-      let bottomInset = timeSize.height * NativeClockLayoutMetrics.ampmBottomInsetRatio
       ampmFrame = CGRect(
         x: rowX + timeSize.width + ampmGap,
-        y: timeY + bottomInset,
+        y: ampmY(
+          vertical: AMPMVerticalAlign.resolved(from: ampmVertical),
+          timeY: timeY,
+          timeHeight: timeSize.height,
+          ampmHeight: ampmSize.height
+        ),
         width: ampmSize.width,
         height: ampmSize.height
       )
@@ -142,6 +160,21 @@ enum NativeClockLayoutEngine {
       string: text,
       attributes: [.font: fonts.ampm, .foregroundColor: color]
     )
+  }
+
+  private static func ampmY(
+    vertical: AMPMVerticalAlign,
+    timeY: CGFloat,
+    timeHeight: CGFloat,
+    ampmHeight: CGFloat
+  ) -> CGFloat {
+    let edgePad = timeHeight * NativeClockLayoutMetrics.ampmEdgeInsetRatio
+    switch vertical {
+    case .top:
+      return timeY + edgePad
+    case .bottom:
+      return timeY + timeHeight - ampmHeight - edgePad
+    }
   }
 
   private static func ceilSize(_ size: CGSize) -> CGSize {

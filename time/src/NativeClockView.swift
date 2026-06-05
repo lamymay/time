@@ -258,7 +258,8 @@ private final class NativeClockDebugBorderLayers {
         precision: stamp.precision,
         color: color,
         showTimeZone: stamp.showTimeZoneText,
-        timeZoneTopGap: stamp.timeZoneTopGap
+        timeZoneTopGap: stamp.timeZoneTopGap,
+        ampmVertical: stamp.ampmVertical
       )
       timeZoneLayer.frame = layout.timeZone
       timeLayer.frame = layout.time
@@ -422,7 +423,8 @@ private final class NativeClockDebugBorderLayers {
         precision: stamp.precision,
         color: color,
         showTimeZone: stamp.showTimeZoneText,
-        timeZoneTopGap: stamp.timeZoneTopGap
+        timeZoneTopGap: stamp.timeZoneTopGap,
+        ampmVertical: stamp.ampmVertical
       )
       let padX = NativeClockCollisionMeasure.horizontalPadding(for: layout.totalSize)
       let padY = NativeClockCollisionMeasure.verticalPadding(for: layout.totalSize)

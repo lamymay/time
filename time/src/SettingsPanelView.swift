@@ -18,6 +18,7 @@ struct SettingsPanelView: View {
   @Binding var showAMPM: Bool
   @Binding var ampmScale: Double
   @Binding var ampmSide: String
+  @Binding var ampmVertical: String
   @Binding var showTimeZoneText: Bool
   @Binding var selectedTimeZone: String
   @Binding var showSettings: Bool
@@ -73,6 +74,7 @@ struct SettingsPanelView: View {
       showAMPM: showAMPM,
       ampmScale: ampmScale,
       ampmSide: ampmSide,
+      ampmVertical: ampmVertical,
       selectedTimeZone: selectedTimeZone,
       showTimeZoneText: showTimeZoneText,
       selectedFontName: selectedFontName,
@@ -487,14 +489,22 @@ struct SettingsPanelView: View {
         SettingsToggleRow(title: L10n.text("settings.show_ampm"), isOn: $showAMPM)
         if showAMPM {
           if displayStyle == .classic {
-            labeledPickerRow(title: L10n.text("settings.ampm_position")) {
-              Picker(L10n.text("settings.ampm_position"), selection: $ampmSide) {
+            labeledPickerRow(title: L10n.text("settings.ampm_horizontal")) {
+              Picker(L10n.text("settings.ampm_horizontal"), selection: $ampmSide) {
                 Text(L10n.text("format.ampm_before")).tag("Leading")
                 Text(L10n.text("format.ampm_after")).tag("Trailing")
               }
               .pickerStyle(.segmented)
               .labelsHidden()
             }
+          }
+          labeledPickerRow(title: L10n.text("settings.ampm_vertical")) {
+            Picker(L10n.text("settings.ampm_vertical"), selection: $ampmVertical) {
+              Text(L10n.text("format.ampm_top")).tag("Top")
+              Text(L10n.text("format.ampm_bottom")).tag("Bottom")
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
           }
           labeledPickerRow(title: L10n.text("settings.ampm_scale")) {
             Picker(L10n.text("settings.ampm_scale"), selection: $ampmScale) {

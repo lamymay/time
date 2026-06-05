@@ -8,6 +8,7 @@ struct MotionClockScene: View {
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
   let showTimeZoneText: Bool
+  let ampmVertical: String
   let playfieldSize: CGSize
   let moveSpeed: Double
   let isActive: Bool
@@ -23,6 +24,7 @@ struct MotionClockScene: View {
       precision: precision,
       timeZoneTopGap: timeZoneTopGap,
       showTimeZoneText: showTimeZoneText,
+      ampmVertical: ampmVertical,
       playfieldSize: playfieldSize,
       moveSpeed: moveSpeed,
       isActive: isActive,
@@ -41,6 +43,7 @@ struct MotionClockContent: View {
   let precision: TimeDisplayPrecision
   let timeZoneTopGap: CGFloat
   let showTimeZoneText: Bool
+  let ampmVertical: String
   let playfieldSize: CGSize
   let moveSpeed: Double
   let isActive: Bool
@@ -58,7 +61,8 @@ struct MotionClockContent: View {
       precision: precision,
       timeZoneTopGap: timeZoneTopGap,
       color: Color(hex: ColorPickerCodec.normalizedHex(fontColorHex)),
-      showTimeZoneText: showTimeZoneText
+      showTimeZoneText: showTimeZoneText,
+      ampmVertical: ampmVertical
     )
   }
 

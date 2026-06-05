@@ -11,6 +11,7 @@ struct ContentRootScreen: View {
   @Binding var showAMPM: Bool
   @Binding var ampmScale: Double
   @Binding var ampmSide: String
+  @Binding var ampmVertical: String
   @Binding var showTimeZoneText: Bool
   @Binding var selectedTimeZone: String
   @Binding var showSettings: Bool
@@ -52,6 +53,7 @@ struct ContentRootScreen: View {
       showAMPM: showAMPM,
       ampmScale: ampmScale,
       ampmSide: ampmSide,
+      ampmVertical: ampmVertical,
       selectedTimeZone: selectedTimeZone,
       showTimeZoneText: showTimeZoneText,
       selectedFontName: selectedFontName,
@@ -125,6 +127,7 @@ struct ContentRootScreen: View {
       .onChangeCompat(of: is24Hour) { _, _ in reactConfigChange() }
       .onChangeCompat(of: showAMPM) { _, _ in reactConfigChange() }
       .onChangeCompat(of: ampmSide) { _, _ in reactConfigChange() }
+      .onChangeCompat(of: ampmVertical) { _, _ in reactConfigChange() }
       .onChangeCompat(of: selectedTimeZone) { _, _ in reactConfigChange() }
       .onChangeCompat(of: showTimeZoneText) { _, _ in reactConfigChange() }
       .onChangeCompat(of: selectedFontName) { _, _ in reactConfigChange() }
@@ -297,6 +300,7 @@ struct ContentRootScreen: View {
         precision: timeDisplayPrecision,
         timeZoneTopGap: -style.timeZoneSize * 0.12,
         showTimeZoneText: showTimeZoneText,
+        ampmVertical: ampmVertical,
         playfieldSize: clockPlayfieldSize,
         moveSpeed: moveSpeed,
         isActive: scenePhase == .active,
@@ -384,6 +388,7 @@ struct ContentRootScreen: View {
       showAMPM: $showAMPM,
       ampmScale: $ampmScale,
       ampmSide: $ampmSide,
+      ampmVertical: $ampmVertical,
       showTimeZoneText: $showTimeZoneText,
       selectedTimeZone: $selectedTimeZone,
       showSettings: $showSettings,

@@ -170,13 +170,19 @@ private struct FlipClockLayout {
 
     if !segments.leadingAMPM.isEmpty {
       hourAMPM = segments.leadingAMPM
-      hourAMPMAlignment = .bottomLeading
+      hourAMPMAlignment = Self.ampmAlignment(
+        isLeading: true,
+        vertical: AMPMVerticalAlign.resolved(from: config.ampmVertical)
+      )
     } else if !segments.trailingAMPM.isEmpty {
       hourAMPM = segments.trailingAMPM
-      hourAMPMAlignment = .bottomTrailing
+      hourAMPMAlignment = Self.ampmAlignment(
+        isLeading: false,
+        vertical: AMPMVerticalAlign.resolved(from: config.ampmVertical)
+      )
     } else {
       hourAMPM = nil
-      hourAMPMAlignment = .bottomLeading
+      hourAMPMAlignment = .topLeading
     }
     var list: [FlipDigitSlot] = []
     func add(_ id: String, _ char: String, _ field: TimeSegmentField) {
@@ -196,6 +202,15 @@ private struct FlipClockLayout {
       add("secondOnes", segments.secondOnes, .secondOnes)
     }
     slots = list
+  }
+
+  private static func ampmAlignment(isLeading: Bool, vertical: AMPMVerticalAlign) -> Alignment {
+    switch (isLeading, vertical) {
+    case (true, .top): return .topLeading
+    case (true, .bottom): return .bottomLeading
+    case (false, .top): return .topTrailing
+    case (false, .bottom): return .bottomTrailing
+    }
   }
 }
 
@@ -404,9 +419,14 @@ private struct FlipDetachedSecondsBadge: View {
 private extension View {
   func ampmPadding(digitSize: CGFloat, alignment: Alignment) -> some View {
     let pad = digitSize * 0.08
-    return padding(.leading, alignment == .bottomLeading ? pad : 0)
-      .padding(.trailing, alignment == .bottomTrailing ? pad : 0)
-      .padding(.bottom, pad)
+    let isLeading = alignment == .topLeading || alignment == .bottomLeading
+    let isTrailing = alignment == .topTrailing || alignment == .bottomTrailing
+    let isTop = alignment == .topLeading || alignment == .topTrailing
+    let isBottom = alignment == .bottomLeading || alignment == .bottomTrailing
+    return padding(.leading, isLeading ? pad : 0)
+      .padding(.trailing, isTrailing ? pad : 0)
+      .padding(.top, isTop ? pad : 0)
+      .padding(.bottom, isBottom ? pad : 0)
   }
 
 }

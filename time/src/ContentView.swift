@@ -7,6 +7,8 @@ struct ClockDisplayConfig: Equatable {
   var showAMPM: Bool
   var ampmScale: Double
   var ampmSide: String
+  /// `Top` / `Bottom`，相对主时间块的垂直对齐
+  var ampmVertical: String
   var selectedTimeZone: String
   var showTimeZoneText: Bool
   var selectedFontName: String
@@ -69,6 +71,7 @@ struct ContentView: View {
   @AppStorage("showAMPM") private var showAMPM: Bool = true
   @AppStorage("ampmScale") private var ampmScale: Double = 0.25
   @AppStorage("ampmSide") private var ampmSide: String = "Leading"
+  @AppStorage("ampmVertical") private var ampmVertical: String = "Top"
   @AppStorage("selectedTimeZone") private var selectedTimeZone: String = TimeZone.current.identifier
   @AppStorage("showTimeZoneText") private var showTimeZoneText: Bool = false
   @AppStorage("selectedFontName") private var selectedFontName: String = "System Monospaced"
@@ -115,6 +118,7 @@ struct ContentView: View {
         showAMPM: $showAMPM,
         ampmScale: $ampmScale,
         ampmSide: $ampmSide,
+        ampmVertical: $ampmVertical,
         showTimeZoneText: $showTimeZoneText,
         selectedTimeZone: $selectedTimeZone,
         showSettings: $showSettings,
@@ -176,6 +180,7 @@ struct ContentView: View {
       showAMPM: showAMPM,
       ampmScale: ampmScale,
       ampmSide: ampmSide,
+      ampmVertical: ampmVertical,
       selectedTimeZone: selectedTimeZone,
       showTimeZoneText: showTimeZoneText,
       selectedFontName: selectedFontName,

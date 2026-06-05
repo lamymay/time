@@ -124,7 +124,8 @@ enum NativeClockTextBuilder {
     precision: TimeDisplayPrecision,
     color: PlatformColor,
     showTimeZone: Bool,
-    timeZoneTopGap: CGFloat
+    timeZoneTopGap: CGFloat,
+    ampmVertical: String = AMPMVerticalAlign.top.rawValue
   ) -> CGSize {
     NativeClockLayoutEngine.frames(
       segments: segments,
@@ -132,7 +133,8 @@ enum NativeClockTextBuilder {
       precision: precision,
       color: color,
       showTimeZone: showTimeZone,
-      timeZoneTopGap: timeZoneTopGap
+      timeZoneTopGap: timeZoneTopGap,
+      ampmVertical: ampmVertical
     ).totalSize
   }
 
@@ -142,7 +144,8 @@ enum NativeClockTextBuilder {
     precision: TimeDisplayPrecision,
     color: PlatformColor,
     showTimeZone: Bool,
-    timeZoneTopGap: CGFloat
+    timeZoneTopGap: CGFloat,
+    ampmVertical: String = AMPMVerticalAlign.top.rawValue
   ) -> CGSize {
     measure(
       segments: segments,
@@ -150,7 +153,8 @@ enum NativeClockTextBuilder {
       precision: precision,
       color: color,
       showTimeZone: showTimeZone,
-      timeZoneTopGap: timeZoneTopGap
+      timeZoneTopGap: timeZoneTopGap,
+      ampmVertical: ampmVertical
     )
   }
 }

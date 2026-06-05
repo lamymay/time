@@ -334,7 +334,8 @@ enum ClockFontSizeLimits {
       precision: config.displayPrecision,
       color: measureColor,
       showTimeZone: config.showTimeZoneText,
-      timeZoneTopGap: gap
+      timeZoneTopGap: gap,
+      ampmVertical: config.ampmVertical
     )
     return size.width
   }
