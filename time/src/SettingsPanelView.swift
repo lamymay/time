@@ -19,6 +19,7 @@ struct SettingsPanelView: View {
   @Binding var showSettings: Bool
   @Binding var showFontPicker: Bool
   @Binding var showDebugInfo: Bool
+  @Binding var dvdCollisionDebugPauseSeconds: Double
   @Binding var selectedFontName: String
   @Binding var backgroundColorHex: String
   @Binding var timeDisplayPrecisionRaw: String
@@ -551,7 +552,22 @@ struct SettingsPanelView: View {
   private var advancedSection: some View {
     SettingsSection(title: L10n.text("settings.advanced"), systemImage: "gearshape") {
       SettingsToggleRow(title: L10n.text("settings.debug"), isOn: $showDebugInfo)
+      if showDebugInfo {
+        settingSlider(
+          title: L10n.text("settings.debug_collision_pause"),
+          value: $dvdCollisionDebugPauseSeconds,
+          range: DVDCollisionDebug.pauseSecondsRange,
+          label: debugCollisionPauseLabel
+        )
+        Text(L10n.text("settings.debug_collision_pause_hint"))
+          .font(SettingsTheme.rowLabelFont(compact: isIOSSheet))
+          .foregroundStyle(SettingsTheme.secondaryText)
+      }
     }
+  }
+
+  private var debugCollisionPauseLabel: String {
+    String(format: "%.1f s", dvdCollisionDebugPauseSeconds)
   }
 
   // MARK: - Components

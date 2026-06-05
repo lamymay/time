@@ -106,23 +106,19 @@ private enum NativeClockCollisionMeasure {
   import AppKit
 #endif
 
-/// 调试：紫框 = 字形 layer 并集，橙框 = 碰撞 UIView 边界
+/// 调试：紫框标出字形并集与碰撞 UIView 边界
 private final class NativeClockDebugBorderLayers {
   private let glyphLayer = CALayer()
   private let frameLayer = CALayer()
 
   init() {
+    let border = DVDCollisionDebug.borderCGColor
     glyphLayer.backgroundColor = PlatformColor.clear.cgColor
     glyphLayer.borderWidth = DVDCollisionDebug.glyphBoundsBorderWidth
+    glyphLayer.borderColor = border
     frameLayer.backgroundColor = PlatformColor.clear.cgColor
     frameLayer.borderWidth = DVDCollisionDebug.collisionFrameBorderWidth
-    #if os(iOS)
-      glyphLayer.borderColor = UIColor.systemPurple.cgColor
-      frameLayer.borderColor = UIColor.systemOrange.cgColor
-    #else
-      glyphLayer.borderColor = NSColor.systemPurple.cgColor
-      frameLayer.borderColor = NSColor.systemOrange.cgColor
-    #endif
+    frameLayer.borderColor = border
   }
 
   func install(on parent: CALayer) {
@@ -339,9 +335,7 @@ private final class NativeClockDebugBorderLayers {
     override init(frame: CGRect) {
       super.init(frame: frame)
       isUserInteractionEnabled = false
-      if let layer {
-        debugBorders.install(on: layer)
-      }
+      debugBorders.install(on: layer)
       layer.addSublayer(timeLayer)
       layer.addSublayer(timeZoneLayer)
       layer.addSublayer(ampmLayer)

@@ -1,19 +1,45 @@
 import CoreGraphics
 import Foundation
 
-/// 临时调试：碰撞日志、边框高亮、绿底、撞墙后暂停 3s。截图完成后将 `isEnabled` 设为 `false`。
+#if canImport(UIKit)
+  import UIKit
+#elseif canImport(AppKit)
+  import AppKit
+#endif
+
+/// DVD 碰撞调试：日志、紫框、撞墙绿底、可配置暂停（随设置「调试」开关启用）
 enum DVDCollisionDebug {
-  static var isEnabled = true
-  static let pauseDuration: TimeInterval = 3
-  static let highlightLineWidth: CGFloat = 6
-  /// 碰撞瞬间背景高亮色
+  static let debugToggleKey = "showDebugInfo"
+  static let pauseSecondsKey = "dvdCollisionDebugPauseSeconds"
+  static let defaultPauseSeconds: TimeInterval = 3
+  static let pauseSecondsRange: ClosedRange<Double> = 0...20
+
   static let hitBackgroundHex = "#1B8F3A"
-  /// 紫框：CATextLayer 数字并集（可见字形区域）
+  static let borderWidth: CGFloat = 1.5
   static let glyphBoundsBorderWidth: CGFloat = 2
-  /// 橙框：碰撞用 UIView 整框（相对紫框多出的空白 = 不可见高度/宽度）
   static let collisionFrameBorderWidth: CGFloat = 1.5
 
   static let collisionNotification = Notification.Name("DVDCollisionDebugDidHit")
+
+  static var isEnabled: Bool {
+    UserDefaults.standard.bool(forKey: debugToggleKey)
+  }
+
+  static var pauseDuration: TimeInterval {
+    guard UserDefaults.standard.object(forKey: pauseSecondsKey) != nil else {
+      return defaultPauseSeconds
+    }
+    let stored = UserDefaults.standard.double(forKey: pauseSecondsKey)
+    return min(max(stored, pauseSecondsRange.lowerBound), pauseSecondsRange.upperBound)
+  }
+
+  static var borderCGColor: CGColor {
+    #if os(iOS)
+      UIColor.systemPurple.cgColor
+    #else
+      NSColor.systemPurple.cgColor
+    #endif
+  }
 
   enum Edge: String, CaseIterable, Hashable {
     case left
@@ -50,7 +76,7 @@ enum DVDCollisionDebug {
         clock center: (\(Int(event.clockCenter.x)), \(Int(event.clockCenter.y)))
         collision box: \(Int(event.clockSize.width))×\(Int(event.clockSize.height))
         extents: right=\(Int(right)) bottom=\(Int(bottom)) (limit w=\(Int(event.playfieldSize.width)) h=\(Int(event.playfieldSize.height)))
-        pause \(Int(pauseDuration))s
+        pause \(String(format: "%.1f", pauseDuration))s
       """
     )
   }

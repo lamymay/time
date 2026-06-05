@@ -16,6 +16,7 @@ struct ContentRootScreen: View {
   @Binding var showSettings: Bool
   @Binding var showFontPicker: Bool
   @Binding var showDebugInfo: Bool
+  @Binding var dvdCollisionDebugPauseSeconds: Double
   @Binding var selectedFontName: String
   @Binding var backgroundColorHex: String
   @Binding var timeDisplayPrecisionRaw: String
@@ -36,7 +37,6 @@ struct ContentRootScreen: View {
   var scenePhase: ScenePhase
 
   @StateObject private var oledPixelShift = OledPixelShiftEngine()
-  @State private var dvdCollisionDebugEdges: Set<DVDCollisionDebug.Edge> = []
   @State private var dvdCollisionDebugHit = false
 
   private var timeDisplayPrecision: TimeDisplayPrecision {
@@ -149,16 +149,13 @@ struct ContentRootScreen: View {
           showFontPicker = false
         }
       }
-      .onReceive(NotificationCenter.default.publisher(for: DVDCollisionDebug.collisionNotification)) { note in
+      .onReceive(NotificationCenter.default.publisher(for: DVDCollisionDebug.collisionNotification)) { _ in
         guard DVDCollisionDebug.isEnabled, clockDisplayStyle == .classic else { return }
-        let names = note.userInfo?["edgeNames"] as? [String] ?? []
-        let edges = Set(names.compactMap(DVDCollisionDebug.Edge.init(rawValue:)))
-        guard !edges.isEmpty else { return }
-        dvdCollisionDebugEdges = edges
+        let pause = DVDCollisionDebug.pauseDuration
+        guard pause > 0 else { return }
         dvdCollisionDebugHit = true
         Task { @MainActor in
-          try? await Task.sleep(nanoseconds: UInt64(DVDCollisionDebug.pauseDuration * 1_000_000_000))
-          dvdCollisionDebugEdges = []
+          try? await Task.sleep(nanoseconds: UInt64(pause * 1_000_000_000))
           dvdCollisionDebugHit = false
         }
       }
@@ -230,18 +227,6 @@ struct ContentRootScreen: View {
 
   @ViewBuilder
   private var overlayStack: some View {
-    if DVDCollisionDebug.isEnabled, clockDisplayStyle == .classic, !dvdCollisionDebugEdges.isEmpty {
-      let playfield = ClockScreenBounds.bouncePlayfield(swiftUISize: clockPlayfieldSize)
-      DVDCollisionDebugOverlay(
-        playfieldSize: playfield,
-        edges: dvdCollisionDebugEdges
-      )
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-      .padding(.top, clockTopInset)
-      .ignoresSafeArea()
-      .allowsHitTesting(false)
-      .zIndex(40)
-    }
     if showDebugInfo {
       debugOverlay
     }
@@ -397,6 +382,7 @@ struct ContentRootScreen: View {
       showSettings: $showSettings,
       showFontPicker: $showFontPicker,
       showDebugInfo: $showDebugInfo,
+      dvdCollisionDebugPauseSeconds: $dvdCollisionDebugPauseSeconds,
       selectedFontName: $selectedFontName,
       backgroundColorHex: $backgroundColorHex,
       timeDisplayPrecisionRaw: $timeDisplayPrecisionRaw,

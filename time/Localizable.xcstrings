@@ -1296,6 +1296,62 @@
         }
       }
     },
+    "settings.debug_collision_pause" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collision pause"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "衝突時の停止"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撞墙暂停"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撞牆暫停"
+          }
+        }
+      }
+    },
+    "settings.debug_collision_pause_hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause animation on edge hit; 0 = no pause"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端に当たったらアニメーションを停止（0 で停止なし）"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "碰边时暂停动画，0 表示不暂停"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "碰邊時暫停動畫，0 表示不暫停"
+          }
+        }
+      }
+    },
     "settings.debug" : {
       "localizations" : {
         "en" : {

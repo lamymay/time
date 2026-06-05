@@ -73,6 +73,8 @@ struct ContentView: View {
   @AppStorage("showTimeZoneText") private var showTimeZoneText: Bool = false
   @AppStorage("selectedFontName") private var selectedFontName: String = "System Monospaced"
   @AppStorage("showDebugInfo") private var showDebugInfo: Bool = false
+  @AppStorage(DVDCollisionDebug.pauseSecondsKey) private var dvdCollisionDebugPauseSeconds: Double =
+    DVDCollisionDebug.defaultPauseSeconds
   @AppStorage("backgroundColorHex") private var backgroundColorHex: String = BackgroundColorPreset.black
     .rawValue
   @AppStorage("timeDisplayPrecision") private var timeDisplayPrecisionRaw: String =
@@ -116,6 +118,7 @@ struct ContentView: View {
         showSettings: $showSettings,
         showFontPicker: $showFontPicker,
         showDebugInfo: $showDebugInfo,
+        dvdCollisionDebugPauseSeconds: $dvdCollisionDebugPauseSeconds,
         selectedFontName: $selectedFontName,
         backgroundColorHex: $backgroundColorHex,
         timeDisplayPrecisionRaw: $timeDisplayPrecisionRaw,

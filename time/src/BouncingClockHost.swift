@@ -261,11 +261,11 @@ struct BouncingClockHost: View {
       addSubview(clock)
       layer.addSublayer(debugPlayfieldBorder)
       layer.addSublayer(debugClockPlacementBorder)
-      debugPlayfieldBorder.borderColor = UIColor.cyan.withAlphaComponent(0.85).cgColor
-      debugPlayfieldBorder.borderWidth = 1
+      debugPlayfieldBorder.borderColor = DVDCollisionDebug.borderCGColor
+      debugPlayfieldBorder.borderWidth = DVDCollisionDebug.borderWidth
       debugPlayfieldBorder.backgroundColor = nil
-      debugClockPlacementBorder.borderColor = UIColor.systemGreen.cgColor
-      debugClockPlacementBorder.borderWidth = 1.5
+      debugClockPlacementBorder.borderColor = DVDCollisionDebug.borderCGColor
+      debugClockPlacementBorder.borderWidth = DVDCollisionDebug.borderWidth
       debugClockPlacementBorder.backgroundColor = nil
     }
 

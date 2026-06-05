@@ -304,8 +304,10 @@ final class ClockMotionEngine {
         clockSize: collisionFootprint
       )
     )
+    let pause = DVDCollisionDebug.pauseDuration
+    guard pause > 0 else { return }
     stopMotionTimer()
-    debugPauseUntil = Date().addingTimeInterval(DVDCollisionDebug.pauseDuration)
+    debugPauseUntil = Date().addingTimeInterval(pause)
     debugResumeWorkItem?.cancel()
     let work = DispatchWorkItem { [weak self] in
       guard let self else { return }
@@ -313,7 +315,7 @@ final class ClockMotionEngine {
       self.restartMotionTimerIfNeeded()
     }
     debugResumeWorkItem = work
-    DispatchQueue.main.asyncAfter(deadline: .now() + DVDCollisionDebug.pauseDuration, execute: work)
+    DispatchQueue.main.asyncAfter(deadline: .now() + pause, execute: work)
   }
 
   private func applyCollisionColorIfNeeded() {
