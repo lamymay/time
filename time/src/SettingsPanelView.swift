@@ -113,7 +113,7 @@ struct SettingsPanelView: View {
   }
 
   private var previewHeight: CGFloat {
-    max(120, screenSize.height * SettingsPanelMetrics.iosExpandedPreviewHeightRatio)
+    SettingsPanelMetrics.iosExpandedPreviewHeight(screen: screenSize)
   }
 
   var body: some View {
@@ -124,8 +124,8 @@ struct SettingsPanelView: View {
       }
       ScrollView {
         LazyVStack(alignment: .leading, spacing: SettingsTheme.stackSpacing(compact: isIOSSheet)) {
-          fontSizeSection
-          fontSection
+          typographySection
+          clockStyleSection
           clockAppearanceSection
           timeFormatSection
           systemSection
@@ -371,13 +371,23 @@ struct SettingsPanelView: View {
 
   // MARK: - Sections
 
-  private var fontSizeSection: some View {
-    SettingsInlineSection(title: L10n.text("settings.font_size"), systemImage: "textformat.size") {
-      Slider(value: iosFontSizeBinding, in: fontSizeRange)
-      Text("\(Int(iosFontSizeBinding.wrappedValue))")
-        .font(.subheadline.monospacedDigit())
-        .foregroundStyle(SettingsTheme.accent)
-        .frame(minWidth: 40, alignment: .trailing)
+  private var typographySection: some View {
+    SettingsSection(title: L10n.text("settings.font"), systemImage: "textformat") {
+      HStack(alignment: .center, spacing: isIOSSheet ? 8 : 12) {
+        Text(L10n.text("settings.font_size"))
+          .font(SettingsTheme.rowLabelFont(compact: isIOSSheet))
+          .foregroundStyle(SettingsTheme.secondaryText)
+          .lineLimit(1)
+          .fixedSize(horizontal: true, vertical: false)
+        Slider(value: iosFontSizeBinding, in: fontSizeRange)
+        Text("\(Int(iosFontSizeBinding.wrappedValue))")
+          .font(.subheadline.monospacedDigit())
+          .foregroundStyle(SettingsTheme.accent)
+          .frame(minWidth: 40, alignment: .trailing)
+      }
+      labeledPickerRow(title: L10n.text("settings.font")) {
+        fontPickerRow
+      }
     }
     #if os(iOS)
       .onAppear { iosFontSizeDraft = fontSize }
@@ -410,14 +420,8 @@ struct SettingsPanelView: View {
     private var iosFontSizeBinding: Binding<Double> { $fontSize }
   #endif
 
-  private var fontSection: some View {
-    SettingsInlineSection(title: L10n.text("settings.font"), systemImage: "textformat") {
-      fontPickerRow
-    }
-  }
-
-  private var clockAppearanceSection: some View {
-    SettingsSection(title: L10n.text("settings.clock_appearance"), systemImage: "clock") {
+  private var clockStyleSection: some View {
+    SettingsSection(title: L10n.text("settings.clock_style"), systemImage: "clock") {
       Picker(selection: $clockDisplayStyleRaw) {
         ForEach(ClockDisplayStyle.allCases) { style in
           Text(style.label).tag(style.rawValue)
@@ -427,7 +431,11 @@ struct SettingsPanelView: View {
       }
       .pickerStyle(.segmented)
       .labelsHidden()
+    }
+  }
 
+  private var clockAppearanceSection: some View {
+    SettingsSection(title: L10n.text("settings.clock_appearance"), systemImage: "paintpalette") {
       if iosColorPickerSectionReady {
         colorPickerSection
       } else {

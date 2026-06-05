@@ -145,6 +145,7 @@ private final class NativeClockDebugBorderLayers {
 
   final class NativeClockNSView: NSView, NativeClockTickTarget {
     weak var sizeDelegate: NativeClockSizeDelegate?
+    var centersClockInBounds = false
 
     private let rootLayer = CALayer()
     private let timeLayer = CATextLayer()
@@ -270,8 +271,10 @@ private final class NativeClockDebugBorderLayers {
         ampmLayer.isHidden = true
       }
 
-      let padX = NativeClockCollisionMeasure.horizontalPadding(for: layout.totalSize)
-      let padY = NativeClockCollisionMeasure.verticalPadding(for: layout.totalSize)
+      let (padX, padY) = layoutPadding(
+        layoutTotal: layout.totalSize,
+        boundsSize: bounds.size
+      )
       let unionInRoot = layerUnionInRoot()
       measuredCollision = NativeClockCollisionMeasure.measure(
         layoutTotal: layout.totalSize,
@@ -289,6 +292,19 @@ private final class NativeClockDebugBorderLayers {
         collisionFrame: CGRect(origin: .zero, size: measuredCollision.frameSize)
       )
       reportMeasuredCollisionIfNeeded()
+    }
+
+    private func layoutPadding(layoutTotal: CGSize, boundsSize: CGSize) -> (CGFloat, CGFloat) {
+      if centersClockInBounds {
+        return (
+          (boundsSize.width - layoutTotal.width) / 2,
+          (boundsSize.height - layoutTotal.height) / 2
+        )
+      }
+      return (
+        NativeClockCollisionMeasure.horizontalPadding(for: layoutTotal),
+        NativeClockCollisionMeasure.verticalPadding(for: layoutTotal)
+      )
     }
 
     func fittingSize() -> CGSize {
@@ -321,6 +337,7 @@ private final class NativeClockDebugBorderLayers {
 
   final class NativeClockUIView: UIView, NativeClockTickTarget {
     weak var sizeDelegate: NativeClockSizeDelegate?
+    var centersClockInBounds = false
 
     private let timeLayer = CATextLayer()
     private let timeZoneLayer = CATextLayer()
@@ -426,10 +443,10 @@ private final class NativeClockDebugBorderLayers {
         timeZoneTopGap: stamp.timeZoneTopGap,
         ampmVertical: stamp.ampmVertical
       )
-      let padX = NativeClockCollisionMeasure.horizontalPadding(for: layout.totalSize)
-      let padY = NativeClockCollisionMeasure.verticalPadding(for: layout.totalSize)
-      let originX = padX
-      let originY = padY
+      let (originX, originY) = layoutPadding(
+        layoutTotal: layout.totalSize,
+        boundsSize: bounds.size
+      )
 
       timeZoneLayer.frame = layout.timeZone.offsetBy(dx: originX, dy: originY)
       timeLayer.frame = layout.time.offsetBy(dx: originX, dy: originY)
@@ -450,6 +467,18 @@ private final class NativeClockDebugBorderLayers {
         collisionFrame: CGRect(origin: .zero, size: measuredCollision.frameSize)
       )
       reportMeasuredCollisionIfNeeded()
+    }
+
+    private func layoutPadding(layoutTotal: CGSize, boundsSize: CGSize) -> (CGFloat, CGFloat) {
+      if centersClockInBounds {
+        return (
+          (boundsSize.width - layoutTotal.width) / 2,
+          (boundsSize.height - layoutTotal.height) / 2
+        )
+      }
+      let padX = NativeClockCollisionMeasure.horizontalPadding(for: layoutTotal)
+      let padY = NativeClockCollisionMeasure.verticalPadding(for: layoutTotal)
+      return (padX, padY)
     }
 
     func fittingSize() -> CGSize {
@@ -480,11 +509,13 @@ private final class NativeClockDebugBorderLayers {
 
     func makeUIView(context: Context) -> NativeClockUIView {
       let view = NativeClockUIView()
+      view.centersClockInBounds = true
       view.applyStyle(styleStamp)
       return view
     }
 
     func updateUIView(_ view: NativeClockUIView, context: Context) {
+      view.centersClockInBounds = true
       view.applyStyle(styleStamp)
       view.applyTick(segments: segments, changedFields: Set(TimeSegmentField.allCases))
     }
@@ -499,11 +530,13 @@ private final class NativeClockDebugBorderLayers {
 
     func makeNSView(context: Context) -> NativeClockNSView {
       let view = NativeClockNSView()
+      view.centersClockInBounds = true
       view.applyStyle(styleStamp)
       return view
     }
 
     func updateNSView(_ view: NativeClockNSView, context: Context) {
+      view.centersClockInBounds = true
       view.applyStyle(styleStamp)
       view.applyTick(segments: segments, changedFields: Set(TimeSegmentField.allCases))
     }

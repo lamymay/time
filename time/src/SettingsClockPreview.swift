@@ -20,6 +20,7 @@ struct SettingsClockPreview: View {
     ZStack {
       Color(hex: ColorPickerCodec.normalizedHex(backgroundColorHex))
       clockContent
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
     .frame(height: previewSize.height)
     .frame(maxWidth: .infinity)
@@ -63,6 +64,6 @@ struct SettingsClockPreview: View {
       ampmVertical: ampmVertical
     )
     return NativeClockPreviewRepresentable(segments: scheduler.segments, styleStamp: stamp)
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
   }
 }
