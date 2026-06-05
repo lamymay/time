@@ -9,6 +9,8 @@ struct SettingsDeferredNumericField: View {
   let range: ClosedRange<Double>
   let decimalPlaces: Int
   @Binding var value: Double
+  var fieldWidth: CGFloat?
+  var valueFont: Font?
 
   @FocusState private var focused: Bool
   @State private var draft = ""
@@ -21,10 +23,10 @@ struct SettingsDeferredNumericField: View {
           .foregroundStyle(SettingsTheme.secondaryText)
         Spacer(minLength: 8)
         TextField(placeholder, text: $draft)
-          .font(SettingsTheme.rowLabelFont(compact: compactLayout).monospacedDigit())
+          .font(valueFont ?? SettingsTheme.rowLabelFont(compact: compactLayout).monospacedDigit())
           .foregroundStyle(SettingsTheme.accent)
           .multilineTextAlignment(.trailing)
-          .frame(width: compactLayout ? 72 : 84)
+          .frame(width: fieldWidth ?? (compactLayout ? 72 : 84))
           #if os(iOS)
             .keyboardType(decimalPlaces > 0 ? .decimalPad : .numberPad)
           #endif

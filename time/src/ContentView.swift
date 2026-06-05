@@ -91,8 +91,8 @@ struct ContentView: View {
   @AppStorage("flipCompactDetachedSeconds") private var flipCompactDetachedSeconds = true
   /// 刘海屏是否避让顶部安全区（左/右/底始终铺满）
   @AppStorage("avoidTopSafeAreaOnNotch") private var avoidTopSafeAreaOnNotch = false
-  @AppStorage(ClockScreenLayout.notchTopInsetTightenKey) private var notchTopInsetTighten: Double =
-    Double(ClockScreenLayout.defaultNotchTopInsetTighten)
+  @AppStorage(ClockScreenLayout.notchTopContentInsetKey) private var notchTopContentInset: Double =
+    Double(ClockScreenLayout.defaultNotchTopContentInset)
 
   @StateObject private var timeScheduler = ClockTimeScheduler()
   @State private var showSettings = false
@@ -132,7 +132,7 @@ struct ContentView: View {
         keepDisplayAwake: $keepDisplayAwake,
         oledPixelShiftEnabled: $oledPixelShiftEnabled,
         avoidTopSafeAreaOnNotch: $avoidTopSafeAreaOnNotch,
-        notchTopInsetTighten: $notchTopInsetTighten,
+        notchTopContentInset: $notchTopContentInset,
         settingsPanelOffset: $settingsPanelOffset,
         settingsSheetWidth: $settingsSheetWidth,
         fontCatalog: $fontCatalog,

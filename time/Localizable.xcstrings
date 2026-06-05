@@ -1127,58 +1127,58 @@
         }
       }
     },
-    "settings.notch_top_inset_tighten" : {
+    "settings.notch_top_content_inset" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Top trim (pt)"
+            "value" : "Top offset (pt)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上部余白 (pt)"
+            "value" : "上端オフセット (pt)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "顶部收紧 (pt)"
+            "value" : "距顶边高度 (pt)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "頂部收緊 (pt)"
+            "value" : "距頂邊高度 (pt)"
           }
         }
       }
     },
-    "settings.notch_top_inset_tighten_hint" : {
+    "settings.notch_top_content_inset_hint" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pixels to move playfield up below the notch"
+            "value" : "Distance from screen top to playfield; 0 = no notch avoidance, larger = lower"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ノッチ下の余白を上に詰める pt 数"
+            "value" : "画面顶端からの距離。0 でノッチ非回避、大きいほど下へ"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在状态栏基准上再上移的像素，越大越贴近灵动岛"
+            "value" : "自屏幕顶边到弹跳区的距离；0 为不避开刘海，数值越大越靠下"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在狀態列基準上再上移的像素，越大越貼近靈動島"
+            "value" : "自螢幕頂邊到彈跳區的距離；0 為不避開瀏海，數值越大越靠下"
           }
         }
       }

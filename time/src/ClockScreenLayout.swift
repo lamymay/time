@@ -16,49 +16,38 @@ enum ClockScreenLayout {
     #endif
   }
 
-  static let notchTopInsetTightenKey = "notchTopInsetTighten"
-  static let defaultNotchTopInsetTighten: CGFloat = 20
-  static let notchTopInsetTightenRange: ClosedRange<Double> = 0...100
+  /// 自屏幕顶边至弹跳区顶边的距离（pt）；0 = 不避开刘海
+  static let notchTopContentInsetKey = "notchTopContentInset"
+  static let defaultNotchTopContentInset: CGFloat = 0
+  static let notchTopContentInsetRange: ClosedRange<Double> = 0...120
 
-  static func resolvedTopInsetTighten() -> CGFloat {
+  static func resolvedNotchTopContentInset() -> CGFloat {
     #if os(iOS)
-      guard UserDefaults.standard.object(forKey: notchTopInsetTightenKey) != nil else {
-        return defaultNotchTopInsetTighten
+      let stored: Double
+      if UserDefaults.standard.object(forKey: notchTopContentInsetKey) != nil {
+        stored = UserDefaults.standard.double(forKey: notchTopContentInsetKey)
+      } else {
+        stored = Double(defaultNotchTopContentInset)
       }
-      let stored = UserDefaults.standard.double(forKey: notchTopInsetTightenKey)
       return CGFloat(
-        min(max(stored, notchTopInsetTightenRange.lowerBound), notchTopInsetTightenRange.upperBound)
+        min(max(stored, notchTopContentInsetRange.lowerBound), notchTopContentInsetRange.upperBound)
       )
     #else
       return 0
     #endif
   }
 
-  /// 刘海机开启避让时，顶距贴灵动岛 / 刘海下缘（只应用一次，不与 SwiftUI 安全区叠算）
+  /// 刘海机开启避让时，顶距 = 用户设定的屏幕顶边偏移（只应用一次，不与 SwiftUI 安全区叠算）
   static func resolvedTopClockInset(avoidTopSafeAreaOnNotch: Bool) -> CGFloat {
     #if os(iOS)
       guard hasNotchDisplay(), avoidTopSafeAreaOnNotch else { return 0 }
-      let base = notchAwareTopInset(for: keyWindow)
-      return max(0, base - resolvedTopInsetTighten())
+      return resolvedNotchTopContentInset()
     #else
       return 0
     #endif
   }
 
   #if os(iOS)
-    /// `safeAreaInsets.top` 常含灵动岛下额外留白；刘海机改用状态栏高度贴齐下缘
-    private static func notchAwareTopInset(for window: UIWindow?) -> CGFloat {
-      guard let window else { return 0 }
-      let safeTop = window.safeAreaInsets.top
-      guard safeTop > 0 else { return 0 }
-      if let statusH = window.windowScene?.statusBarManager?.statusBarFrame.height,
-        statusH > 20
-      {
-        return statusH
-      }
-      return safeTop
-    }
-
     private static var keyWindow: UIWindow? {
       UIApplication.shared.connectedScenes
         .compactMap { $0 as? UIWindowScene }

@@ -35,7 +35,7 @@ struct SettingsPanelView: View {
   @Binding var keepDisplayAwake: Bool
   @Binding var oledPixelShiftEnabled: Bool
   @Binding var avoidTopSafeAreaOnNotch: Bool
-  @Binding var notchTopInsetTighten: Double
+  @Binding var notchTopContentInset: Double
 
   let layout: SettingsPanelLayout
   @Binding var panelOffset: CGSize
@@ -531,11 +531,13 @@ struct SettingsPanelView: View {
           )
           if avoidTopSafeAreaOnNotch {
             SettingsDeferredNumericField(
-              title: L10n.text("settings.notch_top_inset_tighten"),
-              hint: L10n.text("settings.notch_top_inset_tighten_hint"),
-              range: ClockScreenLayout.notchTopInsetTightenRange,
+              title: L10n.text("settings.notch_top_content_inset"),
+              hint: L10n.text("settings.notch_top_content_inset_hint"),
+              range: ClockScreenLayout.notchTopContentInsetRange,
               decimalPlaces: 0,
-              value: $notchTopInsetTighten
+              value: $notchTopContentInset,
+              fieldWidth: isIOSSheet ? 96 : 108,
+              valueFont: isIOSSheet ? .title3.monospacedDigit() : .title2.monospacedDigit()
             )
           }
         }
