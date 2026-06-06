@@ -545,6 +545,11 @@ struct SettingsPanelView: View {
       Text(L10n.text("flip.format.compact_panels_minute_subtitle"))
         .font(.caption)
         .foregroundStyle(SettingsTheme.secondaryText)
+      SettingsToggleRow(
+        title: L10n.text("settings.flip_compact_detached_seconds"),
+        subtitle: L10n.text("settings.flip_compact_detached_seconds_hint"),
+        isOn: $flipCompactDetachedSeconds
+      )
     }
   }
 

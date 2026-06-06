@@ -38,10 +38,10 @@ struct ClockDisplayConfig: Equatable {
     return options
   }
 
-  /// 压缩版右下角秒开启时，走时按秒调度（须已选秒精度）
+  /// 压缩版右下角秒开启时，走时按秒调度（独立秒在「分」精度下也可开启）
   func schedulerFormatOptions(for style: ClockDisplayStyle) -> ClockFormatOptions {
     var options = formatOptions(for: style)
-    if displayPrecision.includesSeconds,
+    if style == .flip,
       flipFormat == .compactPanels,
       flipCompactDetachedSeconds
     {
@@ -58,8 +58,14 @@ struct ClockDisplayConfig: Equatable {
     return copy
   }
 
+  /// 三等分等大秒板 / 主时钟秒位
   var showsLiveSeconds: Bool {
     displayPrecision.includesSeconds
+  }
+
+  /// 压缩版右下独立秒（「分」精度下也可显示）
+  var showsFlipDetachedSeconds: Bool {
+    flipFormat == .compactPanels && flipCompactDetachedSeconds
   }
 
   /// 指定样式下是否会显示秒（用于设置项预览）
@@ -68,11 +74,11 @@ struct ClockDisplayConfig: Equatable {
     case .classic:
       return displayPrecision.includesSeconds
     case .flip:
-      return displayPrecision.includesSeconds
+      return showsLiveSeconds || showsFlipDetachedSeconds
     }
   }
 
-  /// 翻页「分」精度：仅压缩双板、不显示秒；「秒」精度才可选三等分
+  /// 翻页「分」精度：不可选三等分；独立秒开关保留
   static func clampFlipStorageForPrecision(
     precisionRaw: String,
     flipFormatRaw: inout String,
@@ -82,7 +88,6 @@ struct ClockDisplayConfig: Equatable {
     if FlipClockFormat.resolved(fromRaw: flipFormatRaw) == .tripleEqual {
       flipFormatRaw = FlipClockFormat.compactPanels.rawValue
     }
-    flipCompactDetachedSeconds = false
   }
 }
 

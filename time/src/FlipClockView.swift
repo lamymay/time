@@ -210,10 +210,7 @@ private struct FlipClockLayout {
     leadingAMPM = segments.leadingAMPM
     trailingAMPM = segments.trailingAMPM
     showsSeconds = config.showsLiveSeconds
-    let compactDetached =
-      config.flipFormat == .compactPanels
-      && showsSeconds
-      && config.flipCompactDetachedSeconds
+    let compactDetached = config.showsFlipDetachedSeconds
     showsDetachedSecondPanel = compactDetached
 
     if segments.hourTens.isEmpty {

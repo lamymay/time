@@ -599,19 +599,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hour and minute only · triple layout requires second precision"
+            "value" : "Hour and minute panels · optional corner seconds below"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "時・分のみ。三等分は秒精度が必要"
+            "value" : "時・分の大パネル。右下に秒を追加可（三等分は秒精度）"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅显示时、分；三等分需开启秒精度"
+            "value" : "时、分双大板；可开启右下独立秒（三等分需秒精度）"
           }
         },
         "zh-Hant" : {
