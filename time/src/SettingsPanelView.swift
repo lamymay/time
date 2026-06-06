@@ -534,7 +534,7 @@ struct SettingsPanelView: View {
       Text(resolvedFlipFormat.subtitle)
         .font(.caption)
         .foregroundStyle(SettingsTheme.secondaryText)
-      if resolvedFlipFormat == .compactPanels {
+      if resolvedFlipFormat == .compactPanels, !precision.includesSeconds {
         SettingsToggleRow(
           title: L10n.text("settings.flip_compact_detached_seconds"),
           subtitle: L10n.text("settings.flip_compact_detached_seconds_hint"),

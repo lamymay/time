@@ -38,12 +38,12 @@ struct ClockDisplayConfig: Equatable {
     return options
   }
 
-  /// 压缩版右下角秒开启时，走时按秒调度（独立秒在「分」精度下也可开启）
+  /// 压缩版右下角秒开启时，走时按秒调度（「分」精度下可选开启）
   func schedulerFormatOptions(for style: ClockDisplayStyle) -> ClockFormatOptions {
     var options = formatOptions(for: style)
     if style == .flip,
       flipFormat == .compactPanels,
-      flipCompactDetachedSeconds
+      showsFlipDetachedSeconds
     {
       options.displayPrecision = .second
     }
@@ -63,9 +63,10 @@ struct ClockDisplayConfig: Equatable {
     displayPrecision.includesSeconds
   }
 
-  /// 压缩版右下独立秒（「分」精度下也可显示）
+  /// 压缩版右下秒：「秒」精度下压缩秒布局自带；「分」精度需手动开启
   var showsFlipDetachedSeconds: Bool {
-    flipFormat == .compactPanels && flipCompactDetachedSeconds
+    guard flipFormat == .compactPanels else { return false }
+    return displayPrecision.includesSeconds || flipCompactDetachedSeconds
   }
 
   /// 指定样式下是否会显示秒（用于设置项预览）

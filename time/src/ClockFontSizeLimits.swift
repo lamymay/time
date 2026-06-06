@@ -235,7 +235,7 @@ enum ClockFontSizeLimits {
     let segments = widestSegments(for: config)
     let detached =
       config.flipFormat == .compactPanels
-      && config.flipCompactDetachedSeconds
+      && (config.displayPrecision.includesSeconds || config.flipCompactDetachedSeconds)
     return FlipCompactSpec(
       hourCharCount: segments.hourTens.isEmpty ? 1 : 2,
       showsDetachedSeconds: detached,
