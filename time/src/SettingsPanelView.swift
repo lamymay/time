@@ -466,9 +466,7 @@ struct SettingsPanelView: View {
         Text(FlipClockFormat.resolved(fromRaw: flipClockFormatRaw).subtitle)
           .font(.caption)
           .foregroundStyle(SettingsTheme.secondaryText)
-        if FlipClockFormat.resolved(fromRaw: flipClockFormatRaw) == .compactPanels,
-          precision.includesSeconds
-        {
+        if FlipClockFormat.resolved(fromRaw: flipClockFormatRaw) == .compactPanels {
           SettingsToggleRow(
             title: L10n.text("settings.flip_compact_detached_seconds"),
             subtitle: L10n.text("settings.flip_compact_detached_seconds_hint"),
@@ -476,17 +474,13 @@ struct SettingsPanelView: View {
           )
         }
       }
+
+      clockStylePrecisionBlock
     }
   }
 
-  private var clockAppearanceSection: some View {
-    SettingsSection(title: L10n.text("settings.clock_appearance"), systemImage: "paintpalette") {
-      if iosColorPickerSectionReady {
-        colorPickerSection
-      } else {
-        colorPickerSectionPlaceholder
-      }
-
+  private var clockStylePrecisionBlock: some View {
+    Group {
       labeledPickerRow(title: L10n.text("settings.time_precision")) {
         Picker(L10n.text("settings.time_precision"), selection: $timeDisplayPrecisionRaw) {
           ForEach(TimeDisplayPrecision.allCases) { item in
@@ -505,6 +499,46 @@ struct SettingsPanelView: View {
         }
         .font(.caption)
         .foregroundStyle(.orange.opacity(0.9))
+      }
+
+      precisionSecondsPreview
+    }
+  }
+
+  private var precisionSecondsPreview: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      precisionPreviewLine(
+        label: L10n.text("settings.precision_preview_classic"),
+        showsSeconds: effectivePanelClockConfig.showsSeconds(for: .classic)
+      )
+      precisionPreviewLine(
+        label: L10n.text("settings.precision_preview_flip"),
+        showsSeconds: effectivePanelClockConfig.showsSeconds(for: .flip)
+      )
+    }
+  }
+
+  private func precisionPreviewLine(label: String, showsSeconds: Bool) -> some View {
+    HStack(spacing: 6) {
+      Text(label)
+        .font(isIOSSheet ? .caption2 : .caption)
+        .foregroundStyle(SettingsTheme.secondaryText)
+      Text(
+        showsSeconds
+          ? L10n.text("settings.precision_seconds_on")
+          : L10n.text("settings.precision_seconds_off")
+      )
+      .font(isIOSSheet ? .caption2.weight(.medium) : .caption.weight(.medium))
+      .foregroundStyle(showsSeconds ? SettingsTheme.accent : SettingsTheme.secondaryText)
+    }
+  }
+
+  private var clockAppearanceSection: some View {
+    SettingsSection(title: L10n.text("settings.clock_appearance"), systemImage: "paintpalette") {
+      if iosColorPickerSectionReady {
+        colorPickerSection
+      } else {
+        colorPickerSectionPlaceholder
       }
 
       if displayStyle == .classic {

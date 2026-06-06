@@ -59,6 +59,17 @@ struct ClockDisplayConfig: Equatable {
     displayPrecision.includesSeconds
       || (flipFormat == .compactPanels && flipCompactDetachedSeconds)
   }
+
+  /// 指定样式下是否会显示秒（用于设置项预览）
+  func showsSeconds(for style: ClockDisplayStyle) -> Bool {
+    switch style {
+    case .classic:
+      return displayPrecision.includesSeconds
+    case .flip:
+      return displayPrecision.includesSeconds
+        || (flipFormat == .compactPanels && flipCompactDetachedSeconds)
+    }
+  }
 }
 
 // MARK: - 根视图
