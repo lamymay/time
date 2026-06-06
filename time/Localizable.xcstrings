@@ -617,7 +617,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "僅顯示時、分；三等分需開啟秒精度"
+            "value" : "時、分雙大板；可開啟右下獨立秒（三等分需秒精度）"
           }
         }
       }
