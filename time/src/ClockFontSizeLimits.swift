@@ -20,6 +20,8 @@ enum FlipClockLayoutMetrics {
   static let compactPanelGapRatio: CGFloat = 0.07
   static let compactSecondGapRatio: CGFloat = 0.045
   static let compactSecondFontScale: CGFloat = 0.36
+  /// 压缩版右下独立秒相对主 digitSize 的比例
+  static let compactDetachedSecondScale: CGFloat = 0.16
   static let compactSecondPanelHeightRatio: CGFloat = 2.52
   static let compactSecondPanelWidthCharScale: CGFloat = 0.68
 
@@ -175,8 +177,10 @@ enum ClockFontSizeLimits {
     let minuteW = FlipClockLayoutMetrics.compactPanelWidth(digitSize: d, charCount: 2)
     var total = hourW + gap + colon + gap + minuteW
 
-    // 压缩秒叠在分钟板内，不增加行宽
-    if spec.trailingAMPM {
+    if spec.showsDetachedSeconds {
+      let secondD = d * FlipClockLayoutMetrics.compactDetachedSecondScale
+      total += FlipClockLayoutMetrics.compactSecondPanelWidth(digitSize: secondD, charCount: 2)
+    } else if spec.trailingAMPM {
       total = max(total, hourW + gap + colon + gap + minuteW + d * 0.12)
     }
 

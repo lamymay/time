@@ -158,6 +158,7 @@ struct FlipClockPreview: View {
         .animation(nil, value: config.flipFormat)
         .animation(nil, value: config.flipCompactDetachedSeconds)
         .animation(nil, value: config.displayPrecision)
+        .animation(nil, value: config.fontSize)
         if config.showTimeZoneText, !segments.timeZoneLabel.isEmpty {
           Text(segments.timeZoneLabel)
             .font(
@@ -417,7 +418,7 @@ private struct FlipCompactPanelsRow: View {
 
       FlipColonView(size: digitSize, color: digitColor.opacity(0.85))
 
-      ZStack(alignment: .bottomTrailing) {
+      HStack(alignment: .bottom, spacing: 0) {
         FlipPanelView(
           slotID: "minute",
           text: layout.minuteText,
@@ -432,10 +433,11 @@ private struct FlipCompactPanelsRow: View {
 
         if layout.showsDetachedSecondPanel {
           let secondsText = layout.compactSecondsDisplayText
+          let secondDigitSize = digitSize * FlipClockLayoutMetrics.compactDetachedSecondScale
           FlipPanelView(
             slotID: "compactSeconds",
             text: secondsText,
-            fontSize: digitSize * 0.16,
+            fontSize: secondDigitSize,
             textColor: digitColor,
             cardStyle: cardStyle,
             fontName: fontName,
@@ -443,7 +445,6 @@ private struct FlipCompactPanelsRow: View {
             panelKind: .compactSecond,
             stamp: FlipTickStamp(epoch: tickEpoch, value: secondsText)
           )
-          .ampmPadding(digitSize: digitSize, alignment: .bottomTrailing)
         }
       }
     }

@@ -54,8 +54,7 @@ struct SettingsPanelView: View {
   private let versionUnlockTapWindow: TimeInterval = 2
   @State private var flipLayoutThrottle = SettingsChangeThrottle()
   #if os(iOS)
-    @State private var iosFontSizeDraft: Double?
-    @State private var iosFontSizeThrottle = SettingsChangeThrottle()
+    @State private var previewFontSize: Double?
     /// 首帧先出面板骨架，下一帧再建色条，避免长按打开时主线程卡死
     @State private var iosColorPickersReady = false
   #endif
@@ -74,9 +73,9 @@ struct SettingsPanelView: View {
     ClockDisplayStyle(rawValue: clockDisplayStyleRaw) ?? .classic
   }
 
-  private var panelClockConfig: ClockDisplayConfig {
+  private func panelClockConfig(fontSize configuredSize: Double) -> ClockDisplayConfig {
     ClockDisplayConfig(
-      fontSize: fontSize,
+      fontSize: configuredSize,
       padZero: padZero,
       is24Hour: is24Hour,
       showAMPM: showAMPM,
@@ -92,8 +91,20 @@ struct SettingsPanelView: View {
     )
   }
 
+  private var committedPanelClockConfig: ClockDisplayConfig {
+    panelClockConfig(fontSize: fontSize)
+  }
+
+  private var previewPanelClockConfig: ClockDisplayConfig {
+    #if os(iOS)
+      panelClockConfig(fontSize: previewFontSize ?? fontSize)
+    #else
+      committedPanelClockConfig
+    #endif
+  }
+
   private var effectivePanelClockConfig: ClockDisplayConfig {
-    panelClockConfig.applyingDisplayStyle(displayStyle)
+    committedPanelClockConfig.applyingDisplayStyle(displayStyle)
   }
 
   private var fontSizeRange: ClosedRange<Double> {
@@ -248,7 +259,7 @@ struct SettingsPanelView: View {
     SettingsClockPreview(
       scheduler: timeScheduler,
       displayStyle: displayStyle,
-      config: panelClockConfig,
+      config: previewPanelClockConfig,
       backgroundColorHex: backgroundColorHex,
       flipCardColorHex: flipCardColorHex,
       fontColorHex: fontColorHex,
@@ -383,18 +394,21 @@ struct SettingsPanelView: View {
 
   private var typographySection: some View {
     SettingsSection(title: L10n.text("settings.font"), systemImage: "textformat") {
-      HStack(alignment: .center, spacing: isIOSSheet ? 8 : 12) {
-        Text(L10n.text("settings.font_size"))
-          .font(SettingsTheme.rowLabelFont(compact: isIOSSheet))
-          .foregroundStyle(SettingsTheme.secondaryText)
-          .lineLimit(1)
-          .fixedSize(horizontal: true, vertical: false)
-        Slider(value: iosFontSizeBinding, in: fontSizeRange)
-        Text("\(Int(iosFontSizeBinding.wrappedValue))")
-          .font(.subheadline.monospacedDigit())
-          .foregroundStyle(SettingsTheme.accent)
-          .frame(minWidth: 40, alignment: .trailing)
-      }
+      #if os(iOS)
+        SettingsFontSizeSliderRow(
+          fontSize: $fontSize,
+          previewFontSize: $previewFontSize,
+          range: fontSizeRange,
+          compact: isIOSSheet
+        )
+      #else
+        settingSlider(
+          title: L10n.text("settings.font_size"),
+          value: $fontSize,
+          range: fontSizeRange,
+          label: "\(Int(fontSize))"
+        ) {}
+      #endif
       HStack(alignment: .center, spacing: isIOSSheet ? 8 : 12) {
         Text(L10n.text("settings.font"))
           .font(SettingsTheme.rowLabelFont(compact: isIOSSheet))
@@ -405,36 +419,7 @@ struct SettingsPanelView: View {
           .frame(maxWidth: .infinity, alignment: .trailing)
       }
     }
-    #if os(iOS)
-      .onAppear { iosFontSizeDraft = fontSize }
-      .onDisappear { flushIOSFontSizeDraft() }
-    #endif
   }
-
-  #if os(iOS)
-    private var iosFontSizeBinding: Binding<Double> {
-      Binding(
-        get: { iosFontSizeDraft ?? fontSize },
-        set: { newValue in
-          iosFontSizeDraft = newValue
-          iosFontSizeThrottle.schedule(delayNanoseconds: 120_000_000) {
-            fontSize = newValue
-          }
-        }
-      )
-    }
-
-    private func flushIOSFontSizeDraft() {
-      iosFontSizeThrottle.flush {
-        if let draft = iosFontSizeDraft {
-          fontSize = draft
-        }
-      }
-      iosFontSizeDraft = nil
-    }
-  #else
-    private var iosFontSizeBinding: Binding<Double> { $fontSize }
-  #endif
 
   private var clockStyleSection: some View {
     SettingsSection(title: L10n.text("settings.clock_style"), systemImage: "clock") {
@@ -902,7 +887,7 @@ struct SettingsPanelView: View {
   private func closePanel() {
     flipLayoutThrottle.flush { syncFontSizeToLimits() }
     #if os(iOS)
-      flushIOSFontSizeDraft()
+      previewFontSize = nil
     #endif
     withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
       showSettings = false
@@ -1045,3 +1030,62 @@ private struct SettingsToggleRow: View {
     #endif
   }
 }
+
+#if os(iOS)
+  /// 字号滑块独立子视图：拖动时只刷新本行，预览/持久化分别节流
+  private struct SettingsFontSizeSliderRow: View {
+    @Binding var fontSize: Double
+    @Binding var previewFontSize: Double?
+    let range: ClosedRange<Double>
+    let compact: Bool
+
+    @State private var draft: Double?
+    @State private var storageThrottle = SettingsChangeThrottle()
+    @State private var previewThrottle = SettingsChangeThrottle()
+
+    private var displayValue: Double { draft ?? fontSize }
+
+    var body: some View {
+      HStack(alignment: .center, spacing: compact ? 8 : 12) {
+        Text(L10n.text("settings.font_size"))
+          .font(SettingsTheme.rowLabelFont(compact: compact))
+          .foregroundStyle(SettingsTheme.secondaryText)
+          .lineLimit(1)
+          .fixedSize(horizontal: true, vertical: false)
+        Slider(
+          value: Binding(
+            get: { displayValue },
+            set: { applyDraft($0) }
+          ),
+          in: range
+        )
+        Text("\(Int(displayValue))")
+          .font(.subheadline.monospacedDigit())
+          .foregroundStyle(SettingsTheme.accent)
+          .frame(minWidth: 40, alignment: .trailing)
+      }
+      .onDisappear { flushDraft() }
+    }
+
+    private func applyDraft(_ value: Double) {
+      draft = value
+      previewThrottle.schedule(delayNanoseconds: 100_000_000) {
+        previewFontSize = value
+      }
+      storageThrottle.schedule(delayNanoseconds: 300_000_000) {
+        fontSize = value
+      }
+    }
+
+    private func flushDraft() {
+      previewThrottle.flush {
+        if let draft { previewFontSize = draft }
+      }
+      storageThrottle.flush {
+        if let draft { fontSize = draft }
+      }
+      draft = nil
+      previewFontSize = nil
+    }
+  }
+#endif

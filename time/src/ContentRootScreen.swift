@@ -574,10 +574,10 @@ struct ContentRootScreen: View {
   }
 
   private func reactConfigChange() {
-    timeScheduler.setFormat(clockConfig.schedulerFormatOptions(for: clockDisplayStyle))
     #if os(iOS)
       guard !isIOSSheetSettingsOpen else { return }
     #endif
+    timeScheduler.setFormat(clockConfig.schedulerFormatOptions(for: clockDisplayStyle))
     clampFontSizeToScreen()
   }
 
