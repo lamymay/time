@@ -199,6 +199,10 @@ private struct FlipClockLayout {
     let s = secondTens + secondOnes
     return s.isEmpty ? "" : s
   }
+
+  var compactSecondsDisplayText: String {
+    compactSecondsText.isEmpty ? "00" : compactSecondsText
+  }
   let detachedSecondText: String?
   let hourAMPM: String?
   let hourAMPMAlignment: Alignment
@@ -427,11 +431,17 @@ private struct FlipCompactPanelsRow: View {
         .id("minute")
 
         if layout.showsDetachedSecondPanel {
-          FlipDetachedSecondsBadge(
-            format: layout.clockFormat,
+          let secondsText = layout.compactSecondsDisplayText
+          FlipPanelView(
+            slotID: "compactSeconds",
+            text: secondsText,
             fontSize: digitSize * 0.16,
-            color: digitColor,
-            fontName: fontName
+            textColor: digitColor,
+            cardStyle: cardStyle,
+            fontName: fontName,
+            showsHinge: false,
+            panelKind: .compactSecond,
+            stamp: FlipTickStamp(epoch: tickEpoch, value: secondsText)
           )
           .ampmPadding(digitSize: digitSize, alignment: .bottomTrailing)
         }
@@ -450,25 +460,6 @@ private struct FlipCornerBadge: View {
     Text(text)
       .font(FlipClockFont.swiftUI(size: fontSize, fontName: fontName))
       .foregroundStyle(color)
-  }
-}
-
-/// 压缩版右下角秒：纯文字、无中线；TimelineView 每秒对齐系统时间（不依赖 scheduler 绑定）。
-private struct FlipDetachedSecondsBadge: View {
-  let format: ClockFormatOptions
-  let fontSize: CGFloat
-  let color: Color
-  let fontName: String
-
-  var body: some View {
-    TimelineView(.periodic(from: .now, by: 1.0)) { timeline in
-      let segments = TimeProvider.segments(from: timeline.date, format: format)
-      let text = segments.secondTens + segments.secondOnes
-      Text(text.isEmpty ? "00" : text)
-        .font(FlipClockFont.swiftUI(size: fontSize, fontName: fontName))
-        .foregroundStyle(color)
-        .monospacedDigit()
-    }
   }
 }
 
