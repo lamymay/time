@@ -594,6 +594,34 @@
         }
       }
     },
+    "flip.format.compact_panels_minute_subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hour and minute only · triple layout requires second precision"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時・分のみ。三等分は秒精度が必要"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅显示时、分；三等分需开启秒精度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅顯示時、分；三等分需開啟秒精度"
+          }
+        }
+      }
+    },
     "flip.format.triple_equal" : {
       "localizations" : {
         "en" : {

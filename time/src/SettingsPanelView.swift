@@ -166,8 +166,10 @@ struct SettingsPanelView: View {
     .onChangeCompat(of: clockDisplayStyleRaw) { _, raw in
       if ClockDisplayStyle(rawValue: raw) == .flip {
         showTimeZoneText = false
+        clampFlipSettingsForPrecision()
+      } else {
+        syncFontSizeToLimits()
       }
-      syncFontSizeToLimits()
     }
     .onChangeCompat(of: flipClockFormatRaw) { _, _ in syncFontSizeToLimits() }
     .onChangeCompat(of: flipCompactDetachedSeconds) { _, _ in syncFontSizeToLimits() }
@@ -455,18 +457,14 @@ struct SettingsPanelView: View {
           isOn: $oledPixelShiftEnabled
         )
         labeledPickerRow(title: L10n.text("settings.flip_format")) {
-          Picker(L10n.text("settings.flip_format"), selection: $flipClockFormatRaw) {
-            ForEach(FlipClockFormat.allCases) { format in
-              Text(format.label).tag(format.rawValue)
-            }
-          }
-          .pickerStyle(.segmented)
-          .labelsHidden()
+          flipFormatSegmentedPicker
         }
-        Text(FlipClockFormat.resolved(fromRaw: flipClockFormatRaw).subtitle)
+        Text(flipFormatSubtitle)
           .font(.caption)
           .foregroundStyle(SettingsTheme.secondaryText)
-        if FlipClockFormat.resolved(fromRaw: flipClockFormatRaw) == .compactPanels {
+        if precision.includesSeconds,
+          FlipClockFormat.resolved(fromRaw: flipClockFormatRaw) == .compactPanels
+        {
           SettingsToggleRow(
             title: L10n.text("settings.flip_compact_detached_seconds"),
             subtitle: L10n.text("settings.flip_compact_detached_seconds_hint"),
@@ -477,6 +475,61 @@ struct SettingsPanelView: View {
 
       clockStylePrecisionBlock
     }
+    .onAppear { clampFlipSettingsForPrecision() }
+    .onChangeCompat(of: timeDisplayPrecisionRaw) { _, _ in
+      clampFlipSettingsForPrecision()
+    }
+  }
+
+  private var flipFormatSubtitle: String {
+    let format = FlipClockFormat.resolved(fromRaw: flipClockFormatRaw)
+    if !precision.includesSeconds {
+      return L10n.text("flip.format.compact_panels_minute_subtitle")
+    }
+    return format.subtitle
+  }
+
+  private var flipFormatSegmentedPicker: some View {
+    HStack(spacing: 2) {
+      flipFormatSegment(.compactPanels, enabled: true)
+      flipFormatSegment(.tripleEqual, enabled: precision.includesSeconds)
+    }
+    .padding(2)
+    .background(Color.white.opacity(0.08))
+    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+  }
+
+  private func flipFormatSegment(_ format: FlipClockFormat, enabled: Bool) -> some View {
+    let selected = FlipClockFormat.resolved(fromRaw: flipClockFormatRaw) == format
+    return Button {
+      guard enabled else { return }
+      flipClockFormatRaw = format.rawValue
+    } label: {
+      Text(format.label)
+        .font(isIOSSheet ? .caption.weight(.semibold) : .subheadline.weight(.semibold))
+        .foregroundStyle(selected ? Color.primary : SettingsTheme.secondaryText)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, isIOSSheet ? 6 : 7)
+        .background {
+          if selected {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+              .fill(Color(white: 0.22))
+          }
+        }
+    }
+    .buttonStyle(.plain)
+    .disabled(!enabled)
+    .opacity(enabled ? 1 : 0.38)
+  }
+
+  private func clampFlipSettingsForPrecision() {
+    guard displayStyle == .flip else { return }
+    ClockDisplayConfig.clampFlipStorageForPrecision(
+      precisionRaw: timeDisplayPrecisionRaw,
+      flipFormatRaw: &flipClockFormatRaw,
+      flipCompactDetachedSeconds: &flipCompactDetachedSeconds
+    )
+    syncFontSizeToLimits()
   }
 
   private var clockStylePrecisionBlock: some View {

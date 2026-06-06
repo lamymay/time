@@ -38,10 +38,13 @@ struct ClockDisplayConfig: Equatable {
     return options
   }
 
-  /// 压缩版右下角秒开启时，走时按秒调度（与 DVD 秒精度一致）
+  /// 压缩版右下角秒开启时，走时按秒调度（须已选秒精度）
   func schedulerFormatOptions(for style: ClockDisplayStyle) -> ClockFormatOptions {
     var options = formatOptions(for: style)
-    if flipFormat == .compactPanels, flipCompactDetachedSeconds {
+    if displayPrecision.includesSeconds,
+      flipFormat == .compactPanels,
+      flipCompactDetachedSeconds
+    {
       options.displayPrecision = .second
     }
     return options
@@ -57,7 +60,6 @@ struct ClockDisplayConfig: Equatable {
 
   var showsLiveSeconds: Bool {
     displayPrecision.includesSeconds
-      || (flipFormat == .compactPanels && flipCompactDetachedSeconds)
   }
 
   /// 指定样式下是否会显示秒（用于设置项预览）
@@ -67,8 +69,20 @@ struct ClockDisplayConfig: Equatable {
       return displayPrecision.includesSeconds
     case .flip:
       return displayPrecision.includesSeconds
-        || (flipFormat == .compactPanels && flipCompactDetachedSeconds)
     }
+  }
+
+  /// 翻页「分」精度：仅压缩双板、不显示秒；「秒」精度才可选三等分
+  static func clampFlipStorageForPrecision(
+    precisionRaw: String,
+    flipFormatRaw: inout String,
+    flipCompactDetachedSeconds: inout Bool
+  ) {
+    guard !TimeDisplayPrecision.resolved(fromRaw: precisionRaw).includesSeconds else { return }
+    if FlipClockFormat.resolved(fromRaw: flipFormatRaw) == .tripleEqual {
+      flipFormatRaw = FlipClockFormat.compactPanels.rawValue
+    }
+    flipCompactDetachedSeconds = false
   }
 }
 
@@ -163,7 +177,14 @@ struct ContentView: View {
       .onChangeCompat(of: geo.size.height) { _, _ in
         clampFontSize(for: geo.size)
       }
-      .onAppear { migrateLegacyClockColorIfNeeded() }
+      .onAppear {
+        migrateLegacyClockColorIfNeeded()
+        ClockDisplayConfig.clampFlipStorageForPrecision(
+          precisionRaw: timeDisplayPrecisionRaw,
+          flipFormatRaw: &flipClockFormatRaw,
+          flipCompactDetachedSeconds: &flipCompactDetachedSeconds
+        )
+      }
     }
     .fullScreenClockBleedIfAvailable()
   }
