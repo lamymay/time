@@ -155,6 +155,9 @@ struct FlipClockPreview: View {
           fontName: config.selectedFontName,
           tickEpoch: 0
         )
+        .animation(nil, value: config.flipFormat)
+        .animation(nil, value: config.flipCompactDetachedSeconds)
+        .animation(nil, value: config.displayPrecision)
         if config.showTimeZoneText, !segments.timeZoneLabel.isEmpty {
           Text(segments.timeZoneLabel)
             .font(
