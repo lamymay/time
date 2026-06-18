@@ -3,7 +3,13 @@ import Foundation
 
 /// 按显示精度调度；tick 直推 NativeClockTickTarget，不经过 SwiftUI
 final class ClockTimeScheduler: ObservableObject {
-  @Published private(set) var segments = TimeSegments()
+  private(set) var segments = TimeSegments()
+
+  /// 仅设置预览等需要 SwiftUI 读 segments 时开启，避免每秒刷新整棵视图树
+  private var publishesSegmentsToSwiftUI = false
+
+  /// 时/分等非秒位变化（如 DVD 拖尾清除）
+  var onSignificantSegmentChange: (() -> Void)?
 
   private weak var tickTarget: NativeClockTickTarget?
   private var format = ClockFormatOptions(
@@ -19,25 +25,41 @@ final class ClockTimeScheduler: ObservableObject {
   private var scheduleWorkItem: DispatchWorkItem?
   private var isActive = false
 
+  func setPublishesSegmentsToSwiftUI(_ enabled: Bool) {
+    guard enabled != publishesSegmentsToSwiftUI else { return }
+    publishesSegmentsToSwiftUI = enabled
+    if enabled {
+      objectWillChange.send()
+    }
+  }
+
   func setTickTarget(_ target: NativeClockTickTarget?) {
+    let isSameTarget: Bool = {
+      if let target, let current = tickTarget {
+        return (target as AnyObject) === (current as AnyObject)
+      }
+      return target == nil && tickTarget == nil
+    }()
+    guard !isSameTarget else { return }
+
     tickTarget = target
     if let target {
       target.applyTick(
         segments: segments,
         changedFields: Set(TimeSegmentField.allCases)
       )
-      if isActive { reschedule() }
-    } else {
-      cancelSchedule()
+    }
+    if isActive {
+      reschedule()
     }
   }
 
   func setFormat(_ format: ClockFormatOptions) {
-    let formatChanged = self.format != format
+    guard self.format != format else { return }
     self.format = format
     calendar = TimeProvider.makeCalendar(for: format.timeZoneIdentifier)
     refreshIfNeeded(at: Date(), force: true)
-    if isActive, formatChanged || tickTarget != nil {
+    if isActive {
       reschedule()
     }
   }
@@ -61,6 +83,12 @@ final class ClockTimeScheduler: ObservableObject {
       : TimeProvider.changedFields(from: segments, to: new)
     segments = new
     tickTarget?.applyTick(segments: new, changedFields: changed)
+    if publishesSegmentsToSwiftUI {
+      objectWillChange.send()
+    }
+    if !changed.isSubset(of: [.secondTens, .secondOnes]) {
+      onSignificantSegmentChange?()
+    }
   }
 
   private func reschedule() {

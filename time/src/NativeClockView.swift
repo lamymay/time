@@ -100,6 +100,26 @@ private enum NativeClockCollisionMeasure {
   }
 }
 
+private enum NativeClockLayerRefresh {
+  static func applyTimeString(
+    to layer: CATextLayer,
+    segments: TimeSegments,
+    stamp: ClockStyleStamp,
+    fonts: NativeClockFonts,
+    color: PlatformColor
+  ) {
+    layer.string = NativeClockTextBuilder.timeAttributedString(
+      segments: segments,
+      fonts: fonts,
+      precision: stamp.precision,
+      color: color,
+      inlineAMPM: false
+    )
+    layer.contents = nil
+    layer.setNeedsDisplay()
+  }
+}
+
 #if canImport(UIKit)
   import UIKit
 #else
@@ -212,12 +232,12 @@ private final class NativeClockDebugBorderLayers {
       guard let stamp = styleStamp, let fonts else { return }
       let color = stamp.color.platformColor
 
-      timeLayer.string = NativeClockTextBuilder.timeAttributedString(
+      NativeClockLayerRefresh.applyTimeString(
+        to: timeLayer,
         segments: segments,
+        stamp: stamp,
         fonts: fonts,
-        precision: stamp.precision,
-        color: color,
-        inlineAMPM: false
+        color: color
       )
 
       switch NativeClockAMPMPlacement.from(segments: segments) {
@@ -393,12 +413,12 @@ private final class NativeClockDebugBorderLayers {
       guard let stamp = styleStamp, let fonts else { return }
       let color = stamp.color.platformColor
 
-      timeLayer.string = NativeClockTextBuilder.timeAttributedString(
+      NativeClockLayerRefresh.applyTimeString(
+        to: timeLayer,
         segments: segments,
+        stamp: stamp,
         fonts: fonts,
-        precision: stamp.precision,
-        color: color,
-        inlineAMPM: false
+        color: color
       )
 
       switch NativeClockAMPMPlacement.from(segments: segments) {

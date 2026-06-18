@@ -3,9 +3,10 @@ import SwiftUI
 /// 屏保级：原生 CATextLayer + layer transform 弹跳；无 NSHostingView
 struct MotionClockScene: View {
   @State private var motion = ClockMotionEngine()
-  @ObservedObject var scheduler: ClockTimeScheduler
+  let scheduler: ClockTimeScheduler
   let style: NativeClockStyle
   let precision: TimeDisplayPrecision
+  let schedulerFormat: ClockFormatOptions
   let timeZoneTopGap: CGFloat
   let showTimeZoneText: Bool
   let ampmVertical: String
@@ -22,6 +23,7 @@ struct MotionClockScene: View {
       motion: motion,
       style: style,
       precision: precision,
+      schedulerFormat: schedulerFormat,
       timeZoneTopGap: timeZoneTopGap,
       showTimeZoneText: showTimeZoneText,
       ampmVertical: ampmVertical,
@@ -36,11 +38,12 @@ struct MotionClockScene: View {
 }
 
 struct MotionClockContent: View {
-  @ObservedObject var scheduler: ClockTimeScheduler
+  let scheduler: ClockTimeScheduler
   /// 勿用 @Binding：引擎每帧更新 position 会拖垮 SwiftUI（主线程 9000ms+ 卡顿）
   let motion: ClockMotionEngine
   let style: NativeClockStyle
   let precision: TimeDisplayPrecision
+  let schedulerFormat: ClockFormatOptions
   let timeZoneTopGap: CGFloat
   let showTimeZoneText: Bool
   let ampmVertical: String
@@ -71,6 +74,7 @@ struct MotionClockContent: View {
       scheduler: scheduler,
       motion: motion,
       styleStamp: styleStamp,
+      schedulerFormat: schedulerFormat,
       playfieldSize: layoutField,
       moveSpeed: moveSpeed,
       isActive: isActive,
@@ -84,9 +88,10 @@ struct MotionClockContent: View {
       motion.applyBackground(hex: backgroundColorHex)
       motion.applyUserClockColor(hex: fontColorHex)
       motion.clearTrail()
+      scheduler.onSignificantSegmentChange = { motion.clearTrail() }
     }
-    .onChangeCompat(of: scheduler.segments) { _, _ in
-      motion.clearTrail()
+    .onDisappear {
+      scheduler.onSignificantSegmentChange = nil
     }
     .onChangeCompat(of: backgroundColorHex) { _, hex in
       motion.applyBackground(hex: hex)

@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    ":" : {
+
+    },
     "%lld" : {
 
     },
@@ -566,34 +569,6 @@
         }
       }
     },
-    "flip.format.compact_panels_subtitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Two large panels · optional second strip"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "時・分の大パネル、秒は独立表示可"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "时、分双大板，秒可独立显示在右侧"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "時、分雙大板，秒可獨立顯示在右側"
-          }
-        }
-      }
-    },
     "flip.format.compact_panels_minute_subtitle" : {
       "localizations" : {
         "en" : {
@@ -618,6 +593,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "時、分雙大板；可開啟右下獨立秒（三等分需秒精度）"
+          }
+        }
+      }
+    },
+    "flip.format.compact_panels_subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two large panels · optional second strip"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時・分の大パネル、秒は独立表示可"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时、分双大板，秒可独立显示在右侧"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時、分雙大板，秒可獨立顯示在右側"
           }
         }
       }

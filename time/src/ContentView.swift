@@ -38,14 +38,18 @@ struct ClockDisplayConfig: Equatable {
     return options
   }
 
-  /// 压缩版右下角秒开启时，走时按秒调度（「分」精度下可选开启）
+  /// 经典模式显示秒时，调度必须按秒 tick（与 stamp.precision 一致）
   func schedulerFormatOptions(for style: ClockDisplayStyle) -> ClockFormatOptions {
     var options = formatOptions(for: style)
-    if style == .flip,
-      flipFormat == .compactPanels,
-      showsFlipDetachedSeconds
-    {
-      options.displayPrecision = .second
+    switch style {
+    case .classic:
+      if displayPrecision.includesSeconds {
+        options.displayPrecision = .second
+      }
+    case .flip:
+      if flipFormat == .compactPanels, showsFlipDetachedSeconds {
+        options.displayPrecision = .second
+      }
     }
     return options
   }
@@ -177,12 +181,6 @@ struct ContentView: View {
         timeScheduler: timeScheduler,
         scenePhase: scenePhase
       )
-      .onChangeCompat(of: geo.size.width) { _, _ in
-        clampFontSize(for: geo.size)
-      }
-      .onChangeCompat(of: geo.size.height) { _, _ in
-        clampFontSize(for: geo.size)
-      }
       .onAppear {
         migrateLegacyClockColorIfNeeded()
         ClockDisplayConfig.clampFlipStorageForPrecision(
@@ -208,52 +206,4 @@ struct ContentView: View {
     UserDefaults.standard.set(true, forKey: Self.colorKeysMigratedKey)
   }
 
-  private func clampFontSize(for screen: CGSize) {
-    let clockScreen = clockPlayfieldSize(for: screen)
-    let layout = layoutSize(for: clockScreen)
-    let precision = TimeDisplayPrecision.resolved(fromRaw: timeDisplayPrecisionRaw)
-    let style = ClockDisplayStyle(rawValue: clockDisplayStyleRaw) ?? .classic
-    let config = ClockDisplayConfig(
-      fontSize: fontSize,
-      padZero: padZero,
-      is24Hour: is24Hour,
-      showAMPM: showAMPM,
-      ampmScale: ampmScale,
-      ampmSide: ampmSide,
-      ampmVertical: ampmVertical,
-      selectedTimeZone: selectedTimeZone,
-      showTimeZoneText: showTimeZoneText,
-      selectedFontName: selectedFontName,
-      displayPrecision: precision,
-      flipFormat: FlipClockFormat.resolved(fromRaw: flipClockFormatRaw),
-      flipCompactDetachedSeconds: flipCompactDetachedSeconds
-    )
-    let limitScreen = style == .flip ? clockScreen : layout
-    ClockFontSizeLimits.clampStoredFontSize(
-      &fontSize,
-      style: style,
-      screen: limitScreen,
-      config: config.applyingDisplayStyle(style)
-    )
-  }
-
-  private func clockPlayfieldSize(for screen: CGSize) -> CGSize {
-    let top = ClockScreenLayout.resolvedTopClockInset(avoidTopSafeAreaOnNotch: avoidTopSafeAreaOnNotch)
-    return CGSize(width: screen.width, height: max(screen.height - top, 1))
-  }
-
-  private func layoutSize(for screen: CGSize) -> CGSize {
-    guard screen.width > 0 else { return screen }
-    var width = screen.width
-    if showSettings, ClockScreenLayout.usesSideSettingsPanel(screen: screen) {
-      width -= ClockScreenLayout.settingsPanelWidth(screen: screen) + 48
-    } else if showSettings {
-      width *= 0.92
-    }
-    if showFontPicker {
-      width -= ClockScreenLayout.sidePanelWidth(screen: screen) + 40
-    }
-    width = max(width, screen.width * 0.42)
-    return CGSize(width: width, height: screen.height)
-  }
 }

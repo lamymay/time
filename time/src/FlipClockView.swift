@@ -28,7 +28,7 @@ private struct FlipTickStamp: Equatable {
 // MARK: - Scene
 
 struct FlipClockScene: View {
-  @ObservedObject var scheduler: ClockTimeScheduler
+  let scheduler: ClockTimeScheduler
   let config: ClockDisplayConfig
   let backgroundColorHex: String
   let flipCardColorHex: String
@@ -88,9 +88,6 @@ struct FlipClockScene: View {
     }
     .onAppear {
       attachScheduler()
-    }
-    .onDisappear {
-      scheduler.setTickTarget(nil)
     }
     .onChangeCompat(of: isActive) { _, active in
       scheduler.setActive(active)
@@ -395,8 +392,27 @@ private struct FlipCompactPanelsRow: View {
   let fontName: String
   let tickEpoch: Int
 
+  private var mainGlyphSize: CGFloat {
+    FlipClockLayoutMetrics.compactMainGlyphSize(
+      digitSize: digitSize,
+      charCount: max(layout.minuteText.count, 1)
+    )
+  }
+
+  private var colonBalanceOffset: CGFloat {
+    let hourInset = FlipClockLayoutMetrics.compactPanelContentInset(
+      digitSize: digitSize,
+      charCount: max(layout.hourText.count, 1)
+    )
+    let minuteInset = FlipClockLayoutMetrics.compactPanelContentInset(
+      digitSize: digitSize,
+      charCount: max(layout.minuteText.count, 1)
+    )
+    return (minuteInset - hourInset) / 2
+  }
+
   var body: some View {
-    HStack(alignment: .center, spacing: digitSize * FlipClockLayoutMetrics.compactPanelGapRatio) {
+    HStack(alignment: .center, spacing: 0) {
       ZStack(alignment: layout.hourAMPMAlignment) {
         FlipPanelView(
           slotID: "hour",
@@ -416,9 +432,10 @@ private struct FlipCompactPanelsRow: View {
         }
       }
 
-      FlipColonView(size: digitSize, color: digitColor.opacity(0.85))
+      FlipColonView(glyphSize: mainGlyphSize, color: digitColor.opacity(0.85), fontName: fontName)
+        .offset(x: colonBalanceOffset)
 
-      HStack(alignment: .bottom, spacing: 0) {
+      ZStack(alignment: .bottomTrailing) {
         FlipPanelView(
           slotID: "minute",
           text: layout.minuteText,
@@ -445,6 +462,7 @@ private struct FlipCompactPanelsRow: View {
             panelKind: .compactSecond,
             stamp: FlipTickStamp(epoch: tickEpoch, value: secondsText)
           )
+          .ampmPadding(digitSize: digitSize, alignment: .bottomTrailing)
         }
       }
     }
@@ -489,16 +507,34 @@ private struct FlipTripleEqualRow: View {
   let fontName: String
   let tickEpoch: Int
 
+  private var colonGlyphSize: CGFloat {
+    FlipClockLayoutMetrics.tripleEqualGlyphSize(digitSize: digitSize)
+  }
+
+  private var colonMetrics: FlipClockLayoutMetrics.ColonInkMetrics {
+    FlipClockLayoutMetrics.tripleEqualColonMetrics(digitSize: digitSize, fontName: fontName)
+  }
+
   var body: some View {
-    HStack(alignment: .center, spacing: digitSize * FlipClockLayoutMetrics.sectionSpacingRatio) {
+    HStack(alignment: .center, spacing: 0) {
       hourGroupWithAMPM
 
-      FlipColonView(size: digitSize, color: digitColor.opacity(0.85))
+      FlipColonView(
+        glyphSize: colonGlyphSize,
+        color: digitColor.opacity(0.85),
+        fontName: fontName,
+        metrics: colonMetrics
+      )
 
       digitGroup(minuteSlots)
 
       if layout.showsSeconds {
-        FlipColonView(size: digitSize, color: digitColor.opacity(0.85))
+        FlipColonView(
+          glyphSize: colonGlyphSize,
+          color: digitColor.opacity(0.85),
+          fontName: fontName,
+          metrics: colonMetrics
+        )
         digitGroup(secondSlots)
       }
     }
@@ -545,16 +581,23 @@ private struct FlipTripleEqualRow: View {
 }
 
 private struct FlipColonView: View {
-  let size: CGFloat
+  let glyphSize: CGFloat
   let color: Color
+  let fontName: String
+  var metrics: FlipClockLayoutMetrics.ColonInkMetrics?
+
+  private var resolvedMetrics: FlipClockLayoutMetrics.ColonInkMetrics {
+    metrics ?? FlipClockLayoutMetrics.colonInkMetrics(glyphSize: glyphSize, fontName: fontName)
+  }
 
   var body: some View {
-    let dot = size * 0.085
-    VStack(spacing: size * 0.2) {
-      Circle().fill(color).frame(width: dot, height: dot)
-      Circle().fill(color).frame(width: dot, height: dot)
-    }
-    .frame(width: size * FlipClockLayoutMetrics.colonWidthRatio)
+    let ink = resolvedMetrics
+    Text(":")
+      .font(FlipClockFont.swiftUI(size: glyphSize, fontName: fontName))
+      .foregroundStyle(color)
+      .fixedSize()
+      .offset(x: ink.textOffsetX)
+      .frame(width: ink.layoutWidth)
   }
 }
 
@@ -862,9 +905,10 @@ private struct FlipPanelView: View {
         charCount: glyphCharCount
       )
     case .compactSecond:
-      return FlipClockLayoutMetrics.glyphFontSize(
+      return FlipClockLayoutMetrics.compactGlyphFontSize(
         digitSize: fontSize,
         panelWidth: cardWidth,
+        panelHeight: cardHeight,
         charCount: glyphCharCount
       )
     }
@@ -1000,7 +1044,7 @@ private struct FlipPanelView: View {
 
   private func mainText(_ value: String) -> some View {
     Group {
-      if panelKind == .hourMinute, value.count > 1 {
+      if value.count > 1 {
         HStack(spacing: intraDigitGap) {
           ForEach(Array(value.enumerated()), id: \.offset) { _, ch in
             Text(String(ch))

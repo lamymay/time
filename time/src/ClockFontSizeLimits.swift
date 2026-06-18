@@ -17,8 +17,8 @@ enum FlipClockLayoutMetrics {
   static let compactPanelGlyphHeightFill: CGFloat = 0.84
   /// 多位数时字符间距（× digitSize），调小更紧、调大更疏
   static let compactIntraDigitGapRatio: CGFloat = 0.045
-  static let compactPanelGapRatio: CGFloat = 0.07
-  static let compactSecondGapRatio: CGFloat = 0.045
+  /// 压缩版分钟与右下秒之间的重叠量（× 主 digitSize），越大秒越贴近分钟
+  static let compactSecondGapRatio: CGFloat = 0.10
   static let compactSecondFontScale: CGFloat = 0.36
   /// 压缩版右下独立秒相对主 digitSize 的比例
   static let compactDetachedSecondScale: CGFloat = 0.16
@@ -49,7 +49,6 @@ enum FlipClockLayoutMetrics {
 
   /// 翻页数字字号：与 digitSize 一致（滑块即可见数字高度）
   private static let glyphNaturalScale: CGFloat = 1.0
-  /// 粗体数字平均字宽（相对字号），略保守以兼容 Silom 等宽体
   private static let glyphEmWidthPerCharacter: CGFloat = 0.58
 
   static func glyphFontSize(
@@ -78,12 +77,85 @@ enum FlipClockLayoutMetrics {
     return min(byHeight, byWidth, byDigit)
   }
 
-  // 三等分逐位
-  static let digitCardWidthRatio: CGFloat = 0.84
-  static let digitGroupSpacingRatio: CGFloat = 0.08
+  // 三等分逐位（组内两位数字尽量贴紧）
+  static let digitCardWidthRatio: CGFloat = 0.60
+  static let digitGroupSpacingRatio: CGFloat = 0
   static let sectionSpacingRatio: CGFloat = 0.05
-  static let colonWidthRatio: CGFloat = 0.10
+  /// 三等分冒号最大占位（× digitSize），避免等宽字体冒号过宽
+  static let tripleEqualColonMaxWidthRatio: CGFloat = 0.30
   static let ampmWidthRatio: CGFloat = 0.44
+
+  struct ColonInkMetrics: Equatable {
+    var layoutWidth: CGFloat
+    /// 使「:」墨线中心落在 layout 中心时的 Text 水平偏移
+    var textOffsetX: CGFloat
+  }
+
+  static func compactMainGlyphSize(digitSize: CGFloat, charCount: Int = 2) -> CGFloat {
+    compactGlyphFontSize(
+      digitSize: digitSize,
+      panelWidth: compactPanelWidth(digitSize: digitSize, charCount: charCount),
+      panelHeight: digitSize * compactPanelHeightRatio,
+      charCount: max(charCount, 1)
+    )
+  }
+
+  /// 双板面板内数字块与面板边缘的水平留白（用于冒号居中）
+  static func compactPanelContentInset(digitSize: CGFloat, charCount: Int) -> CGFloat {
+    let count = max(charCount, 1)
+    let panelW = compactPanelWidth(digitSize: digitSize, charCount: count)
+    let glyph = compactMainGlyphSize(digitSize: digitSize, charCount: count)
+    let gapTotal = CGFloat(max(0, count - 1)) * compactIntraDigitGap(digitSize: digitSize)
+    let contentW = CGFloat(count) * glyph * glyphEmWidthPerCharacter + gapTotal
+    return max(0, (panelW - contentW) / 2)
+  }
+
+  static func tripleEqualGlyphSize(digitSize: CGFloat) -> CGFloat {
+    glyphFontSize(
+      digitSize: digitSize,
+      panelWidth: digitSize * digitCardWidthRatio,
+      charCount: 1
+    )
+  }
+
+  /// 冒号排版：与面板数字同字号，并按 boundingRect 光学居中
+  static func colonInkMetrics(glyphSize: CGFloat, fontName: String) -> ColonInkMetrics {
+    let font = PlatformFont.native(fontName, size: glyphSize, weight: .bold)
+    let colon = NSAttributedString(string: ":", attributes: [.font: font])
+    let maxSize = CGSize(
+      width: CGFloat.greatestFiniteMagnitude,
+      height: CGFloat.greatestFiniteMagnitude
+    )
+    let rect = colon.boundingRect(
+      with: maxSize,
+      options: [.usesLineFragmentOrigin, .usesFontLeading],
+      context: nil
+    )
+    let inkWidth = rect.width
+    let layoutWidth = ceil(inkWidth)
+    let textOffsetX = (layoutWidth - inkWidth) / 2 - rect.origin.x
+    return ColonInkMetrics(layoutWidth: layoutWidth, textOffsetX: textOffsetX)
+  }
+
+  static func colonLayoutWidth(glyphSize: CGFloat, fontName: String) -> CGFloat {
+    colonInkMetrics(glyphSize: glyphSize, fontName: fontName).layoutWidth
+  }
+
+  static func tripleEqualColonMetrics(digitSize: CGFloat, fontName: String) -> ColonInkMetrics {
+    var metrics = colonInkMetrics(
+      glyphSize: tripleEqualGlyphSize(digitSize: digitSize),
+      fontName: fontName
+    )
+    let cap = digitSize * tripleEqualColonMaxWidthRatio
+    guard metrics.layoutWidth > cap else { return metrics }
+    metrics.textOffsetX += (cap - metrics.layoutWidth) / 2
+    metrics.layoutWidth = cap
+    return metrics
+  }
+
+  static func tripleEqualColonLayoutWidth(digitSize: CGFloat, fontName: String) -> CGFloat {
+    tripleEqualColonMetrics(digitSize: digitSize, fontName: fontName).layoutWidth
+  }
 }
 
 /// 经典弹跳：上限由整行时间宽度决定；翻页：主限高度，并保证整行不超出屏宽。
@@ -171,17 +243,15 @@ enum ClockFontSizeLimits {
   private static func flipCompactRowWidth(digitSize: CGFloat, config: ClockDisplayConfig) -> CGFloat {
     let spec = flipCompactSpec(for: config)
     let d = digitSize
-    let gap = d * FlipClockLayoutMetrics.compactPanelGapRatio
-    let colon = d * FlipClockLayoutMetrics.colonWidthRatio
+    let glyph = FlipClockLayoutMetrics.compactMainGlyphSize(digitSize: d, charCount: 2)
+    let colon = FlipClockLayoutMetrics.colonLayoutWidth(glyphSize: glyph, fontName: config.selectedFontName)
     let hourW = FlipClockLayoutMetrics.compactPanelWidth(digitSize: d, charCount: spec.hourCharCount)
     let minuteW = FlipClockLayoutMetrics.compactPanelWidth(digitSize: d, charCount: 2)
-    var total = hourW + gap + colon + gap + minuteW
+    var total = hourW + colon + minuteW
 
-    if spec.showsDetachedSeconds {
-      let secondD = d * FlipClockLayoutMetrics.compactDetachedSecondScale
-      total += FlipClockLayoutMetrics.compactSecondPanelWidth(digitSize: secondD, charCount: 2)
-    } else if spec.trailingAMPM {
-      total = max(total, hourW + gap + colon + gap + minuteW + d * 0.12)
+    // 压缩秒叠在分钟板右下角，不增加行宽
+    if spec.trailingAMPM {
+      total = max(total, hourW + colon + minuteW + d * 0.12)
     }
 
     return total
@@ -193,7 +263,10 @@ enum ClockFontSizeLimits {
     let cardW = d * FlipClockLayoutMetrics.digitCardWidthRatio
     let innerGap = d * FlipClockLayoutMetrics.digitGroupSpacingRatio
     let outerGap = d * FlipClockLayoutMetrics.sectionSpacingRatio
-    let colonW = d * FlipClockLayoutMetrics.colonWidthRatio
+    let colonW = FlipClockLayoutMetrics.tripleEqualColonLayoutWidth(
+      digitSize: d,
+      fontName: config.selectedFontName
+    )
     let ampmW = d * FlipClockLayoutMetrics.ampmWidthRatio
 
     func digitGroupWidth(count: Int) -> CGFloat {
@@ -201,23 +274,19 @@ enum ClockFontSizeLimits {
       return CGFloat(count) * cardW + CGFloat(max(0, count - 1)) * innerGap
     }
 
-    var segments: [CGFloat] = []
-    if spec.leadingAMPM { segments.append(ampmW) }
-    segments.append(digitGroupWidth(count: spec.hourDigits))
-    segments.append(colonW)
-    segments.append(digitGroupWidth(count: 2))
-    if spec.showsSeconds {
-      segments.append(colonW)
-      segments.append(digitGroupWidth(count: 2))
-    }
-    if spec.trailingAMPM { segments.append(ampmW) }
-
     var width: CGFloat = 0
-    for (index, part) in segments.enumerated() {
-      width += part
-      if index < segments.count - 1 {
-        width += outerGap
-      }
+    if spec.leadingAMPM {
+      width += ampmW + outerGap
+    }
+    width += digitGroupWidth(count: spec.hourDigits)
+    width += colonW
+    width += digitGroupWidth(count: 2)
+    if spec.showsSeconds {
+      width += colonW
+      width += digitGroupWidth(count: 2)
+    }
+    if spec.trailingAMPM {
+      width += outerGap + ampmW
     }
     return width
   }

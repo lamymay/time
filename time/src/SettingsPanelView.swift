@@ -42,7 +42,7 @@ struct SettingsPanelView: View {
   @Binding var panelOffset: CGSize
   @Binding var settingsSheetWidth: Double
   @Binding var isExpanded: Bool
-  @ObservedObject var timeScheduler: ClockTimeScheduler
+  let timeScheduler: ClockTimeScheduler
   var onSpeedChange: () -> Void
 
   @GestureState private var dragOffset: CGSize = .zero
@@ -52,7 +52,7 @@ struct SettingsPanelView: View {
 
   private let versionUnlockRequiredTaps = 5
   private let versionUnlockTapWindow: TimeInterval = 2
-  @State private var flipLayoutThrottle = SettingsChangeThrottle()
+  @State private var layoutSyncThrottle = SettingsChangeThrottle()
   #if os(iOS)
     @State private var previewFontSize: Double?
     /// 首帧先出面板骨架，下一帧再建色条，避免长按打开时主线程卡死
@@ -124,9 +124,9 @@ struct SettingsPanelView: View {
     )
   }
 
-  /// 翻页版式切换合并字号 clamp，避免连点分段控件时整页卡顿
-  private func scheduleFlipLayoutSync() {
-    flipLayoutThrottle.schedule(delayNanoseconds: 100_000_000) {
+  /// iOS 底部 sheet 打开时 Root 跳过后台 clamp，面板内合并节流后统一 clamp
+  private func scheduleLayoutSync() {
+    layoutSyncThrottle.schedule(delayNanoseconds: 100_000_000) {
       syncFontSizeToLimits()
     }
   }
@@ -165,7 +165,7 @@ struct SettingsPanelView: View {
       #endif
     }
     .onAppear {
-      syncFontSizeToLimits()
+      clampFlipSettingsForPrecision()
       #if os(iOS)
         if isIOSSheet, !iosColorPickersReady {
           Task { @MainActor in
@@ -181,22 +181,18 @@ struct SettingsPanelView: View {
         iosColorPickersReady = false
       }
     #endif
-    .onChangeCompat(of: screenSize) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: committedPanelClockConfig) { _, _ in
+      scheduleLayoutSync()
+    }
     .onChangeCompat(of: clockDisplayStyleRaw) { _, raw in
       if ClockDisplayStyle(rawValue: raw) == .flip {
         showTimeZoneText = false
-        clampFlipSettingsForPrecision()
-      } else {
-        syncFontSizeToLimits()
       }
+      clampFlipSettingsForPrecision()
     }
-    .onChangeCompat(of: flipClockFormatRaw) { _, _ in scheduleFlipLayoutSync() }
-    .onChangeCompat(of: flipCompactDetachedSeconds) { _, _ in scheduleFlipLayoutSync() }
-    .onChangeCompat(of: selectedFontName) { _, _ in syncFontSizeToLimits() }
-    .onChangeCompat(of: padZero) { _, _ in syncFontSizeToLimits() }
-    .onChangeCompat(of: is24Hour) { _, _ in syncFontSizeToLimits() }
-    .onChangeCompat(of: showAMPM) { _, _ in syncFontSizeToLimits() }
-    .onChangeCompat(of: timeDisplayPrecisionRaw) { _, _ in syncFontSizeToLimits() }
+    .onChangeCompat(of: timeDisplayPrecisionRaw) { _, _ in
+      clampFlipSettingsForPrecision()
+    }
     .environment(\.settingsCompactLayout, isIOSSheet)
     .foregroundStyle(.white)
     #if os(iOS)
@@ -256,7 +252,7 @@ struct SettingsPanelView: View {
   #endif
 
   private var clockPreviewSection: some View {
-    SettingsClockPreview(
+    SettingsClockPreviewHost(
       scheduler: timeScheduler,
       displayStyle: displayStyle,
       config: previewPanelClockConfig,
@@ -407,7 +403,7 @@ struct SettingsPanelView: View {
           value: $fontSize,
           range: fontSizeRange,
           label: "\(Int(fontSize))"
-        ) {}
+        )
       #endif
       HStack(alignment: .center, spacing: isIOSSheet ? 8 : 12) {
         Text(L10n.text("settings.font"))
@@ -452,10 +448,6 @@ struct SettingsPanelView: View {
       }
 
       clockStylePrecisionBlock
-    }
-    .onAppear { clampFlipSettingsForPrecision() }
-    .onChangeCompat(of: timeDisplayPrecisionRaw) { _, _ in
-      clampFlipSettingsForPrecision()
     }
   }
 
@@ -885,7 +877,7 @@ struct SettingsPanelView: View {
   }
 
   private func closePanel() {
-    flipLayoutThrottle.flush { syncFontSizeToLimits() }
+    layoutSyncThrottle.flush { syncFontSizeToLimits() }
     #if os(iOS)
       previewFontSize = nil
     #endif
@@ -1089,3 +1081,30 @@ private struct SettingsToggleRow: View {
     }
   }
 #endif
+
+/// 仅预览区订阅 scheduler tick，避免整页设置面板每秒重绘
+private struct SettingsClockPreviewHost: View {
+  @ObservedObject var scheduler: ClockTimeScheduler
+  let displayStyle: ClockDisplayStyle
+  let config: ClockDisplayConfig
+  let backgroundColorHex: String
+  let flipCardColorHex: String
+  let fontColorHex: String
+  let ampmVertical: String
+  let showTimeZoneText: Bool
+  let previewSize: CGSize
+
+  var body: some View {
+    SettingsClockPreview(
+      segments: scheduler.segments,
+      displayStyle: displayStyle,
+      config: config,
+      backgroundColorHex: backgroundColorHex,
+      flipCardColorHex: flipCardColorHex,
+      fontColorHex: fontColorHex,
+      ampmVertical: ampmVertical,
+      showTimeZoneText: showTimeZoneText,
+      previewSize: previewSize
+    )
+  }
+}

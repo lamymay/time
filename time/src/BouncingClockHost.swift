@@ -5,6 +5,7 @@ struct BouncingClockHost: View {
   let scheduler: ClockTimeScheduler
   let motion: ClockMotionEngine
   let styleStamp: ClockStyleStamp
+  let schedulerFormat: ClockFormatOptions
   /// 用于撑开 SwiftUI 布局；物理边界以 UIKit 容器 bounds 为准
   let playfieldSize: CGSize
   let moveSpeed: Double
@@ -17,6 +18,7 @@ struct BouncingClockHost: View {
         scheduler: scheduler,
         motion: motion,
         styleStamp: styleStamp,
+        schedulerFormat: schedulerFormat,
         moveSpeed: moveSpeed,
         isActive: isActive,
         isPaused: isPaused
@@ -26,6 +28,7 @@ struct BouncingClockHost: View {
         scheduler: scheduler,
         motion: motion,
         styleStamp: styleStamp,
+        schedulerFormat: schedulerFormat,
         playfieldSize: playfieldSize,
         moveSpeed: moveSpeed,
         isActive: isActive,
@@ -41,6 +44,7 @@ struct BouncingClockHost: View {
     let scheduler: ClockTimeScheduler
     let motion: ClockMotionEngine
     let styleStamp: ClockStyleStamp
+    let schedulerFormat: ClockFormatOptions
     let moveSpeed: Double
     let isActive: Bool
     let isPaused: Bool
@@ -64,12 +68,21 @@ struct BouncingClockHost: View {
         motion?.setScreenSize(size)
       }
       motion.setRenderer(context.coordinator)
-      scheduler.setTickTarget(clock)
+      context.coordinator.attachSchedulerIfNeeded(
+        scheduler: scheduler,
+        clock: clock,
+        format: schedulerFormat
+      )
       return container
     }
 
     func updateNSView(_ container: BounceContainerNSView, context: Context) {
       guard let clock = context.coordinator.clock else { return }
+      context.coordinator.attachSchedulerIfNeeded(
+        scheduler: scheduler,
+        clock: clock,
+        format: schedulerFormat
+      )
       if context.coordinator.styleStamp != styleStamp {
         clock.applyStyle(styleStamp)
         context.coordinator.styleStamp = styleStamp
@@ -85,7 +98,7 @@ struct BouncingClockHost: View {
     }
 
     static func dismantleNSView(_: BounceContainerNSView, coordinator: Coordinator) {
-      coordinator.scheduler?.setTickTarget(nil)
+      coordinator.detachScheduler()
       coordinator.motion?.setRenderer(nil)
     }
 
@@ -95,6 +108,31 @@ struct BouncingClockHost: View {
       weak var container: BounceContainerNSView?
       weak var clock: NativeClockNSView?
       var styleStamp: ClockStyleStamp?
+      private var attachedFormat: ClockFormatOptions?
+      private weak var attachedTickTarget: NativeClockTickTarget?
+
+      func attachSchedulerIfNeeded(
+        scheduler: ClockTimeScheduler,
+        clock: NativeClockTickTarget,
+        format: ClockFormatOptions
+      ) {
+        self.scheduler = scheduler
+        if attachedFormat != format {
+          scheduler.setFormat(format)
+          attachedFormat = format
+        }
+        let sameTarget = attachedTickTarget.map { ($0 as AnyObject) === (clock as AnyObject) } ?? false
+        if !sameTarget {
+          scheduler.setTickTarget(clock)
+          attachedTickTarget = clock
+        }
+      }
+
+      func detachScheduler() {
+        scheduler?.setTickTarget(nil)
+        attachedFormat = nil
+        attachedTickTarget = nil
+      }
 
       func setClockCenter(_ center: CGPoint) {
         container?.setClockCenter(center)
@@ -166,6 +204,7 @@ struct BouncingClockHost: View {
     let scheduler: ClockTimeScheduler
     let motion: ClockMotionEngine
     let styleStamp: ClockStyleStamp
+    let schedulerFormat: ClockFormatOptions
     let playfieldSize: CGSize
     let moveSpeed: Double
     let isActive: Bool
@@ -193,12 +232,21 @@ struct BouncingClockHost: View {
         motion?.setScreenSize(size)
       }
       motion.setRenderer(context.coordinator)
-      scheduler.setTickTarget(clock)
+      context.coordinator.attachSchedulerIfNeeded(
+        scheduler: scheduler,
+        clock: clock,
+        format: schedulerFormat
+      )
       return container
     }
 
     func updateUIView(_ container: BounceContainerUIView, context: Context) {
       guard let clock = context.coordinator.clock else { return }
+      context.coordinator.attachSchedulerIfNeeded(
+        scheduler: scheduler,
+        clock: clock,
+        format: schedulerFormat
+      )
       if context.coordinator.styleStamp != styleStamp {
         clock.applyStyle(styleStamp)
         context.coordinator.styleStamp = styleStamp
@@ -214,7 +262,7 @@ struct BouncingClockHost: View {
     }
 
     static func dismantleUIView(_: BounceContainerUIView, coordinator: Coordinator) {
-      coordinator.scheduler?.setTickTarget(nil)
+      coordinator.detachScheduler()
       coordinator.motion?.setRenderer(nil)
     }
 
@@ -224,6 +272,31 @@ struct BouncingClockHost: View {
       weak var container: BounceContainerUIView?
       weak var clock: NativeClockUIView?
       var styleStamp: ClockStyleStamp?
+      private var attachedFormat: ClockFormatOptions?
+      private weak var attachedTickTarget: NativeClockTickTarget?
+
+      func attachSchedulerIfNeeded(
+        scheduler: ClockTimeScheduler,
+        clock: NativeClockTickTarget,
+        format: ClockFormatOptions
+      ) {
+        self.scheduler = scheduler
+        if attachedFormat != format {
+          scheduler.setFormat(format)
+          attachedFormat = format
+        }
+        let sameTarget = attachedTickTarget.map { ($0 as AnyObject) === (clock as AnyObject) } ?? false
+        if !sameTarget {
+          scheduler.setTickTarget(clock)
+          attachedTickTarget = clock
+        }
+      }
+
+      func detachScheduler() {
+        scheduler?.setTickTarget(nil)
+        attachedFormat = nil
+        attachedTickTarget = nil
+      }
 
       func setClockCenter(_ center: CGPoint) {
         container?.setClockCenter(center)

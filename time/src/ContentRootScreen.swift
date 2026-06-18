@@ -36,7 +36,7 @@ struct ContentRootScreen: View {
   @Binding var fontCatalog: [String]?
   @Binding var flipLaunchPresentationApplied: Bool
 
-  @ObservedObject var timeScheduler: ClockTimeScheduler
+  let timeScheduler: ClockTimeScheduler
   var scenePhase: ScenePhase
 
   @StateObject private var oledPixelShift = OledPixelShiftEngine()
@@ -104,11 +104,8 @@ struct ContentRootScreen: View {
   }
 
   var body: some View {
-    panelClampLayer
-  }
-
-  private var panelClampLayer: some View {
-    styleChangeLayer
+    coreStack
+      .onAppear(perform: handleAppear)
       .onChangeCompat(of: screenSize) { _, _ in
         clampFontSizeToScreen()
         oledPixelShift.setScreenSize(screenSize)
@@ -121,46 +118,36 @@ struct ContentRootScreen: View {
       .onChangeCompat(of: showSettings) { _, isOpen in
         #if os(iOS)
           syncFlipBrightnessGuard()
-          if isOpen { return }
+        #endif
+        syncSchedulerSwiftUIUpdates()
+        #if os(iOS)
+          if !isOpen {
+            syncSchedulerFormat()
+          }
         #endif
         clampFontSizeToScreen()
       }
       .onChangeCompat(of: showFontPicker) { _, _ in
         syncFlipBrightnessGuard()
+        syncSchedulerSwiftUIUpdates()
         clampFontSizeToScreen()
       }
-  }
-
-  private var styleChangeLayer: some View {
-    configChangeLayer
       .onChangeCompat(of: clockDisplayStyleRaw) { _, _ in
         reactStyleChange()
         syncFlipBrightnessGuard()
       }
-  }
-
-  private var configChangeLayer: some View {
-    sceneLifecycleLayer
-      .onChangeCompat(of: fontSize) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: padZero) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: is24Hour) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: showAMPM) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: ampmSide) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: ampmVertical) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: selectedTimeZone) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: showTimeZoneText) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: selectedFontName) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: timeDisplayPrecisionRaw) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: flipClockFormatRaw) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: flipCompactDetachedSeconds) { _, _ in reactConfigChange() }
-      .onChangeCompat(of: avoidTopSafeAreaOnNotch) { _, _ in clampFontSizeToScreen() }
-      .onChangeCompat(of: notchTopContentInset) { _, _ in clampFontSizeToScreen() }
-      .onChangeCompat(of: oledPixelShiftEnabled) { _, _ in syncFlipBrightnessGuard() }
-  }
-
-  private var sceneLifecycleLayer: some View {
-    coreStack
-      .onAppear(perform: handleAppear)
+      .onChangeCompat(of: clockConfig) { _, _ in
+        reactConfigChange()
+      }
+      .onChangeCompat(of: avoidTopSafeAreaOnNotch) { _, _ in
+        clampFontSizeToScreen()
+      }
+      .onChangeCompat(of: notchTopContentInset) { _, _ in
+        clampFontSizeToScreen()
+      }
+      .onChangeCompat(of: oledPixelShiftEnabled) { _, _ in
+        syncFlipBrightnessGuard()
+      }
       .onChangeCompat(of: scenePhase) { _, phase in
         timeScheduler.setActive(phase == .active)
         syncFlipBrightnessGuard()
@@ -205,16 +192,18 @@ struct ContentRootScreen: View {
   }
 
   #if os(iOS)
-    /// 仅接管长按，不参与布局；设置打开时关闭命中避免挡面板
+    /// 全屏透明层：长按开设置；翻页模式双指捏合缩放字号
     private var iosLongPressCaptureLayer: some View {
-      Color.clear
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ignoresSafeArea()
-        .contentShape(Rectangle())
-        .allowsHitTesting(!showSettings && !showFontPicker)
-        .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 48) {
-          toggleSettings()
-        }
+      FlipClockIOSInteractionOverlay(
+        isEnabled: !showSettings && !showFontPicker,
+        pinchZoomEnabled: flipPinchZoomEnabled,
+        fontSize: $fontSize,
+        screen: clockPlayfieldSize,
+        config: flipPinchConfig,
+        onLongPress: toggleSettings
+      )
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .ignoresSafeArea()
     }
   #endif
 
@@ -241,11 +230,27 @@ struct ContentRootScreen: View {
     .allowsHitTesting(false)
   }
 
+  private var flipPinchZoomEnabled: Bool {
+    clockDisplayStyle == .flip && !showSettings && !showFontPicker
+  }
+
+  private var flipPinchConfig: ClockDisplayConfig {
+    clockConfig.applyingDisplayStyle(.flip)
+  }
+
   private var clockLayer: some View {
     clockScene(isPaused: clockPaused)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
       .padding(.top, clockTopInset)
       .clockLayoutBleedIfAvailable()
+      #if os(macOS)
+        .flipClockPinchZoom(
+          fontSize: $fontSize,
+          enabled: flipPinchZoomEnabled,
+          screen: clockPlayfieldSize,
+          config: flipPinchConfig
+        )
+      #endif
       .accessibilityIdentifier(TimeAccessibilityID.clockScene)
       .accessibilityElement(children: .contain)
       .oledPixelShift(
@@ -319,6 +324,7 @@ struct ContentRootScreen: View {
         scheduler: timeScheduler,
         style: style,
         precision: timeDisplayPrecision,
+        schedulerFormat: clockConfig.schedulerFormatOptions(for: .classic),
         timeZoneTopGap: -style.timeZoneSize * 0.12,
         showTimeZoneText: showTimeZoneText,
         ampmVertical: ampmVertical,
@@ -547,7 +553,8 @@ struct ContentRootScreen: View {
     if timeDisplayPrecisionRaw == "millisecond" {
       timeDisplayPrecisionRaw = TimeDisplayPrecision.second.rawValue
     }
-    timeScheduler.setFormat(clockConfig.schedulerFormatOptions(for: clockDisplayStyle))
+    syncSchedulerFormat()
+    syncSchedulerSwiftUIUpdates()
     timeScheduler.setActive(scenePhase == .active)
     DisplayKeepAwake.setEnabled(keepDisplayAwake)
     if AppUITestConfig.openSettingsOnLaunch {
@@ -574,11 +581,19 @@ struct ContentRootScreen: View {
   }
 
   private func reactConfigChange() {
+    syncSchedulerFormat()
     #if os(iOS)
       guard !isIOSSheetSettingsOpen else { return }
     #endif
-    timeScheduler.setFormat(clockConfig.schedulerFormatOptions(for: clockDisplayStyle))
     clampFontSizeToScreen()
+  }
+
+  private func syncSchedulerFormat() {
+    timeScheduler.setFormat(clockConfig.schedulerFormatOptions(for: clockDisplayStyle))
+  }
+
+  private func syncSchedulerSwiftUIUpdates() {
+    timeScheduler.setPublishesSegmentsToSwiftUI(showSettings || showFontPicker)
   }
 
   private func adjustFontSize(by delta: Double) {
@@ -588,6 +603,7 @@ struct ContentRootScreen: View {
 
   private func reactStyleChange() {
     showFontPicker = false
+    syncSchedulerFormat()
     if clockDisplayStyle == .flip {
       applyFlipPresentation()
     } else {

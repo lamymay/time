@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// 全屏设置顶部的实时时钟预览（只读 scheduler.segments，不抢占 tick target）
+/// 全屏设置顶部的实时时钟预览（只读 segments，不抢占 tick target）
 struct SettingsClockPreview: View {
-  @ObservedObject var scheduler: ClockTimeScheduler
+  let segments: TimeSegments
   let displayStyle: ClockDisplayStyle
   let config: ClockDisplayConfig
   let backgroundColorHex: String
@@ -34,7 +34,7 @@ struct SettingsClockPreview: View {
       classicPreview
     case .flip:
       FlipClockPreview(
-        segments: scheduler.segments,
+        segments: segments,
         config: previewConfig,
         backgroundColorHex: backgroundColorHex,
         flipCardColorHex: flipCardColorHex,
@@ -63,7 +63,7 @@ struct SettingsClockPreview: View {
       showTimeZoneText: showTimeZoneText,
       ampmVertical: ampmVertical
     )
-    return NativeClockPreviewRepresentable(segments: scheduler.segments, styleStamp: stamp)
+    return NativeClockPreviewRepresentable(segments: segments, styleStamp: stamp)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
   }
 }
